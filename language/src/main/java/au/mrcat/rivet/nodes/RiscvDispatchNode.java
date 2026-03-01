@@ -32,18 +32,18 @@ public class RiscvDispatchNode extends Node {
         long immUnsigned = instruction >>> 20;
 
         state.setRegister(rd, switch (func3) {
-            case Opcode.OP_IMM_ADDI: yield state.getRegister(rs1) + immSigned;
-            case Opcode.OP_IMM_SLTI: yield state.getRegister(rs1) < immSigned ? 1 : 0;
-            case Opcode.OP_IMM_SLTIU: yield Long.compareUnsigned(state.getRegister(rs1), immUnsigned) < 0 ? 1 : 0;
-            case Opcode.OP_IMM_XORI: yield state.getRegister(rs1) ^ immSigned;
-            case Opcode.OP_IMM_ORI: yield state.getRegister(rs1) | immSigned;
-            case Opcode.OP_IMM_ANDI: yield state.getRegister(rs1) & immSigned;
-            case Opcode.OP_IMM_SLLI:
+            case Opcode.OpInt.ADD: yield state.getRegister(rs1) + immSigned;
+            case Opcode.OpInt.SLT: yield state.getRegister(rs1) < immSigned ? 1 : 0;
+            case Opcode.OpInt.SLTU: yield Long.compareUnsigned(state.getRegister(rs1), immUnsigned) < 0 ? 1 : 0;
+            case Opcode.OpInt.XOR: yield state.getRegister(rs1) ^ immSigned;
+            case Opcode.OpInt.OR: yield state.getRegister(rs1) | immSigned;
+            case Opcode.OpInt.AND: yield state.getRegister(rs1) & immSigned;
+            case Opcode.OpInt.SLL:
                 if ((immUnsigned & ~0b111111) != 0) {
                     // FIXME: Implement traps
                 }
                 yield state.getRegister(rs1) << immUnsigned;
-            case Opcode.OP_IMM_SRLI:
+            case Opcode.OpInt.SR:
                 if ((immUnsigned & 0b101111_00000) != 0) {
                     // FIXME: Implement traps
                 }
