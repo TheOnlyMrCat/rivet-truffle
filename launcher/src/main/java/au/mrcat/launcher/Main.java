@@ -1,10 +1,11 @@
 package au.mrcat.launcher;
 
-import au.mrcat.rivet.RivetLanguage;
-import au.mrcat.rivet.nodes.RiscvDispatchNode;
-import au.mrcat.rivet.nodes.RivetRootNode;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.impl.FrameWithoutBoxing;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.ByteSequence;
+
+import java.io.IOException;
 
 public class Main {
     static void main() {
@@ -14,16 +15,14 @@ public class Main {
                 0x6f, 0x00, 0x00, 0x00, // j 0
         };
 
-        int[] testInstructions = new int[] {
-                0x00a50513, // addi a0, a0, 10
-                0x00a50013, // addi zero, a0, 10
-                0x0000006f, // j 0
-        };
+        Source source;
+        try {
+            source = Source.newBuilder("rv64", ByteSequence.create(testProgram), "<literal>").build();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        RivetLanguage language = new RivetLanguage();
-        RiscvDispatchNode dispatchNode = new RiscvDispatchNode(testInstructions);
-        RivetRootNode rootNode = new RivetRootNode(language, new FrameDescriptor(), dispatchNode);
-
-        rootNode.execute(new FrameWithoutBoxing(FrameDescriptor.newBuilder().build(), new Object[] {}));
+        Context context = Context.newBuilder("rv64").build();
+        Value result = context.eval(source);
     }
 }

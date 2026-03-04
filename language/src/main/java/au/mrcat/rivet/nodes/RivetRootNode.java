@@ -1,7 +1,6 @@
 package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetLanguage;
-import au.mrcat.rivet.riscv.RegisterState;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -16,6 +15,7 @@ public class RivetRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return bodyNode.execute(frame);
+        bodyNode.execute(frame);
+        return true;
     }
 }
