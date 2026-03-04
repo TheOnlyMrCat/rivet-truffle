@@ -16,7 +16,6 @@ public class RivetRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        RegisterState state = new RegisterState();
-        return bodyNode.execute(state);
+        return bodyNode.execute(frame);
     }
 }
