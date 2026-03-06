@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -24,6 +25,9 @@ public class RiscvDispatchNode extends RivetNode {
                 case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
                 case Opcode.OP -> handleOp(frame, instruction);
                 case Opcode.LUI -> handleLui(frame, instruction);
+                case Opcode.BRANCH -> handleBranch(frame, i, instruction);
+                case Opcode.JAL -> handleJal(frame, i, instruction);
+                case Opcode.JALR -> handleJalr(frame, i, instruction);
                 case Opcode.SYSTEM -> handleSystem(frame, instruction);
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
@@ -76,7 +80,7 @@ public class RiscvDispatchNode extends RivetNode {
         int rd = (instruction >> 7) & 0b11111;
         long immSigned = (instruction >> 12) << 12;
 
-        ctx.setRegister(rd, baseAddress + immSigned);
+        ctx.setRegister(rd, baseAddress + i + immSigned);
     }
 
     void handleOp(VirtualFrame frame, int instruction) {
@@ -116,6 +120,78 @@ public class RiscvDispatchNode extends RivetNode {
         long immSigned = (instruction >> 12) << 12;
 
         ctx.setRegister(rd, immSigned);
+    }
+
+    void handleBranch(VirtualFrame frame, int i, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+
+        if (!switch (funct3) {
+            case Opcode.Branch.BEQ -> ctx.getRegister(rs1) == ctx.getRegister(rs2);
+            case Opcode.Branch.BNE -> ctx.getRegister(rs1) != ctx.getRegister(rs2);
+            case Opcode.Branch.BLT -> ctx.getRegister(rs1) < ctx.getRegister(rs2);
+            case Opcode.Branch.BLTU -> Long.compareUnsigned(ctx.getRegister(rs1), ctx.getRegister(rs2)) < 0;
+            case Opcode.Branch.BGE -> ctx.getRegister(rs1) >= ctx.getRegister(rs2);
+            case Opcode.Branch.BGEU -> Long.compareUnsigned(ctx.getRegister(rs1), ctx.getRegister(rs2)) >= 0;
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }) {
+            return;
+        }
+
+        long jumpOffset = ((instruction >> 8) & 0b1111) << 1
+                | ((instruction >> 25) & 0b111111) << 5
+                | ((instruction >> 8) & 0b1) << 11
+                | (instruction >> 31) << 12;
+
+        if ((jumpOffset & 0b10) != 0) {
+            throw new RiscvTrapException(ExceptionCause.InstructionAddressMisaligned);
+        }
+    }
+
+    void handleJal(VirtualFrame frame, int i, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        long jumpOffset = (instruction >> 12 & 0b1111_1111) << 12
+                | ((instruction >> 20 & 0b1) << 11)
+                | ((instruction >> 21 & 0b11_1111_1111) << 1)
+                | ((instruction >> 31) << 20);
+
+        if ((jumpOffset & 0b10) != 0) {
+            throw new RiscvTrapException(ExceptionCause.InstructionAddressMisaligned);
+        }
+
+        long currentPc = baseAddress + i;
+        long newPc = currentPc + jumpOffset;
+
+        ctx.setRegister(rd, currentPc + 4);
+        throw new RiscvJumpException(newPc);
+    }
+
+    void handleJalr(VirtualFrame frame, int i, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immSigned = instruction >> 20;
+
+        if (funct3 != 0) {
+            throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }
+
+        long currentPc = baseAddress + i;
+        long newPc = (ctx.getRegister(rs1) + immSigned) & ~0b1;
+
+        if ((newPc & 0b10) != 0) {
+            throw new RiscvTrapException(ExceptionCause.InstructionAddressMisaligned);
+        }
+
+        ctx.setRegister(rd, currentPc + 4);
+        throw new RiscvJumpException(newPc);
     }
 
     void handleSystem(VirtualFrame frame, int instruction) {
