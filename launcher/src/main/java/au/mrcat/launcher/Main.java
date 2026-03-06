@@ -12,6 +12,7 @@ public class Main {
         byte[] testProgram = new byte[] {
                 0x13, 0x05, (byte) 0xa5, 0x00, // addi a0, a0, 10
                 0x13, 0x05, (byte) 0xa5, 0x00, // addi a0, a0, 10
+                0x73, 0x00, 0x50, 0x10, // wfi
                 0x6f, 0x00, 0x00, 0x00, // j 0
         };
 

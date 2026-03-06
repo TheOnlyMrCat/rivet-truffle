@@ -8,17 +8,23 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class RiscvDispatchNode extends RivetNode {
     @CompilationFinal int[] instructions;
+    private final long baseAddress;
 
-    public RiscvDispatchNode(int[] instructions) {
+    public RiscvDispatchNode(int[] instructions, long baseAddress) {
         this.instructions = instructions;
+        this.baseAddress = baseAddress;
     }
 
     void execute(VirtualFrame frame) {
-        for (int instruction : instructions) {
+        for (int i = 0; i < instructions.length; i++) {
+            int instruction = instructions[i];
             int opcode = instruction & 0x7f;
             switch (opcode) {
                 case Opcode.OP_IMM -> handleOpImm(frame, instruction);
+                case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
                 case Opcode.OP -> handleOp(frame, instruction);
+                case Opcode.LUI -> handleLui(frame, instruction);
+                case Opcode.SYSTEM -> handleSystem(frame, instruction);
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
             this.currentLanguageContext().dumpRegisterState();
@@ -64,6 +70,15 @@ public class RiscvDispatchNode extends RivetNode {
         });
     }
 
+    void handleAuipc(VirtualFrame frame, int i, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        long immSigned = (instruction >> 12) << 12;
+
+        ctx.setRegister(rd, baseAddress + immSigned);
+    }
+
     void handleOp(VirtualFrame frame, int instruction) {
         var ctx = currentLanguageContext();
 
@@ -92,5 +107,35 @@ public class RiscvDispatchNode extends RivetNode {
             };
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         });
+    }
+
+    void handleLui(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        long immSigned = (instruction >> 12) << 12;
+
+        ctx.setRegister(rd, immSigned);
+    }
+
+    void handleSystem(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int funct12 = instruction >>> 20;
+
+        switch (funct3) {
+            case Opcode.System.PRIV -> {
+                switch (funct12) {
+                    case Opcode.Priv.EBREAK -> throw new RiscvTrapException(ExceptionCause.Breakpoint);
+                    case Opcode.Priv.ECALL -> throw new RiscvTrapException(ExceptionCause.EnvironmentCallFromMMode);
+                    case Opcode.Priv.WFI -> {}
+                    default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+            }
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }
     }
 }

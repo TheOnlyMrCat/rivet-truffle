@@ -17,6 +17,6 @@ public final class RivetParser {
             instructions.add(instruction);
         }
 
-        return new RiscvDispatchNode(instructions.stream().mapToInt(i->i).toArray());
+        return new RiscvDispatchNode(instructions.stream().mapToInt(i->i).toArray(), 0x8000_0000L);
     }
 }
