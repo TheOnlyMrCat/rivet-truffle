@@ -23,8 +23,10 @@ public class RiscvDispatchNode extends RivetNode {
             switch (opcode) {
                 case Opcode.OP_IMM -> handleOpImm(frame, instruction);
                 case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
+                case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
                 case Opcode.OP -> handleOp(frame, instruction);
                 case Opcode.LUI -> handleLui(frame, instruction);
+                case Opcode.OP_32 -> handleOp32(frame, instruction);
                 case Opcode.BRANCH -> handleBranch(frame, i, instruction);
                 case Opcode.JAL -> handleJal(frame, i, instruction);
                 case Opcode.JALR -> handleJalr(frame, i, instruction);
@@ -58,15 +60,17 @@ public class RiscvDispatchNode extends RivetNode {
                 yield ctx.getRegister(rs1) << immUnsigned;
             }
             case Opcode.OpInt.SR -> {
-                if ((immUnsigned & 0b101111_00000) != 0) {
+                if ((immUnsigned & 0b101111_000000) != 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
 
                 long shift = immUnsigned & 0b111111;
 
                 if ((immUnsigned & 0b010000_000000) != 0) {
+                    // Arithmetic right shift
                     yield ctx.getRegister(rs1) >> shift;
                 } else {
+                    // Logical right shift
                     yield ctx.getRegister(rs1) >>> shift;
                 }
             }
@@ -81,6 +85,42 @@ public class RiscvDispatchNode extends RivetNode {
         long immSigned = (instruction >> 12) << 12;
 
         ctx.setRegister(rd, baseAddress + i + immSigned);
+    }
+
+    void handleOpImm32(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int immSigned = instruction >> 20;
+        int immUnsigned = instruction >>> 20;
+
+        ctx.setRegister(rd, switch (funct3) {
+            case Opcode.OpInt.ADD -> (int) ctx.getRegister(rs1) + immSigned;
+            case Opcode.OpInt.SLL -> {
+                if ((immUnsigned & ~0b111111_1) != 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                yield ctx.getRegister(rs1) << immUnsigned;
+            }
+            case Opcode.OpInt.SR -> {
+                if ((immUnsigned & 0b1011111_00000) != 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+
+                long shift = immUnsigned & 0b11111;
+
+                if ((immUnsigned & 0b0100000_00000) != 0) {
+                    // Arithmetic right shift
+                    yield ctx.getRegister(rs1) >> shift;
+                } else {
+                    // Logical right shift
+                    yield ctx.getRegister(rs1) >>> shift;
+                }
+            }
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        });
     }
 
     void handleOp(VirtualFrame frame, int instruction) {
@@ -101,12 +141,37 @@ public class RiscvDispatchNode extends RivetNode {
                 case Opcode.OpInt.OR -> ctx.getRegister(rs1) | ctx.getRegister(rs2);
                 case Opcode.OpInt.AND -> ctx.getRegister(rs1) & ctx.getRegister(rs2);
                 case Opcode.OpInt.SLL -> ctx.getRegister(rs1) << ctx.getRegister(rs2);
-                case Opcode.OpInt.SR -> ctx.getRegister(rs1) >> ctx.getRegister(rs2) & 0b111111;
+                case Opcode.OpInt.SR -> ctx.getRegister(rs1) >>> (ctx.getRegister(rs2) & 0b111111);
                 default -> throw new IllegalStateException("Unexpected value: " + funct3);
             };
             case Opcode.Op.NEG -> switch (funct3) {
                 case Opcode.OpInt.ADD -> ctx.getRegister(rs1) - ctx.getRegister(rs2);
-                case Opcode.OpInt.SR -> ctx.getRegister(rs1) >>> ctx.getRegister(rs2) & 0b111111;
+                case Opcode.OpInt.SR -> ctx.getRegister(rs1) >> (ctx.getRegister(rs2) & 0b111111);
+                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+            };
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        });
+    }
+
+    void handleOp32(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int funct7 = instruction >>> 25;
+
+        ctx.setRegister(rd, switch (funct7) {
+            case Opcode.Op.INT -> switch (funct3) {
+                case Opcode.OpInt.ADD -> (int) ctx.getRegister(rs1) + (int) ctx.getRegister(rs2);
+                case Opcode.OpInt.SLL -> (int) ctx.getRegister(rs1) << (ctx.getRegister(rs2) & 0b11111);
+                case Opcode.OpInt.SR -> (int) ctx.getRegister(rs1) >>> (ctx.getRegister(rs2) & 0b11111);
+                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+            };
+            case Opcode.Op.NEG -> switch (funct3) {
+                case Opcode.OpInt.ADD -> (int) ctx.getRegister(rs1) - (int) ctx.getRegister(rs2);
+                case Opcode.OpInt.SR ->  (int) ctx.getRegister(rs1) >> (ctx.getRegister(rs2) & 0b11111);
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             };
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
