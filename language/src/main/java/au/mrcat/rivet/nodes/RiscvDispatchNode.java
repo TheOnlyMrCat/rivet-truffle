@@ -1,6 +1,8 @@
 package au.mrcat.rivet.nodes;
 
+import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -11,16 +13,16 @@ public class RiscvDispatchNode extends RivetNode {
         this.instructions = instructions;
     }
 
-    Object execute(VirtualFrame frame) {
+    void execute(VirtualFrame frame) {
         for (int instruction : instructions) {
             int opcode = instruction & 0x7f;
             switch (opcode) {
                 case Opcode.OP_IMM -> handleOpImm(frame, instruction);
                 case Opcode.OP -> handleOp(frame, instruction);
+                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
             this.currentLanguageContext().dumpRegisterState();
         }
-        return null;
     }
 
     void handleOpImm(VirtualFrame frame, int instruction) {
@@ -41,13 +43,13 @@ public class RiscvDispatchNode extends RivetNode {
             case Opcode.OpInt.AND -> ctx.getRegister(rs1) & immSigned;
             case Opcode.OpInt.SLL -> {
                 if ((immUnsigned & ~0b111111) != 0) {
-                    // FIXME: Implement traps
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 yield ctx.getRegister(rs1) << immUnsigned;
             }
             case Opcode.OpInt.SR -> {
                 if ((immUnsigned & 0b101111_00000) != 0) {
-                    // FIXME: Implement traps
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
 
                 long shift = immUnsigned & 0b111111;
@@ -86,9 +88,9 @@ public class RiscvDispatchNode extends RivetNode {
             case Opcode.Op.NEG -> switch (funct3) {
                 case Opcode.OpInt.ADD -> ctx.getRegister(rs1) - ctx.getRegister(rs2);
                 case Opcode.OpInt.SR -> ctx.getRegister(rs1) >>> ctx.getRegister(rs2) & 0b111111;
-                default -> /* FIXME: Implement traps */ ctx.getRegister(rd);
+                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             };
-            default -> /* FIXME: Implement traps */ ctx.getRegister(rd);
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         });
     }
 }
