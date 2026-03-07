@@ -21,9 +21,11 @@ public class RiscvDispatchNode extends RivetNode {
             int instruction = instructions[i];
             int opcode = instruction & 0x7f;
             switch (opcode) {
+                case Opcode.LOAD -> handleLoad(frame, instruction);
                 case Opcode.OP_IMM -> handleOpImm(frame, instruction);
                 case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
                 case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
+                case Opcode.STORE -> handleStore(frame, instruction);
                 case Opcode.OP -> handleOp(frame, instruction);
                 case Opcode.LUI -> handleLui(frame, instruction);
                 case Opcode.OP_32 -> handleOp32(frame, instruction);
@@ -35,6 +37,28 @@ public class RiscvDispatchNode extends RivetNode {
             }
             this.currentLanguageContext().dumpRegisterState();
         }
+    }
+
+    void handleLoad(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immSigned = instruction >> 20;
+
+        long address = ctx.getRegister(rs1) + immSigned;
+
+        ctx.setRegister(rd, switch (funct3) {
+            case Opcode.MemWidth.BYTE -> ctx.readByte(address);
+            case Opcode.MemWidth.BYTE_UNSIGNED -> Byte.toUnsignedLong(ctx.readByte(address));
+            case Opcode.MemWidth.HALF -> ctx.readShort(address);
+            case Opcode.MemWidth.HALF_UNSIGNED -> Short.toUnsignedLong(ctx.readShort(address));
+            case Opcode.MemWidth.WORD -> ctx.readInt(address);
+            case Opcode.MemWidth.WORD_UNSIGNED -> Integer.toUnsignedLong(ctx.readInt(address));
+            case Opcode.MemWidth.DOUBLE -> ctx.readLong(address);
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        });
     }
 
     void handleOpImm(VirtualFrame frame, int instruction) {
@@ -121,6 +145,27 @@ public class RiscvDispatchNode extends RivetNode {
             }
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         });
+    }
+
+    void handleStore(VirtualFrame frame, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int offset = (instruction >> 7) & 0b11111
+            | (instruction >> 25) << 5;
+
+        long address = ctx.getRegister(rs1) + offset;
+        long value = ctx.getRegister(rs2);
+
+        switch (funct3) {
+            case Opcode.MemWidth.BYTE -> ctx.writeByte(address, (byte) value);
+            case Opcode.MemWidth.HALF -> ctx.writeShort(address, (short) value);
+            case Opcode.MemWidth.WORD -> ctx.writeInt(address, (int) value);
+            case Opcode.MemWidth.DOUBLE -> ctx.writeLong(address, value);
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        };
     }
 
     void handleOp(VirtualFrame frame, int instruction) {
