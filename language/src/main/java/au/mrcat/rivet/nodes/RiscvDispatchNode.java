@@ -16,7 +16,8 @@ public class RiscvDispatchNode extends RivetNode {
         this.baseAddress = baseAddress;
     }
 
-    void execute(VirtualFrame frame) {
+    @Override
+    public Object execute(VirtualFrame frame) {
         for (int i = 0; i < instructions.length; i++) {
             int instruction = instructions[i];
             int opcode = instruction & 0x7f;
@@ -37,6 +38,7 @@ public class RiscvDispatchNode extends RivetNode {
             }
             this.currentLanguageContext().dumpRegisterState();
         }
+        return null;
     }
 
     void handleLoad(VirtualFrame frame, int instruction) {

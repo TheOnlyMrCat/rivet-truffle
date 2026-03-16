@@ -1,7 +1,7 @@
 package au.mrcat.rivet;
 
+import au.mrcat.rivet.nodes.RiscvStartupNode;
 import au.mrcat.rivet.nodes.RivetRootNode;
-import au.mrcat.rivet.parser.RivetParser;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -15,9 +15,9 @@ public final class RivetLanguage extends TruffleLanguage<RivetContext> {
     }
 
     @Override
-    protected CallTarget parse(ParsingRequest request) throws Exception {
-        var dispatchNode = RivetParser.parse(request.getSource().getBytes());
-        return new RivetRootNode(this, FrameDescriptor.newBuilder().build(), dispatchNode).getCallTarget();
+    protected CallTarget parse(ParsingRequest request) {
+        var startupNode = new RiscvStartupNode(request.getSource().getBytes());
+        return new RivetRootNode(this, FrameDescriptor.newBuilder().build(), startupNode).getCallTarget();
     }
 
     @Override

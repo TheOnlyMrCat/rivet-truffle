@@ -10,7 +10,7 @@ import java.io.IOException;
 public class Main {
     static void main() {
         byte[] testProgram = new byte[] {
-                0x17, 0x30, 0x00, 0x00, // auipc t1, 0
+                0x17, 0x03, 0x00, 0x00, // auipc t1, 0
                 (byte) 0x83, 0x25, 0x03, 0x00, // lw a1, 0(t1)
                 0x13, 0x05, (byte) 0xa5, 0x00, // addi a0, a0, 10
                 0x13, 0x05, (byte) 0xa5, 0x00, // addi a0, a0, 10
