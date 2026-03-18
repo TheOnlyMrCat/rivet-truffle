@@ -19,6 +19,7 @@ public class RiscvDispatchNode extends RivetNode {
     @Override
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < instructions.length; i++) {
+            System.err.printf("Executing %08x @ 0x%08x\n", instructions[i], this.baseAddress + 4L * i);
             int instruction = instructions[i];
             int opcode = instruction & 0x7f;
             switch (opcode) {

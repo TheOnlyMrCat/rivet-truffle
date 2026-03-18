@@ -30,6 +30,11 @@
             <version>${graalvm.version}</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>net.fornwall</groupId>
+            <artifactId>jelf</artifactId>
+            <version>0.11.0</version>
+        </dependency>
     </dependencies>
 
     <build>
