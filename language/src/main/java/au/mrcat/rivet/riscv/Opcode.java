@@ -27,6 +27,7 @@ public class Opcode {
 
     public static class MiscMem {
         public static final int FENCE = 0b000;
+        public static final int FENCE_I = 0b001;
     }
 
     public static class Op {

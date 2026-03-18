@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
+import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -18,12 +19,16 @@ public class RivetRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        while (true) {
-            try {
-                bodyNode.execute(frame);
-            } catch (RiscvJumpException jump) {
-                bodyNode = RivetParser.extractBasicBlock(RivetContext.get(this), jump.targetPc);
+        try {
+            while (true) {
+                try {
+                    bodyNode.execute(frame);
+                } catch (RiscvJumpException jump) {
+                    bodyNode = RivetParser.extractBasicBlock(RivetContext.get(this), jump.targetPc);
+                }
             }
+        } catch (RiscvExitException exit) {
+            return exit.exitCode;
         }
     }
 }

@@ -2,6 +2,8 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.riscv.RegisterState;
+import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
@@ -24,6 +26,7 @@ public class RiscvDispatchNode extends RivetNode {
             int opcode = instruction & 0x7f;
             switch (opcode) {
                 case Opcode.LOAD -> handleLoad(frame, instruction);
+                case Opcode.MISC_MEM -> handleMiscMem(frame, i, instruction);
                 case Opcode.OP_IMM -> handleOpImm(frame, instruction);
                 case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
                 case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
@@ -39,7 +42,7 @@ public class RiscvDispatchNode extends RivetNode {
             }
             this.currentLanguageContext().dumpRegisterState();
         }
-        return null;
+        throw new RiscvJumpException(this.baseAddress + 4L * instructions.length);
     }
 
     void handleLoad(VirtualFrame frame, int instruction) {
@@ -62,6 +65,25 @@ public class RiscvDispatchNode extends RivetNode {
             case Opcode.MemWidth.DOUBLE -> ctx.readLong(address);
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         });
+    }
+
+    void handleMiscMem(VirtualFrame frame, int i, int instruction) {
+        var ctx = currentLanguageContext();
+
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immUnsigned = instruction >>> 20;
+
+        if (rd != 0 || rs1 != 0) {
+            throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }
+
+        switch (funct3) {
+            case Opcode.MiscMem.FENCE -> {}
+            case Opcode.MiscMem.FENCE_I -> throw new RiscvJumpException(this.baseAddress + 4L * (i + 1));
+            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }
     }
 
     void handleOpImm(VirtualFrame frame, int instruction) {
@@ -256,12 +278,16 @@ public class RiscvDispatchNode extends RivetNode {
 
         long jumpOffset = ((instruction >> 8) & 0b1111) << 1
                 | ((instruction >> 25) & 0b111111) << 5
-                | ((instruction >> 8) & 0b1) << 11
+                | ((instruction >> 7) & 0b1) << 11
                 | (instruction >> 31) << 12;
 
         if ((jumpOffset & 0b10) != 0) {
-            throw new RiscvTrapException(ExceptionCause.InstructionAddressMisaligned);
+            throw new RuntimeException("Something went wrong calculating the jump offset");
         }
+
+        long currentPc = baseAddress + 4L * i;
+        long newPc = currentPc + jumpOffset;
+        throw new RiscvJumpException(newPc);
     }
 
     void handleJal(VirtualFrame frame, int i, int instruction) {
@@ -277,7 +303,7 @@ public class RiscvDispatchNode extends RivetNode {
             throw new RiscvTrapException(ExceptionCause.InstructionAddressMisaligned);
         }
 
-        long currentPc = baseAddress + i;
+        long currentPc = baseAddress + 4L * i;
         long newPc = currentPc + jumpOffset;
 
         ctx.setRegister(rd, currentPc + 4);
@@ -296,7 +322,7 @@ public class RiscvDispatchNode extends RivetNode {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         }
 
-        long currentPc = baseAddress + i;
+        long currentPc = baseAddress + 4L * i;
         long newPc = (ctx.getRegister(rs1) + immSigned) & ~0b1;
 
         if ((newPc & 0b10) != 0) {
@@ -319,7 +345,12 @@ public class RiscvDispatchNode extends RivetNode {
             case Opcode.System.PRIV -> {
                 switch (funct12) {
                     case Opcode.Priv.EBREAK -> throw new RiscvTrapException(ExceptionCause.Breakpoint);
-                    case Opcode.Priv.ECALL -> throw new RiscvTrapException(ExceptionCause.EnvironmentCallFromMMode);
+                    case Opcode.Priv.ECALL -> {
+                        switch ((int) ctx.getRegister(RegisterState.A7)) {
+                            case 93 -> throw new RiscvExitException(ctx.getRegister(RegisterState.A0));
+                            default -> throw new RuntimeException(String.format("Unimplemented syscall: %d", ctx.getRegister(RegisterState.A7)));
+                        }
+                    }
                     case Opcode.Priv.WFI -> {}
                     default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }

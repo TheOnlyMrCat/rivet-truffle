@@ -18,5 +18,6 @@ public class Main {
 
         Context context = Context.newBuilder("rv64").build();
         Value result = context.eval(source);
+        System.exit((int) result.asLong());
     }
 }
