@@ -24,6 +24,12 @@
             <artifactId>truffle-api</artifactId>
             <version>${graalvm.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.graalvm.truffle</groupId>
+            <artifactId>truffle-runtime</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>
