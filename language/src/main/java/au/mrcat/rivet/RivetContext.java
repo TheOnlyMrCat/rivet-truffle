@@ -57,6 +57,13 @@ public class RivetContext {
         return memory.get(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L);
     }
 
+    public short readShortMisaligned(long address) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        return memory.get(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L);
+    }
+
     public int readInt(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -67,6 +74,13 @@ public class RivetContext {
         return memory.get(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L);
     }
 
+    public int readIntMisaligned(long address) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        return memory.get(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L);
+    }
+
     public long readLong(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -75,6 +89,13 @@ public class RivetContext {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
         return memory.get(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L);
+    }
+
+    public long readLongMisaligned(long address) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        return memory.get(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L);
     }
 
     public void writeByte(long address, byte value) {
@@ -94,6 +115,13 @@ public class RivetContext {
         memory.set(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
     }
 
+    public void writeShortMisaligned(long address, short value) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        memory.set(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
+    }
+
     public void writeInt(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -104,6 +132,13 @@ public class RivetContext {
         memory.set(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
     }
 
+    public void writeIntMisaligned(long address, int value) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        memory.set(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
+    }
+
     public void writeLong(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -112,5 +147,12 @@ public class RivetContext {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
         memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
+    }
+
+    public void writeLongMisaligned(long address, long value) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
     }
 }

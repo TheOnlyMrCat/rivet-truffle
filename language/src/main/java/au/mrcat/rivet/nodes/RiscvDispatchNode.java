@@ -58,11 +58,11 @@ public class RiscvDispatchNode extends RivetNode {
         ctx.setRegister(rd, switch (funct3) {
             case Opcode.MemWidth.BYTE -> ctx.readByte(address);
             case Opcode.MemWidth.BYTE_UNSIGNED -> Byte.toUnsignedLong(ctx.readByte(address));
-            case Opcode.MemWidth.HALF -> ctx.readShort(address);
-            case Opcode.MemWidth.HALF_UNSIGNED -> Short.toUnsignedLong(ctx.readShort(address));
-            case Opcode.MemWidth.WORD -> ctx.readInt(address);
-            case Opcode.MemWidth.WORD_UNSIGNED -> Integer.toUnsignedLong(ctx.readInt(address));
-            case Opcode.MemWidth.DOUBLE -> ctx.readLong(address);
+            case Opcode.MemWidth.HALF -> ctx.readShortMisaligned(address);
+            case Opcode.MemWidth.HALF_UNSIGNED -> Short.toUnsignedLong(ctx.readShortMisaligned(address));
+            case Opcode.MemWidth.WORD -> ctx.readIntMisaligned(address);
+            case Opcode.MemWidth.WORD_UNSIGNED -> Integer.toUnsignedLong(ctx.readIntMisaligned(address));
+            case Opcode.MemWidth.DOUBLE -> ctx.readLongMisaligned(address);
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         });
     }
@@ -187,9 +187,9 @@ public class RiscvDispatchNode extends RivetNode {
 
         switch (funct3) {
             case Opcode.MemWidth.BYTE -> ctx.writeByte(address, (byte) value);
-            case Opcode.MemWidth.HALF -> ctx.writeShort(address, (short) value);
-            case Opcode.MemWidth.WORD -> ctx.writeInt(address, (int) value);
-            case Opcode.MemWidth.DOUBLE -> ctx.writeLong(address, value);
+            case Opcode.MemWidth.HALF -> ctx.writeShortMisaligned(address, (short) value);
+            case Opcode.MemWidth.WORD -> ctx.writeIntMisaligned(address, (int) value);
+            case Opcode.MemWidth.DOUBLE -> ctx.writeLongMisaligned(address, value);
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         };
     }
