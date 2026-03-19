@@ -47,6 +47,17 @@ public class Opcode {
         public static final int AND = 0b111;
     }
 
+    public static class OpMulDiv {
+        public static final int MUL = 0b000;
+        public static final int MULH = 0b001;
+        public static final int MULHSU = 0b010;
+        public static final int MULHU = 0b011;
+        public static final int DIV = 0b100;
+        public static final int DIVU = 0b101;
+        public static final int REM = 0b110;
+        public static final int REMU = 0b111;
+    }
+
     public static class Branch {
         public static final int BEQ = 0b000;
         public static final int BNE = 0b001;

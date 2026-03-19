@@ -9,6 +9,8 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import java.math.BigInteger;
+
 public class RiscvDispatchNode extends RivetNode {
     @CompilationFinal int[] instructions;
     private final long baseAddress;
@@ -215,6 +217,74 @@ public class RiscvDispatchNode extends RivetNode {
                 case Opcode.OpInt.SR -> ctx.getRegister(rs1) >>> (ctx.getRegister(rs2) & 0b111111);
                 default -> throw new IllegalStateException("Unexpected value: " + funct3);
             };
+            case Opcode.Op.MUL_DIV -> switch (funct3) {
+                case Opcode.OpMulDiv.MUL -> ctx.getRegister(rs1) * ctx.getRegister(rs2);
+                case Opcode.OpMulDiv.MULH -> Math.multiplyHigh(ctx.getRegister(rs1), ctx.getRegister(rs2));
+                case Opcode.OpMulDiv.MULHSU -> {
+                    // If there's a way to do this with multiplyHigh and unsignedMultiplyHigh I don't know it
+                    BigInteger s1 = BigInteger.valueOf(ctx.getRegister(rs1));
+                    BigInteger s2;
+
+                    // From OpenJDK: https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/master/src/java.base/share/classes/java/lang/Long.java#L241-L252
+                    long s2l = ctx.getRegister(rs2);
+                    if (s2l >= 0) {
+                        s2 = BigInteger.valueOf(s2l);
+                    } else {
+                        int upper = (int) (s2l >>> 32);
+                        int lower = (int) s2l;
+
+                        // return (upper << 32) + lower
+                        s2 = (BigInteger.valueOf(Integer.toUnsignedLong(upper))).shiftLeft(32).
+                                add(BigInteger.valueOf(Integer.toUnsignedLong(lower)));
+                    }
+
+                    yield s1.multiply(s2).shiftRight(64).longValue();
+                }
+                case Opcode.OpMulDiv.MULHU -> Math.unsignedMultiplyHigh(ctx.getRegister(rs1), ctx.getRegister(rs2));
+                case Opcode.OpMulDiv.DIV -> {
+                    long dividend = ctx.getRegister(rs1);
+                    long divisor = ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield -1;
+                    }
+                    if (dividend == Long.MIN_VALUE && divisor == -1) {
+                        yield Long.MIN_VALUE;
+                    }
+                    yield dividend / divisor;
+                }
+                case Opcode.OpMulDiv.DIVU -> {
+                    long dividend = ctx.getRegister(rs1);
+                    long divisor = ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield -1;
+                    }
+                    yield Long.divideUnsigned(dividend, divisor);
+                }
+                case Opcode.OpMulDiv.REM -> {
+                    long dividend = ctx.getRegister(rs1);
+                    long divisor = ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield dividend;
+                    }
+                    if (dividend == Long.MIN_VALUE && divisor == -1) {
+                        yield 0;
+                    }
+                    yield dividend % divisor;
+                }
+                case Opcode.OpMulDiv.REMU -> {
+                    long dividend = ctx.getRegister(rs1);
+                    long divisor = ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield dividend;
+                    }
+                    yield Long.remainderUnsigned(dividend, divisor);
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + funct3);
+            };
             case Opcode.Op.NEG -> switch (funct3) {
                 case Opcode.OpInt.ADD -> ctx.getRegister(rs1) - ctx.getRegister(rs2);
                 case Opcode.OpInt.SR -> ctx.getRegister(rs1) >> (ctx.getRegister(rs2) & 0b111111);
@@ -238,6 +308,52 @@ public class RiscvDispatchNode extends RivetNode {
                 case Opcode.OpInt.ADD -> (int) ctx.getRegister(rs1) + (int) ctx.getRegister(rs2);
                 case Opcode.OpInt.SLL -> (int) ctx.getRegister(rs1) << (ctx.getRegister(rs2) & 0b11111);
                 case Opcode.OpInt.SR -> (int) ctx.getRegister(rs1) >>> (ctx.getRegister(rs2) & 0b11111);
+                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+            };
+            case Opcode.Op.MUL_DIV -> switch (funct3) {
+                case Opcode.OpMulDiv.MUL -> (long) ((int) ctx.getRegister(rs1) * (int) ctx.getRegister(rs2));
+                case Opcode.OpMulDiv.DIV -> {
+                    int dividend = (int) ctx.getRegister(rs1);
+                    int divisor = (int) ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield -1;
+                    }
+                    if (dividend == Integer.MIN_VALUE && divisor == -1) {
+                        yield Integer.MIN_VALUE;
+                    }
+                    yield dividend / divisor;
+                }
+                case Opcode.OpMulDiv.DIVU -> {
+                    int dividend = (int) ctx.getRegister(rs1);
+                    int divisor = (int) ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield -1;
+                    }
+                    yield Integer.divideUnsigned(dividend, divisor);
+                }
+                case Opcode.OpMulDiv.REM -> {
+                    int dividend = (int) ctx.getRegister(rs1);
+                    int divisor = (int) ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield dividend;
+                    }
+                    if (dividend == Integer.MIN_VALUE && divisor == -1) {
+                        yield 0;
+                    }
+                    yield dividend % divisor;
+                }
+                case Opcode.OpMulDiv.REMU -> {
+                    int dividend = (int) ctx.getRegister(rs1);
+                    int divisor = (int) ctx.getRegister(rs2);
+
+                    if (divisor == 0) {
+                        yield dividend;
+                    }
+                    yield Integer.remainderUnsigned(dividend, divisor);
+                }
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             };
             case Opcode.Op.NEG -> switch (funct3) {
