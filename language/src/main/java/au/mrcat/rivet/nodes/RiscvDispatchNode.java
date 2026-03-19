@@ -98,7 +98,7 @@ public class RiscvDispatchNode extends RivetNode {
         ctx.setRegister(rd, switch (funct3) {
             case Opcode.OpInt.ADD -> ctx.getRegister(rs1) + immSigned;
             case Opcode.OpInt.SLT -> ctx.getRegister(rs1) < immSigned ? 1 : 0;
-            case Opcode.OpInt.SLTU -> Long.compareUnsigned(ctx.getRegister(rs1), immUnsigned) < 0 ? 1 : 0;
+            case Opcode.OpInt.SLTU -> Long.compareUnsigned(ctx.getRegister(rs1), immSigned) < 0 ? 1 : 0;
             case Opcode.OpInt.XOR -> ctx.getRegister(rs1) ^ immSigned;
             case Opcode.OpInt.OR -> ctx.getRegister(rs1) | immSigned;
             case Opcode.OpInt.AND -> ctx.getRegister(rs1) & immSigned;
@@ -133,7 +133,7 @@ public class RiscvDispatchNode extends RivetNode {
         int rd = (instruction >> 7) & 0b11111;
         long immSigned = (instruction >> 12) << 12;
 
-        ctx.setRegister(rd, baseAddress + i + immSigned);
+        ctx.setRegister(rd, baseAddress + 4L * i + immSigned);
     }
 
     void handleOpImm32(VirtualFrame frame, int instruction) {
@@ -151,7 +151,8 @@ public class RiscvDispatchNode extends RivetNode {
                 if ((immUnsigned & ~0b111111_1) != 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
-                yield ctx.getRegister(rs1) << immUnsigned;
+                //noinspection IntegerMultiplicationImplicitCastToLong
+                yield (int) ctx.getRegister(rs1) << immUnsigned;
             }
             case Opcode.OpInt.SR -> {
                 if ((immUnsigned & 0b1011111_00000) != 0) {
@@ -162,10 +163,10 @@ public class RiscvDispatchNode extends RivetNode {
 
                 if ((immUnsigned & 0b0100000_00000) != 0) {
                     // Arithmetic right shift
-                    yield ctx.getRegister(rs1) >> shift;
+                    yield (int) ctx.getRegister(rs1) >> shift;
                 } else {
                     // Logical right shift
-                    yield ctx.getRegister(rs1) >>> shift;
+                    yield (int) ctx.getRegister(rs1) >>> shift;
                 }
             }
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
