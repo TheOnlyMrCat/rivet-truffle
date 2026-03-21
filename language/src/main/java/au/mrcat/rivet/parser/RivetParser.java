@@ -4,12 +4,22 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.nodes.RiscvDispatchNode;
 import au.mrcat.rivet.nodes.RiscvStartupNode;
 import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.nodes.arith.*;
+import au.mrcat.rivet.nodes.data.ConstantNode;
 import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
+import au.mrcat.rivet.nodes.data.GetRegisterNode;
+import au.mrcat.rivet.nodes.data.SetRegisterNode;
+import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
+import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -53,6 +63,111 @@ public final class RivetParser {
             }
         }
 
-        return new RiscvDispatchNode(instructions.stream().map(EncodedInstructionNode::new).toArray(RivetNode[]::new), baseAddress);
+        return new RiscvDispatchNode(instructions.stream().map(RivetParser::parseInstruction).toArray(RivetNode[]::new), baseAddress);
+    }
+
+    public static RivetNode parseInstruction(int instruction) {
+        int opcode = instruction & 0x7f;
+        return switch (opcode) {
+            case Opcode.OP_IMM -> parseOpImm(instruction);
+            case Opcode.OP -> parseOp(instruction);
+            default -> new EncodedInstructionNode(instruction);
+        };
+    }
+
+    private static RivetNode parseOpImm(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immSigned = instruction >> 20;
+        long immUnsigned = instruction >>> 20;
+
+        RivetOpNode op;
+        switch (funct3) {
+            case Opcode.OpInt.ADD -> op = new AddNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.SLT -> op = new SetLessThanNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.SLTU -> op = new SetLessThanUnsignedNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.XOR -> op = new XorNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.OR -> op = new OrNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.AND -> op = new AndNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.SLL -> {
+                if ((immUnsigned & ~0b111111) != 0) {
+                    return new IllegalInstructionNode(instruction);
+                }
+                op = new ShiftLeftLogicalNode(new GetRegisterNode(rs1), new ConstantNode(immUnsigned));
+            }
+            case Opcode.OpInt.SR -> {
+                if ((immUnsigned & 0b101111_000000) != 0) {
+                    return new IllegalInstructionNode(instruction);
+                }
+
+                long shift = immUnsigned & 0b111111;
+
+                if ((immUnsigned & 0b010000_000000) != 0) {
+                    op = new ShiftRightArithmeticNode(new GetRegisterNode(rs1), new ConstantNode(shift));
+                } else {
+                    op = new ShiftRightLogicalNode(new GetRegisterNode(rs1), new ConstantNode(shift));
+                }
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + funct3);
+        }
+
+        if (rd == 0) {
+            return op;
+        } else {
+            return new SetRegisterNode(rd, op);
+        }
+    }
+
+    private static RivetNode parseOp(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int funct7 = instruction >>> 25;
+
+        RivetOpNode op;
+        switch (funct7) {
+            case Opcode.Op.INT -> op = switch (funct3) {
+                case Opcode.OpInt.ADD -> new AddNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.SLT -> new SetLessThanNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.SLTU -> new SetLessThanUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.XOR -> new XorNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.OR -> new OrNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.AND -> new AndNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.SLL -> new ShiftLeftLogicalNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.SR -> new ShiftRightLogicalNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                default -> throw new IllegalStateException("Unexpected value: " + funct3);
+            };
+            case Opcode.Op.MUL_DIV -> op = switch (funct3) {
+                case Opcode.OpMulDiv.MUL -> new MultiplyNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.MULH -> new MultiplyHighNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.MULHSU -> new MultiplyHighSignedUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.MULHU -> new MultiplyHighUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.DIV -> new DivideNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.DIVU -> new DivideUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.REM -> new RemainderNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.REMU -> new RemainderUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                default -> throw new IllegalStateException("Unexpected value: " + funct3);
+            };
+            case Opcode.Op.NEG -> {
+                switch (funct3) {
+                    case Opcode.OpInt.ADD -> op = new SubNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                    case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                    default -> {
+                        return new IllegalInstructionNode(instruction);
+                    }
+                }
+            }
+            default -> {
+                return new IllegalInstructionNode(instruction);
+            }
+        }
+
+        if (rd == 0) {
+            return op;
+        } else {
+            return new SetRegisterNode(rd, op);
+        }
     }
 }
