@@ -1,50 +1,60 @@
 package au.mrcat.rivet.nodes;
 
+import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.BlockNode;
 
 import java.math.BigInteger;
 
-public class RiscvDispatchNode extends RivetNode {
-    @CompilationFinal int[] instructions;
+public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
+    @Child BlockNode<RivetNode> instructions;
     private final long baseAddress;
 
-    public RiscvDispatchNode(int[] instructions, long baseAddress) {
-        this.instructions = instructions;
+    public RiscvDispatchNode(RivetNode[] instructions, long baseAddress) {
+        this.instructions = BlockNode.create(instructions, this);
         this.baseAddress = baseAddress;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        for (int i = 0; i < instructions.length; i++) {
-            System.err.printf("Executing %08x @ 0x%08x\n", instructions[i], this.baseAddress + 4L * i);
-            int instruction = instructions[i];
-            int opcode = instruction & 0x7f;
-            switch (opcode) {
-                case Opcode.LOAD -> handleLoad(frame, instruction);
-                case Opcode.MISC_MEM -> handleMiscMem(frame, i, instruction);
-                case Opcode.OP_IMM -> handleOpImm(frame, instruction);
-                case Opcode.AUIPC -> handleAuipc(frame, i, instruction);
-                case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
-                case Opcode.STORE -> handleStore(frame, instruction);
-                case Opcode.OP -> handleOp(frame, instruction);
-                case Opcode.LUI -> handleLui(frame, instruction);
-                case Opcode.OP_32 -> handleOp32(frame, instruction);
-                case Opcode.BRANCH -> handleBranch(frame, i, instruction);
-                case Opcode.JAL -> handleJal(frame, i, instruction);
-                case Opcode.JALR -> handleJalr(frame, i, instruction);
-                case Opcode.SYSTEM -> handleSystem(frame, instruction);
-                default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        instructions.executeVoid(frame, BlockNode.NO_ARGUMENT);
+        throw new RiscvJumpException(this.baseAddress + 4L * instructions.getElements().length);
+    }
+
+    @Override
+    public void executeVoid(VirtualFrame frame, RivetNode node, int index, int argument) {
+        long pc = 4L * index;
+        switch (node) {
+            case EncodedInstructionNode instructionNode -> {
+                int instruction = instructionNode.instruction;
+                System.err.printf("Executing %08x @ 0x%08x\n", instruction, this.baseAddress + pc);
+                int opcode = instruction & 0x7f;
+                switch (opcode) {
+                    case Opcode.LOAD -> handleLoad(frame, instruction);
+                    case Opcode.MISC_MEM -> handleMiscMem(frame, index, instruction);
+                    case Opcode.OP_IMM -> handleOpImm(frame, instruction);
+                    case Opcode.AUIPC -> handleAuipc(frame, index, instruction);
+                    case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
+                    case Opcode.STORE -> handleStore(frame, instruction);
+                    case Opcode.OP -> handleOp(frame, instruction);
+                    case Opcode.LUI -> handleLui(frame, instruction);
+                    case Opcode.OP_32 -> handleOp32(frame, instruction);
+                    case Opcode.BRANCH -> handleBranch(frame, index, instruction);
+                    case Opcode.JAL -> handleJal(frame, index, instruction);
+                    case Opcode.JALR -> handleJalr(frame, index, instruction);
+                    case Opcode.SYSTEM -> handleSystem(frame, instruction);
+                    default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
             }
-            this.currentLanguageContext().dumpRegisterState();
+            default -> node.execute(frame);
         }
-        throw new RiscvJumpException(this.baseAddress + 4L * instructions.length);
+        this.currentLanguageContext().dumpRegisterState();
     }
 
     void handleLoad(VirtualFrame frame, int instruction) {

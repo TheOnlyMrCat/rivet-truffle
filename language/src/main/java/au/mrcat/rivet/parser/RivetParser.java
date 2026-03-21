@@ -3,6 +3,8 @@ package au.mrcat.rivet.parser;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.nodes.RiscvDispatchNode;
 import au.mrcat.rivet.nodes.RiscvStartupNode;
+import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
 import au.mrcat.rivet.riscv.Opcode;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
@@ -51,6 +53,6 @@ public final class RivetParser {
             }
         }
 
-        return new RiscvDispatchNode(instructions.stream().mapToInt(i->i).toArray(), baseAddress);
+        return new RiscvDispatchNode(instructions.stream().map(EncodedInstructionNode::new).toArray(RivetNode[]::new), baseAddress);
     }
 }
