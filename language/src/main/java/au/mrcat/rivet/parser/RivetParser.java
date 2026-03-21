@@ -6,20 +6,14 @@ import au.mrcat.rivet.nodes.RiscvStartupNode;
 import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.nodes.arith.*;
-import au.mrcat.rivet.nodes.data.ConstantNode;
-import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
-import au.mrcat.rivet.nodes.data.GetRegisterNode;
-import au.mrcat.rivet.nodes.data.SetRegisterNode;
+import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
-import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
-import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -70,7 +64,9 @@ public final class RivetParser {
         int opcode = instruction & 0x7f;
         return switch (opcode) {
             case Opcode.OP_IMM -> parseOpImm(instruction);
+            case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
             case Opcode.OP -> parseOp(instruction);
+            case Opcode.OP_32 -> parseOp32(instruction);
             default -> new EncodedInstructionNode(instruction);
         };
     }
@@ -119,6 +115,59 @@ public final class RivetParser {
         }
     }
 
+    private static RivetNode parseOpImm32(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int immSigned = instruction >> 20;
+        int immUnsigned = instruction >>> 20;
+
+        RivetOpNode op;
+        switch (funct3) {
+            case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new AddNode(
+                    new GetRegisterNode(rs1),
+                    new ConstantNode(immSigned)
+            ));
+            case Opcode.OpInt.SLL -> {
+                if ((immUnsigned & ~0b111111_1) != 0) {
+                    return new IllegalInstructionNode(instruction);
+                }
+                op = new SignExtendIntNode(new ShiftLeftLogicalNode(
+                        new GetRegisterNode(rs1),
+                        new ConstantNode(immSigned)
+                ));
+            }
+            case Opcode.OpInt.SR -> {
+                if ((immUnsigned & 0b1011111_00000) != 0) {
+                    return new IllegalInstructionNode(instruction);
+                }
+
+                long shift = immUnsigned & 0b11111;
+
+                if ((immUnsigned & 0b0100000_00000) != 0) {
+                    op = new ShiftRightArithmeticNode(
+                            new SignExtendIntNode(new GetRegisterNode(rs1)),
+                            new ConstantNode(shift)
+                    );
+                } else {
+                    op = new SignExtendIntNode(new ShiftRightLogicalNode(
+                            new IntTruncateNode(new GetRegisterNode(rs1)),
+                            new ConstantNode(shift)
+                    ));
+                }
+            }
+            default -> {
+                return new IllegalInstructionNode(instruction);
+            }
+        }
+
+        if (rd == 0) {
+            return op;
+        } else {
+            return new SetRegisterNode(rd, op);
+        }
+    }
+
     private static RivetNode parseOp(int instruction) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
@@ -154,6 +203,91 @@ public final class RivetParser {
                 switch (funct3) {
                     case Opcode.OpInt.ADD -> op = new SubNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
                     case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                    default -> {
+                        return new IllegalInstructionNode(instruction);
+                    }
+                }
+            }
+            default -> {
+                return new IllegalInstructionNode(instruction);
+            }
+        }
+
+        if (rd == 0) {
+            return op;
+        } else {
+            return new SetRegisterNode(rd, op);
+        }
+    }
+
+    private static RivetNode parseOp32(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int funct7 = instruction >>> 25;
+
+        RivetOpNode op;
+        switch (funct7) {
+            case Opcode.Op.INT -> {
+                switch (funct3) {
+                    case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new AddNode(
+                            new GetRegisterNode(rs1),
+                            new GetRegisterNode(rs2)
+                    ));
+                    case Opcode.OpInt.SLL -> op = new SignExtendIntNode(new ShiftLeftLogicalNode(
+                            new GetRegisterNode(rs1),
+                            new GetRegisterNode(rs2),
+                            0b11_111
+                    ));
+                    case Opcode.OpInt.SR -> op = new SignExtendIntNode(new ShiftRightLogicalNode(
+                            new IntTruncateNode(new GetRegisterNode(rs1)),
+                            new GetRegisterNode(rs2),
+                            0b11_111
+                    ));
+                    default -> {
+                        return new IllegalInstructionNode(instruction);
+                    }
+                }
+            }
+            case Opcode.Op.MUL_DIV -> {
+                switch (funct3) {
+                    case Opcode.OpMulDiv.MUL -> op = new SignExtendIntNode(new MultiplyNode(
+                            new GetRegisterNode(rs1),
+                            new GetRegisterNode(rs2)
+                    ));
+                    case Opcode.OpMulDiv.DIV -> op = new SignExtendIntNode(new DivideNode(
+                            new SignExtendIntNode(new GetRegisterNode(rs1)),
+                            new SignExtendIntNode(new GetRegisterNode(rs2))
+                    ));
+                    case Opcode.OpMulDiv.DIVU -> op = new SignExtendIntNode(new DivideUnsignedNode(
+                            new IntTruncateNode(new GetRegisterNode(rs1)),
+                            new IntTruncateNode(new GetRegisterNode(rs2))
+                    ));
+                    case Opcode.OpMulDiv.REM -> op = new SignExtendIntNode(new RemainderNode(
+                            new SignExtendIntNode(new GetRegisterNode(rs1)),
+                            new SignExtendIntNode(new GetRegisterNode(rs2))
+                    ));
+                    case Opcode.OpMulDiv.REMU -> op = new SignExtendIntNode(new RemainderUnsignedNode(
+                            new IntTruncateNode(new GetRegisterNode(rs1)),
+                            new IntTruncateNode(new GetRegisterNode(rs2))
+                    ));
+                    default -> {
+                        return new IllegalInstructionNode(instruction);
+                    }
+                }
+            }
+            case Opcode.Op.NEG -> {
+                switch (funct3) {
+                    case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new SubNode(
+                            new GetRegisterNode(rs1),
+                            new GetRegisterNode(rs2)
+                    ));
+                    case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(
+                            new SignExtendIntNode(new GetRegisterNode(rs1)),
+                            new GetRegisterNode(rs2),
+                            0b11_111
+                    );
                     default -> {
                         return new IllegalInstructionNode(instruction);
                     }

@@ -39,15 +39,13 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
                     case Opcode.LOAD -> handleLoad(frame, instruction);
                     case Opcode.MISC_MEM -> handleMiscMem(frame, index, instruction);
                     case Opcode.AUIPC -> handleAuipc(frame, index, instruction);
-                    case Opcode.OP_IMM_32 -> handleOpImm32(frame, instruction);
                     case Opcode.STORE -> handleStore(frame, instruction);
                     case Opcode.LUI -> handleLui(frame, instruction);
-                    case Opcode.OP_32 -> handleOp32(frame, instruction);
                     case Opcode.BRANCH -> handleBranch(frame, index, instruction);
                     case Opcode.JAL -> handleJal(frame, index, instruction);
                     case Opcode.JALR -> handleJalr(frame, index, instruction);
                     case Opcode.SYSTEM -> handleSystem(frame, instruction);
-                    case Opcode.OP_IMM, Opcode.OP -> throw new IllegalStateException("Instruction should have been parsed");
+                    case Opcode.OP_IMM, Opcode.OP_IMM_32, Opcode.OP, Opcode.OP_32 -> throw new IllegalStateException("Instruction should have been parsed");
                     default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
             }
