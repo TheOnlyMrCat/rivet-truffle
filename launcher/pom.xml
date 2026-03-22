@@ -42,7 +42,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>au.mrcat.launcher.Main</mainClass>
+                            <mainClass>au.mrcat.rivet.launcher.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

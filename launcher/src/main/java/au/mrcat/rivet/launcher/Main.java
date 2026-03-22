@@ -1,4 +1,4 @@
-package au.mrcat.launcher;
+package au.mrcat.rivet.launcher;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
