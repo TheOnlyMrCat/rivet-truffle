@@ -15,6 +15,7 @@ import org.graalvm.polyglot.io.ByteSequence;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 public final class RivetParser {
     public static RiscvStartupNode loadProgramHeader(ByteSequence elfFile) {
@@ -35,19 +36,22 @@ public final class RivetParser {
     }
 
     public static RiscvDispatchNode extractBasicBlock(RivetContext context, long baseAddress) {
-        var instructions = new ArrayList<Integer>();
+        var instructions = new ArrayList<RivetNode>();
 
         // Cap basic block length at 1024 for interrupt checking, etc.
-        bb: for (int i = 0; instructions.size() < 1024; i += 4) {
-            int instruction = context.readInt(baseAddress + i);
-            instructions.add(instruction);
-            int opcode = instruction & 0b1111111;
+        bb: for (int pc_offset = 0; pc_offset < 4096; pc_offset += 4) {
+            long pc = baseAddress + pc_offset;
+            int instruction = context.readInt(pc);
+            var node = Objects.requireNonNull(parseInstruction(instruction, pc));
+            // TODO: Ignore Hint nodes, don't even store them here
+            instructions.add(node);
 
+            // For now, check basic block breaking here
+            int opcode = instruction & 0b1111111;
             if ((opcode & 0b11) != 0b11) {
                 // We don't support C yet, so break basic blocks at any non-32-bit instruction (will always instruction fault)
                 break;
             }
-
             switch (opcode) {
                 case Opcode.BRANCH, Opcode.JAL, Opcode.JALR -> {
                     // Break basic blocks at jump and branch instructions
@@ -56,10 +60,10 @@ public final class RivetParser {
             }
         }
 
-        return new RiscvDispatchNode(instructions.stream().map(RivetParser::parseInstruction).toArray(RivetNode[]::new), baseAddress);
+        return new RiscvDispatchNode(instructions.toArray(new RivetNode[0]), baseAddress);
     }
 
-    public static RivetNode parseInstruction(int instruction) {
+    public static RivetNode parseInstruction(int instruction, long pc) {
         int opcode = instruction & 0x7f;
         return switch (opcode) {
             case Opcode.OP_IMM -> parseOpImm(instruction);
@@ -108,10 +112,9 @@ public final class RivetParser {
         }
 
         if (rd == 0) {
-            return op;
-        } else {
-            return new SetRegisterNode(rd, op);
+            return new HintNode(instruction);
         }
+        return new SetRegisterNode(rd, op);
     }
 
     private static RivetNode parseOpImm32(int instruction) {
@@ -161,10 +164,9 @@ public final class RivetParser {
         }
 
         if (rd == 0) {
-            return op;
-        } else {
-            return new SetRegisterNode(rd, op);
+            return new HintNode(instruction);
         }
+        return new SetRegisterNode(rd, op);
     }
 
     private static RivetNode parseOp(int instruction) {
@@ -213,10 +215,9 @@ public final class RivetParser {
         }
 
         if (rd == 0) {
-            return op;
-        } else {
-            return new SetRegisterNode(rd, op);
+            return new HintNode(instruction);
         }
+        return new SetRegisterNode(rd, op);
     }
 
     private static RivetNode parseOp32(int instruction) {
@@ -298,9 +299,8 @@ public final class RivetParser {
         }
 
         if (rd == 0) {
-            return op;
-        } else {
-            return new SetRegisterNode(rd, op);
+            return new HintNode(instruction);
         }
+        return new SetRegisterNode(rd, op);
     }
 }
