@@ -100,13 +100,13 @@ public final class RivetParser {
 
         RivetOpNode op;
         switch (funct3) {
-            case Opcode.MemWidth.BYTE -> op = new LoadByteNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.BYTE_UNSIGNED -> op = new LoadByteUnsignedNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.HALF -> op = new LoadHalfNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.HALF_UNSIGNED -> op = new LoadHalfUnsignedNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.WORD -> op = new LoadWordNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.WORD_UNSIGNED -> op = new LoadWordUnsignedNode(new GetRegisterNode(rs1), immSigned);
-            case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.BYTE -> op = new LoadByteNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.BYTE_UNSIGNED -> op = new LoadByteUnsignedNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.HALF -> op = new LoadHalfNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.HALF_UNSIGNED -> op = new LoadHalfUnsignedNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.WORD -> op = new LoadWordNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.WORD_UNSIGNED -> op = new LoadWordUnsignedNode(GetRegisterNode.create(rs1), immSigned);
+            case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleNode(GetRegisterNode.create(rs1), immSigned);
             default -> {
                 return new IllegalInstructionNode(instruction);
             }
@@ -147,17 +147,17 @@ public final class RivetParser {
 
         RivetOpNode op;
         switch (funct3) {
-            case Opcode.OpInt.ADD -> op = new AddNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
-            case Opcode.OpInt.SLT -> op = new SetLessThanNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
-            case Opcode.OpInt.SLTU -> op = new SetLessThanUnsignedNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
-            case Opcode.OpInt.XOR -> op = new XorNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
-            case Opcode.OpInt.OR -> op = new OrNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
-            case Opcode.OpInt.AND -> op = new AndNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.ADD -> op = new AddNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.SLT -> op = new SetLessThanNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.SLTU -> op = new SetLessThanUnsignedNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.XOR -> op = new XorNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.OR -> op = new OrNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
+            case Opcode.OpInt.AND -> op = new AndNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
             case Opcode.OpInt.SLL -> {
                 if ((immUnsigned & ~0b111111) != 0) {
                     return new IllegalInstructionNode(instruction);
                 }
-                op = new ShiftLeftLogicalNode(new GetRegisterNode(rs1), new ConstantNode(immUnsigned));
+                op = new ShiftLeftLogicalNode(GetRegisterNode.create(rs1), new ConstantNode(immUnsigned));
             }
             case Opcode.OpInt.SR -> {
                 if ((immUnsigned & 0b101111_000000) != 0) {
@@ -167,9 +167,9 @@ public final class RivetParser {
                 long shift = immUnsigned & 0b111111;
 
                 if ((immUnsigned & 0b010000_000000) != 0) {
-                    op = new ShiftRightArithmeticNode(new GetRegisterNode(rs1), new ConstantNode(shift));
+                    op = new ShiftRightArithmeticNode(GetRegisterNode.create(rs1), new ConstantNode(shift));
                 } else {
-                    op = new ShiftRightLogicalNode(new GetRegisterNode(rs1), new ConstantNode(shift));
+                    op = new ShiftRightLogicalNode(GetRegisterNode.create(rs1), new ConstantNode(shift));
                 }
             }
             default -> throw new IllegalStateException("Unexpected value: " + funct3);
@@ -201,7 +201,7 @@ public final class RivetParser {
         RivetOpNode op;
         switch (funct3) {
             case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new AddNode(
-                    new GetRegisterNode(rs1),
+                    GetRegisterNode.create(rs1),
                     new ConstantNode(immSigned)
             ));
             case Opcode.OpInt.SLL -> {
@@ -209,7 +209,7 @@ public final class RivetParser {
                     return new IllegalInstructionNode(instruction);
                 }
                 op = new SignExtendIntNode(new ShiftLeftLogicalNode(
-                        new GetRegisterNode(rs1),
+                        GetRegisterNode.create(rs1),
                         new ConstantNode(immSigned)
                 ));
             }
@@ -222,12 +222,12 @@ public final class RivetParser {
 
                 if ((immUnsigned & 0b0100000_00000) != 0) {
                     op = new ShiftRightArithmeticNode(
-                            new SignExtendIntNode(new GetRegisterNode(rs1)),
+                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
                             new ConstantNode(shift)
                     );
                 } else {
                     op = new SignExtendIntNode(new ShiftRightLogicalNode(
-                            new IntTruncateNode(new GetRegisterNode(rs1)),
+                            new IntTruncateNode(GetRegisterNode.create(rs1)),
                             new ConstantNode(shift)
                     ));
                 }
@@ -251,10 +251,10 @@ public final class RivetParser {
                 | (instruction >> 25) << 5;
 
         return switch (funct3) {
-            case Opcode.MemWidth.BYTE -> new StoreByteNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
-            case Opcode.MemWidth.HALF -> new StoreHalfNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
-            case Opcode.MemWidth.WORD -> new StoreWordNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
-            case Opcode.MemWidth.DOUBLE -> new StoreDoubleNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
+            case Opcode.MemWidth.BYTE -> new StoreByteNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
+            case Opcode.MemWidth.HALF -> new StoreHalfNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
+            case Opcode.MemWidth.WORD -> new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
+            case Opcode.MemWidth.DOUBLE -> new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
             default -> new IllegalInstructionNode(instruction);
         };
     }
@@ -269,31 +269,31 @@ public final class RivetParser {
         RivetOpNode op;
         switch (funct7) {
             case Opcode.Op.INT -> op = switch (funct3) {
-                case Opcode.OpInt.ADD -> new AddNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.SLT -> new SetLessThanNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.SLTU -> new SetLessThanUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.XOR -> new XorNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.OR -> new OrNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.AND -> new AndNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.SLL -> new ShiftLeftLogicalNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpInt.SR -> new ShiftRightLogicalNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpInt.ADD -> new AddNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.SLT -> new SetLessThanNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.SLTU -> new SetLessThanUnsignedNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.XOR -> new XorNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.OR -> new OrNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.AND -> new AndNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.SLL -> new ShiftLeftLogicalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpInt.SR -> new ShiftRightLogicalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
                 default -> throw new IllegalStateException("Unexpected value: " + funct3);
             };
             case Opcode.Op.MUL_DIV -> op = switch (funct3) {
-                case Opcode.OpMulDiv.MUL -> new MultiplyNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.MULH -> new MultiplyHighNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.MULHSU -> new MultiplyHighSignedUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.MULHU -> new MultiplyHighUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.DIV -> new DivideNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.DIVU -> new DivideUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.REM -> new RemainderNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                case Opcode.OpMulDiv.REMU -> new RemainderUnsignedNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                case Opcode.OpMulDiv.MUL -> new MultiplyNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.MULH -> new MultiplyHighNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.MULHSU -> new MultiplyHighSignedUnsignedNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.MULHU -> new MultiplyHighUnsignedNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.DIV -> new DivideNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.DIVU -> new DivideUnsignedNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.REM -> new RemainderNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                case Opcode.OpMulDiv.REMU -> new RemainderUnsignedNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
                 default -> throw new IllegalStateException("Unexpected value: " + funct3);
             };
             case Opcode.Op.NEG -> {
                 switch (funct3) {
-                    case Opcode.OpInt.ADD -> op = new SubNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
-                    case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(new GetRegisterNode(rs1), new GetRegisterNode(rs2));
+                    case Opcode.OpInt.ADD -> op = new SubNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                    case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
                     default -> {
                         return new IllegalInstructionNode(instruction);
                     }
@@ -332,17 +332,17 @@ public final class RivetParser {
             case Opcode.Op.INT -> {
                 switch (funct3) {
                     case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new AddNode(
-                            new GetRegisterNode(rs1),
-                            new GetRegisterNode(rs2)
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2)
                     ));
                     case Opcode.OpInt.SLL -> op = new SignExtendIntNode(new ShiftLeftLogicalNode(
-                            new GetRegisterNode(rs1),
-                            new GetRegisterNode(rs2),
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2),
                             0b11_111
                     ));
                     case Opcode.OpInt.SR -> op = new SignExtendIntNode(new ShiftRightLogicalNode(
-                            new IntTruncateNode(new GetRegisterNode(rs1)),
-                            new GetRegisterNode(rs2),
+                            new IntTruncateNode(GetRegisterNode.create(rs1)),
+                            GetRegisterNode.create(rs2),
                             0b11_111
                     ));
                     default -> {
@@ -353,24 +353,24 @@ public final class RivetParser {
             case Opcode.Op.MUL_DIV -> {
                 switch (funct3) {
                     case Opcode.OpMulDiv.MUL -> op = new SignExtendIntNode(new MultiplyNode(
-                            new GetRegisterNode(rs1),
-                            new GetRegisterNode(rs2)
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2)
                     ));
                     case Opcode.OpMulDiv.DIV -> op = new SignExtendIntNode(new DivideNode(
-                            new SignExtendIntNode(new GetRegisterNode(rs1)),
-                            new SignExtendIntNode(new GetRegisterNode(rs2))
+                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
+                            new SignExtendIntNode(GetRegisterNode.create(rs2))
                     ));
                     case Opcode.OpMulDiv.DIVU -> op = new SignExtendIntNode(new DivideUnsignedNode(
-                            new IntTruncateNode(new GetRegisterNode(rs1)),
-                            new IntTruncateNode(new GetRegisterNode(rs2))
+                            new IntTruncateNode(GetRegisterNode.create(rs1)),
+                            new IntTruncateNode(GetRegisterNode.create(rs2))
                     ));
                     case Opcode.OpMulDiv.REM -> op = new SignExtendIntNode(new RemainderNode(
-                            new SignExtendIntNode(new GetRegisterNode(rs1)),
-                            new SignExtendIntNode(new GetRegisterNode(rs2))
+                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
+                            new SignExtendIntNode(GetRegisterNode.create(rs2))
                     ));
                     case Opcode.OpMulDiv.REMU -> op = new SignExtendIntNode(new RemainderUnsignedNode(
-                            new IntTruncateNode(new GetRegisterNode(rs1)),
-                            new IntTruncateNode(new GetRegisterNode(rs2))
+                            new IntTruncateNode(GetRegisterNode.create(rs1)),
+                            new IntTruncateNode(GetRegisterNode.create(rs2))
                     ));
                     default -> {
                         return new IllegalInstructionNode(instruction);
@@ -380,12 +380,12 @@ public final class RivetParser {
             case Opcode.Op.NEG -> {
                 switch (funct3) {
                     case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new SubNode(
-                            new GetRegisterNode(rs1),
-                            new GetRegisterNode(rs2)
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2)
                     ));
                     case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(
-                            new SignExtendIntNode(new GetRegisterNode(rs1)),
-                            new GetRegisterNode(rs2),
+                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
+                            GetRegisterNode.create(rs2),
                             0b11_111
                     );
                     default -> {
@@ -423,27 +423,27 @@ public final class RivetParser {
 
         return switch (funct3) {
             case Opcode.Branch.BEQ -> new BranchEqualNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     branchPc, nextInstrPc
             );
             case Opcode.Branch.BNE -> new BranchEqualNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     nextInstrPc, branchPc
             );
             case Opcode.Branch.BLT -> new BranchLessThanNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     branchPc, nextInstrPc
             );
             case Opcode.Branch.BLTU -> new BranchLessThanUnsignedNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     branchPc, nextInstrPc
             );
             case Opcode.Branch.BGE -> new BranchLessThanNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     nextInstrPc, branchPc
             );
             case Opcode.Branch.BGEU -> new BranchLessThanUnsignedNode(
-                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     nextInstrPc, branchPc
             );
             default -> new IllegalInstructionNode(instruction);
@@ -475,7 +475,7 @@ public final class RivetParser {
             return new IllegalInstructionNode(instruction);
         }
 
-        var newPc = new AddNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+        var newPc = new AddNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
 
         if (rd == 0) {
             return new JumpNode(newPc);

@@ -49,9 +49,6 @@ public final class RegisterState implements TruffleObject {
     }
 
     public void setRegister(int r, long value) {
-        if (r == 0) {
-            return;
-        }
         registers[r] = value;
     }
 

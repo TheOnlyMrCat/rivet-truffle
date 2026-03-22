@@ -6,8 +6,16 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class GetRegisterNode extends RivetOpNode {
     private final int register;
 
-    public GetRegisterNode(int register) {
+    private GetRegisterNode(int register) {
         this.register = register;
+    }
+
+    public static RivetOpNode create(int register) {
+        if (register == 0) {
+            return new ConstantNode(0);
+        } else {
+            return new GetRegisterNode(register);
+        }
     }
 
     @Override
