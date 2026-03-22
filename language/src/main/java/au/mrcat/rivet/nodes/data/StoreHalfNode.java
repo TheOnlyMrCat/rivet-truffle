@@ -16,9 +16,8 @@ public class StoreHalfNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
         ctx.writeShortMisaligned(address.executeLong(frame) + offset, (short) value.executeLong(frame));
-        return null;
     }
 }

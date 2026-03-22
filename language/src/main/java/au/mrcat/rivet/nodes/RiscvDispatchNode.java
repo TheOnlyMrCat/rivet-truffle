@@ -1,9 +1,6 @@
 package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
-import au.mrcat.rivet.nodes.data.GetRegisterNode;
-import au.mrcat.rivet.nodes.data.StoreByteNode;
-import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.riscv.RegisterState;
@@ -25,7 +22,7 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         instructions.executeVoid(frame, BlockNode.NO_ARGUMENT);
         throw new RiscvJumpException(this.baseAddress + 4L * instructions.getElements().length);
     }
@@ -49,7 +46,7 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
         } else {
-            node.execute(frame);
+            node.executeVoid(frame);
         }
         this.currentLanguageContext().dumpRegisterState();
     }

@@ -16,9 +16,8 @@ public class StoreDoubleNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
         ctx.writeLongMisaligned(address.executeLong(frame) + offset, value.executeLong(frame));
-        return null;
     }
 }

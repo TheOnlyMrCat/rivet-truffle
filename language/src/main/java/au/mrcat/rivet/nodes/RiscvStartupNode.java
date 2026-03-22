@@ -15,7 +15,7 @@ public class RiscvStartupNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         RivetContext ctx = RivetContext.get(this);
         for (long startingOffset : initialMemory.keySet()) {
             ByteSequence segment = initialMemory.get(startingOffset);

@@ -11,7 +11,6 @@ public class EncodedInstructionNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        return null;
+    public void executeVoid(VirtualFrame frame) {
     }
 }

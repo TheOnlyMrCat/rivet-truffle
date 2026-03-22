@@ -14,8 +14,7 @@ public class SetRegisterNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         currentLanguageContext().setRegister(register, op.executeLong(frame));
-        return null;
     }
 }

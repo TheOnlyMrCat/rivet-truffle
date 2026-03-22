@@ -9,5 +9,5 @@ public abstract class RivetNode extends Node {
         return RivetContext.get(this);
     }
 
-    public abstract Object execute(VirtualFrame frame);
+    public abstract void executeVoid(VirtualFrame frame);
 }

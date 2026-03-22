@@ -22,7 +22,7 @@ public class RivetRootNode extends RootNode {
         try {
             while (true) {
                 try {
-                    bodyNode.execute(frame);
+                    bodyNode.executeVoid(frame);
                 } catch (RiscvJumpException jump) {
                     bodyNode = RivetParser.extractBasicBlock(RivetContext.get(this), jump.targetPc);
                 }

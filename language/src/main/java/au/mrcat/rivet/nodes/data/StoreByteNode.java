@@ -16,9 +16,8 @@ public class StoreByteNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
         ctx.writeByte(address.executeLong(frame) + offset, (byte) value.executeLong(frame));
-        return null;
     }
 }

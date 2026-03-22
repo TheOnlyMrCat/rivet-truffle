@@ -13,7 +13,7 @@ public class IllegalInstructionNode extends RivetNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame) {
         throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
     }
 }
