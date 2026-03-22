@@ -9,7 +9,6 @@ import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.Opcode;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
