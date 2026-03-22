@@ -8,9 +8,13 @@ import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
+import au.mrcat.rivet.nodes.priv.BreakpointNode;
+import au.mrcat.rivet.nodes.priv.EnvironmentCallNode;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.riscv.RegisterState;
+import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -72,6 +76,7 @@ public final class RivetParser {
         int opcode = instruction & 0x7f;
         return switch (opcode) {
             case Opcode.LOAD -> parseLoad(instruction);
+            case Opcode.MISC_MEM -> parseMiscMem(instruction, pc);
             case Opcode.OP_IMM -> parseOpImm(instruction);
             case Opcode.AUIPC -> parseAuipc(instruction, pc);
             case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
@@ -82,7 +87,8 @@ public final class RivetParser {
             case Opcode.BRANCH -> parseBranch(instruction, pc);
             case Opcode.JAL -> parseJal(instruction, pc);
             case Opcode.JALR -> parseJalr(instruction, pc);
-            default -> new EncodedInstructionNode(instruction);
+            case Opcode.SYSTEM -> parseSystem(instruction);
+            default -> new IllegalInstructionNode(instruction);
         };
     }
 
@@ -111,6 +117,25 @@ public final class RivetParser {
         } else {
             return new SetRegisterNode(rd, op);
         }
+    }
+
+    private static RivetNode parseMiscMem(int instruction, long pc) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immUnsigned = instruction >>> 20;
+
+        if (rd != 0 || rs1 != 0) {
+            throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+        }
+
+        return switch (funct3) {
+            // Fences aren't technically hints, but we impose a total order anyway so they don't do anything here
+            case Opcode.MiscMem.FENCE -> new HintNode(instruction);
+            // FIXME: This will eventually have to invalidate instruction caches too. There just aren't any yet.
+            case Opcode.MiscMem.FENCE_I -> new JumpNode(new ConstantNode(pc + 4));
+            default -> new IllegalInstructionNode(instruction);
+        };
     }
 
     private static RivetNode parseOpImm(int instruction) {
@@ -456,5 +481,27 @@ public final class RivetParser {
             return new JumpNode(newPc);
         }
         return new JumpAndLinkNode(newPc, new SetRegisterNode(rd, new ConstantNode(pc + 4)));
+    }
+
+    private static RivetNode parseSystem(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int funct12 = instruction >>> 20;
+
+        if (rd != 0 || rs1 != 0) {
+            return new IllegalInstructionNode(instruction);
+        }
+
+        return switch (funct3) {
+            case Opcode.System.PRIV -> switch (funct12) {
+                case Opcode.Priv.EBREAK -> new BreakpointNode();
+                case Opcode.Priv.ECALL -> new EnvironmentCallNode();
+                // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
+                case Opcode.Priv.WFI -> new HintNode(instruction);
+                default -> new IllegalInstructionNode(instruction);
+            };
+            default -> new IllegalInstructionNode(instruction);
+        };
     }
 }
