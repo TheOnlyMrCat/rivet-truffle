@@ -67,8 +67,10 @@ public final class RivetParser {
         int opcode = instruction & 0x7f;
         return switch (opcode) {
             case Opcode.OP_IMM -> parseOpImm(instruction);
+            case Opcode.AUIPC -> parseAuipc(instruction, pc);
             case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
             case Opcode.OP -> parseOp(instruction);
+            case Opcode.LUI -> parseLui(instruction);
             case Opcode.OP_32 -> parseOp32(instruction);
             default -> new EncodedInstructionNode(instruction);
         };
@@ -115,6 +117,16 @@ public final class RivetParser {
             return new HintNode(instruction);
         }
         return new SetRegisterNode(rd, op);
+    }
+
+    private static RivetNode parseAuipc(int instruction, long pc) {
+        int rd = (instruction >> 7) & 0b11111;
+        long immSigned = (instruction >> 12) << 12;
+
+        if (rd == 0) {
+            return new HintNode(instruction);
+        }
+        return new SetRegisterNode(rd, new ConstantNode(pc + immSigned));
     }
 
     private static RivetNode parseOpImm32(int instruction) {
@@ -218,6 +230,16 @@ public final class RivetParser {
             return new HintNode(instruction);
         }
         return new SetRegisterNode(rd, op);
+    }
+
+    private static RivetNode parseLui(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        long immSigned = (instruction >> 12) << 12;
+
+        if (rd == 0) {
+            return new HintNode(instruction);
+        }
+        return new SetRegisterNode(rd, new ConstantNode(immSigned));
     }
 
     private static RivetNode parseOp32(int instruction) {

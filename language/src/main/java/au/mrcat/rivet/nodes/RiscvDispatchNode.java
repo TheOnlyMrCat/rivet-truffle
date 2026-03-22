@@ -37,14 +37,12 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
             switch (opcode) {
                 case Opcode.LOAD -> handleLoad(frame, instruction);
                 case Opcode.MISC_MEM -> handleMiscMem(frame, index, instruction);
-                case Opcode.AUIPC -> handleAuipc(frame, index, instruction);
                 case Opcode.STORE -> handleStore(frame, instruction);
-                case Opcode.LUI -> handleLui(frame, instruction);
                 case Opcode.BRANCH -> handleBranch(frame, index, instruction);
                 case Opcode.JAL -> handleJal(frame, index, instruction);
                 case Opcode.JALR -> handleJalr(frame, index, instruction);
                 case Opcode.SYSTEM -> handleSystem(frame, instruction);
-                case Opcode.OP_IMM, Opcode.OP_IMM_32, Opcode.OP, Opcode.OP_32 ->
+                case Opcode.OP_IMM, Opcode.AUIPC, Opcode.OP_IMM_32, Opcode.OP, Opcode.OP_32 ->
                         throw new IllegalStateException("Instruction should have been parsed");
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
@@ -95,15 +93,6 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
         }
     }
 
-    void handleAuipc(VirtualFrame frame, int i, int instruction) {
-        var ctx = currentLanguageContext();
-
-        int rd = (instruction >> 7) & 0b11111;
-        long immSigned = (instruction >> 12) << 12;
-
-        ctx.setRegister(rd, baseAddress + 4L * i + immSigned);
-    }
-
     void handleStore(VirtualFrame frame, int instruction) {
         var ctx = currentLanguageContext();
 
@@ -123,15 +112,6 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
             case Opcode.MemWidth.DOUBLE -> ctx.writeLongMisaligned(address, value);
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         };
-    }
-
-    void handleLui(VirtualFrame frame, int instruction) {
-        var ctx = currentLanguageContext();
-
-        int rd = (instruction >> 7) & 0b11111;
-        long immSigned = (instruction >> 12) << 12;
-
-        ctx.setRegister(rd, immSigned);
     }
 
     void handleBranch(VirtualFrame frame, int i, int instruction) {
