@@ -1,6 +1,9 @@
 package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.nodes.data.EncodedInstructionNode;
+import au.mrcat.rivet.nodes.data.GetRegisterNode;
+import au.mrcat.rivet.nodes.data.StoreByteNode;
+import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.riscv.RegisterState;
@@ -35,14 +38,13 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
             System.err.printf("Executing %08x @ 0x%08x\n", instruction, this.baseAddress + pc);
             int opcode = instruction & 0x7f;
             switch (opcode) {
-                case Opcode.LOAD -> handleLoad(frame, instruction);
                 case Opcode.MISC_MEM -> handleMiscMem(frame, index, instruction);
-                case Opcode.STORE -> handleStore(frame, instruction);
                 case Opcode.BRANCH -> handleBranch(frame, index, instruction);
                 case Opcode.JAL -> handleJal(frame, index, instruction);
                 case Opcode.JALR -> handleJalr(frame, index, instruction);
                 case Opcode.SYSTEM -> handleSystem(frame, instruction);
-                case Opcode.OP_IMM, Opcode.AUIPC, Opcode.OP_IMM_32, Opcode.OP, Opcode.OP_32 ->
+                case Opcode.LOAD, Opcode.OP_IMM, Opcode.AUIPC, Opcode.OP_IMM_32,
+                     Opcode.STORE, Opcode.OP, Opcode.LUI, Opcode.OP_32 ->
                         throw new IllegalStateException("Instruction should have been parsed");
                 default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
             }
@@ -50,28 +52,6 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
             node.execute(frame);
         }
         this.currentLanguageContext().dumpRegisterState();
-    }
-
-    void handleLoad(VirtualFrame frame, int instruction) {
-        var ctx = currentLanguageContext();
-
-        int rd = (instruction >> 7) & 0b11111;
-        int funct3 = (instruction >> 12) & 0b111;
-        int rs1 = (instruction >> 15) & 0b11111;
-        long immSigned = instruction >> 20;
-
-        long address = ctx.getRegister(rs1) + immSigned;
-
-        ctx.setRegister(rd, switch (funct3) {
-            case Opcode.MemWidth.BYTE -> ctx.readByte(address);
-            case Opcode.MemWidth.BYTE_UNSIGNED -> Byte.toUnsignedLong(ctx.readByte(address));
-            case Opcode.MemWidth.HALF -> ctx.readShortMisaligned(address);
-            case Opcode.MemWidth.HALF_UNSIGNED -> Short.toUnsignedLong(ctx.readShortMisaligned(address));
-            case Opcode.MemWidth.WORD -> ctx.readIntMisaligned(address);
-            case Opcode.MemWidth.WORD_UNSIGNED -> Integer.toUnsignedLong(ctx.readIntMisaligned(address));
-            case Opcode.MemWidth.DOUBLE -> ctx.readLongMisaligned(address);
-            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
-        });
     }
 
     void handleMiscMem(VirtualFrame frame, int i, int instruction) {
@@ -91,27 +71,6 @@ public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExe
             case Opcode.MiscMem.FENCE_I -> throw new RiscvJumpException(this.baseAddress + 4L * (i + 1));
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
         }
-    }
-
-    void handleStore(VirtualFrame frame, int instruction) {
-        var ctx = currentLanguageContext();
-
-        int funct3 = (instruction >> 12) & 0b111;
-        int rs1 = (instruction >> 15) & 0b11111;
-        int rs2 = (instruction >> 20) & 0b11111;
-        int offset = (instruction >> 7) & 0b11111
-            | (instruction >> 25) << 5;
-
-        long address = ctx.getRegister(rs1) + offset;
-        long value = ctx.getRegister(rs2);
-
-        switch (funct3) {
-            case Opcode.MemWidth.BYTE -> ctx.writeByte(address, (byte) value);
-            case Opcode.MemWidth.HALF -> ctx.writeShortMisaligned(address, (short) value);
-            case Opcode.MemWidth.WORD -> ctx.writeIntMisaligned(address, (int) value);
-            case Opcode.MemWidth.DOUBLE -> ctx.writeLongMisaligned(address, value);
-            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
-        };
     }
 
     void handleBranch(VirtualFrame frame, int i, int instruction) {

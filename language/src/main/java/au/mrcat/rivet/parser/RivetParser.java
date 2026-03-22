@@ -9,6 +9,7 @@ import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.Opcode;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -66,14 +67,43 @@ public final class RivetParser {
     public static RivetNode parseInstruction(int instruction, long pc) {
         int opcode = instruction & 0x7f;
         return switch (opcode) {
+            case Opcode.LOAD -> parseLoad(instruction);
             case Opcode.OP_IMM -> parseOpImm(instruction);
             case Opcode.AUIPC -> parseAuipc(instruction, pc);
             case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
+            case Opcode.STORE -> parseStore(instruction);
             case Opcode.OP -> parseOp(instruction);
             case Opcode.LUI -> parseLui(instruction);
             case Opcode.OP_32 -> parseOp32(instruction);
             default -> new EncodedInstructionNode(instruction);
         };
+    }
+
+    private static RivetNode parseLoad(int instruction) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int immSigned = instruction >> 20;
+
+        RivetOpNode op;
+        switch (funct3) {
+            case Opcode.MemWidth.BYTE -> op = new LoadByteNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.BYTE_UNSIGNED -> op = new LoadByteUnsignedNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.HALF -> op = new LoadHalfNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.HALF_UNSIGNED -> op = new LoadHalfUnsignedNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.WORD -> op = new LoadWordNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.WORD_UNSIGNED -> op = new LoadWordUnsignedNode(new GetRegisterNode(rs1), immSigned);
+            case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleNode(new GetRegisterNode(rs1), immSigned);
+            default -> {
+                return new IllegalInstructionNode(instruction);
+            }
+        }
+
+        if (rd == 0) {
+            return op;
+        } else {
+            return new SetRegisterNode(rd, op);
+        }
     }
 
     private static RivetNode parseOpImm(int instruction) {
@@ -179,6 +209,22 @@ public final class RivetParser {
             return new HintNode(instruction);
         }
         return new SetRegisterNode(rd, op);
+    }
+
+    private static RivetNode parseStore(int instruction) {
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int offset = (instruction >> 7) & 0b11111
+                | (instruction >> 25) << 5;
+
+        return switch (funct3) {
+            case Opcode.MemWidth.BYTE -> new StoreByteNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
+            case Opcode.MemWidth.HALF -> new StoreHalfNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
+            case Opcode.MemWidth.WORD -> new StoreWordNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
+            case Opcode.MemWidth.DOUBLE -> new StoreDoubleNode(new GetRegisterNode(rs1), offset, new GetRegisterNode(rs2));
+            default -> new IllegalInstructionNode(instruction);
+        };
     }
 
     private static RivetNode parseOp(int instruction) {
