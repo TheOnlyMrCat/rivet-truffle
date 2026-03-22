@@ -6,9 +6,13 @@ import au.mrcat.rivet.nodes.RiscvStartupNode;
 import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.nodes.arith.*;
+import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
+import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.runtime.RiscvJumpException;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
@@ -75,6 +79,9 @@ public final class RivetParser {
             case Opcode.OP -> parseOp(instruction);
             case Opcode.LUI -> parseLui(instruction);
             case Opcode.OP_32 -> parseOp32(instruction);
+            case Opcode.BRANCH -> parseBranch(instruction, pc);
+            case Opcode.JAL -> parseJal(instruction, pc);
+            case Opcode.JALR -> parseJalr(instruction, pc);
             default -> new EncodedInstructionNode(instruction);
         };
     }
@@ -370,5 +377,84 @@ public final class RivetParser {
             return new HintNode(instruction);
         }
         return new SetRegisterNode(rd, op);
+    }
+
+    private static RivetNode parseBranch(int instruction, long pc) {
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+
+        long jumpOffset = ((instruction >> 8) & 0b1111) << 1
+                | ((instruction >> 25) & 0b111111) << 5
+                | ((instruction >> 7) & 0b1) << 11
+                | (instruction >> 31) << 12;
+
+        if ((jumpOffset & 0b10) != 0) {
+            throw new IllegalStateException("Something went wrong calculating the jump offset");
+        }
+
+        long branchPc = pc + jumpOffset;
+        long nextInstrPc = pc + 4;
+
+        return switch (funct3) {
+            case Opcode.Branch.BEQ -> new BranchEqualNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    branchPc, nextInstrPc
+            );
+            case Opcode.Branch.BNE -> new BranchEqualNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    nextInstrPc, branchPc
+            );
+            case Opcode.Branch.BLT -> new BranchLessThanNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    branchPc, nextInstrPc
+            );
+            case Opcode.Branch.BLTU -> new BranchLessThanUnsignedNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    branchPc, nextInstrPc
+            );
+            case Opcode.Branch.BGE -> new BranchLessThanNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    nextInstrPc, branchPc
+            );
+            case Opcode.Branch.BGEU -> new BranchLessThanUnsignedNode(
+                    new GetRegisterNode(rs1), new GetRegisterNode(rs2),
+                    nextInstrPc, branchPc
+            );
+            default -> new IllegalInstructionNode(instruction);
+        };
+    }
+
+    private static RivetNode parseJal(int instruction, long pc) {
+        int rd = (instruction >> 7) & 0b11111;
+        long jumpOffset = (instruction >> 12 & 0b1111_1111) << 12
+                | ((instruction >> 20 & 0b1) << 11)
+                | ((instruction >> 21 & 0b11_1111_1111) << 1)
+                | ((instruction >> 31) << 20);
+
+        long newPc = pc + jumpOffset;
+
+        if (rd == 0) {
+            return new JumpNode(new ConstantNode(newPc));
+        }
+        return new JumpAndLinkNode(new ConstantNode(newPc), new SetRegisterNode(rd, new ConstantNode(pc + 4)));
+    }
+
+    private static RivetNode parseJalr(int instruction, long pc) {
+        int rd = (instruction >> 7) & 0b11111;
+        int funct3 = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        long immSigned = instruction >> 20;
+
+        if (funct3 != 0) {
+            return new IllegalInstructionNode(instruction);
+        }
+
+        var newPc = new AddNode(new GetRegisterNode(rs1), new ConstantNode(immSigned));
+
+        if (rd == 0) {
+            return new JumpNode(newPc);
+        }
+        return new JumpAndLinkNode(newPc, new SetRegisterNode(rd, new ConstantNode(pc + 4)));
     }
 }
