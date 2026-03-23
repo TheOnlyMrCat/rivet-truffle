@@ -13,11 +13,7 @@ import au.mrcat.rivet.nodes.priv.EnvironmentCallNode;
 import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
-import au.mrcat.rivet.riscv.RegisterState;
-import au.mrcat.rivet.runtime.RiscvExitException;
-import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -48,9 +44,9 @@ public final class RivetParser {
         var instructions = new ArrayList<RivetNode>();
 
         // Cap basic block length at 1024 for interrupt checking, etc.
-        bb: for (int pc_offset = 0; pc_offset < 4096; pc_offset += 4) {
+        bb: for (int pc_offset = 0; pc_offset < 4096;) {
             long pc = baseAddress + pc_offset;
-            int instruction = context.readInt(pc);
+            int instruction = context.readIntMisaligned(pc);
             var node = Objects.requireNonNull(parseInstruction(instruction, pc));
             // TODO: Ignore Hint nodes, don't even store them here
             instructions.add(node);
@@ -58,8 +54,9 @@ public final class RivetParser {
             // For now, check basic block breaking here
             int opcode = instruction & 0b1111111;
             if ((opcode & 0b11) != 0b11) {
-                // We don't support C yet, so break basic blocks at any non-32-bit instruction (will always instruction fault)
-                break;
+                pc_offset += 2;
+            } else {
+                pc_offset += 4;
             }
             switch (opcode) {
                 case Opcode.BRANCH, Opcode.JAL, Opcode.JALR -> {
@@ -73,21 +70,342 @@ public final class RivetParser {
     }
 
     public static RivetNode parseInstruction(int instruction, long pc) {
-        int opcode = instruction & 0x7f;
-        return switch (opcode) {
-            case Opcode.LOAD -> parseLoad(instruction);
-            case Opcode.MISC_MEM -> parseMiscMem(instruction, pc);
-            case Opcode.OP_IMM -> parseOpImm(instruction);
-            case Opcode.AUIPC -> parseAuipc(instruction, pc);
-            case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
-            case Opcode.STORE -> parseStore(instruction);
-            case Opcode.OP -> parseOp(instruction);
-            case Opcode.LUI -> parseLui(instruction);
-            case Opcode.OP_32 -> parseOp32(instruction);
-            case Opcode.BRANCH -> parseBranch(instruction, pc);
-            case Opcode.JAL -> parseJal(instruction, pc);
-            case Opcode.JALR -> parseJalr(instruction, pc);
-            case Opcode.SYSTEM -> parseSystem(instruction);
+        int compressed_opcode = instruction & 0b11;
+        return switch (compressed_opcode) {
+            case 0b00 -> parseC0((short) instruction);
+            case 0b01 -> parseC1((short) instruction, pc);
+            case 0b10 -> parseC2((short) instruction, pc);
+            case 0b11 -> {
+                int opcode = instruction & 0x7f;
+                yield switch (opcode) {
+                    case Opcode.LOAD -> parseLoad(instruction);
+                    case Opcode.MISC_MEM -> parseMiscMem(instruction, pc);
+                    case Opcode.OP_IMM -> parseOpImm(instruction);
+                    case Opcode.AUIPC -> parseAuipc(instruction, pc);
+                    case Opcode.OP_IMM_32 -> parseOpImm32(instruction);
+                    case Opcode.STORE -> parseStore(instruction);
+                    case Opcode.OP -> parseOp(instruction);
+                    case Opcode.LUI -> parseLui(instruction);
+                    case Opcode.OP_32 -> parseOp32(instruction);
+                    case Opcode.BRANCH -> parseBranch(instruction, pc);
+                    case Opcode.JAL -> parseJal(instruction, pc);
+                    case Opcode.JALR -> parseJalr(instruction, pc);
+                    case Opcode.SYSTEM -> parseSystem(instruction);
+                    default -> new IllegalInstructionNode(instruction);
+                };
+            }
+            default -> throw new IllegalStateException("Unexpected value of compressed_opcode");
+        };
+    }
+
+    public static RivetNode parseC0(short instruction) {
+        int funct3 = instruction >>> 13 & 0b111;
+
+        return switch (funct3) {
+            case Opcode.C0.ADDI4SPN -> {
+                int imm = ((instruction >> 6) & 0b1) << 2
+                        | ((instruction >> 5) & 0b1) << 3
+                        | ((instruction >> 11) & 0b11) << 4
+                        | ((instruction >> 7) & 0b1111) << 6;
+
+                if (imm == 0) {
+                    yield new IllegalInstructionNode(instruction);
+                }
+
+                int rd = ((instruction >> 2) & 0b111) + 8;
+
+                yield new SetRegisterNode(rd, new AddNode(GetRegisterNode.create(2), new ConstantNode(imm)));
+            }
+            case Opcode.C0.LW -> {
+                int offset = ((instruction >> 6) & 0b1) << 2
+                        | ((instruction >> 10) & 0b111) << 3
+                        | ((instruction >> 5) & 0b1) << 6;
+
+                int rd = ((instruction >> 2) & 0b111) + 8;
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+
+                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(rs1), offset));
+            }
+            case Opcode.C0.LD -> {
+                int offset = ((instruction >> 10) & 0b111) << 3
+                        | ((instruction >> 5) & 0b11) << 6;
+
+                int rd = ((instruction >> 2) & 0b111) + 8;
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+
+                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(rs1), offset));
+            }
+            case Opcode.C0.SW -> {
+                int offset = ((instruction >> 6) & 0b1) << 2
+                        | ((instruction >> 10) & 0b111) << 3
+                        | ((instruction >> 5) & 0b1) << 6;
+
+                int rs2 = ((instruction >> 2) & 0b111) + 8;
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+
+                yield new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
+            }
+            case Opcode.C0.SD -> {
+                int offset = ((instruction >> 10) & 0b111) << 3
+                        | ((instruction >> 5) & 0b11) << 6;
+
+                int rs2 = ((instruction >> 2) & 0b111) + 8;
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+
+                yield new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2));
+            }
+            default -> new IllegalInstructionNode(instruction);
+        };
+    }
+
+    public static RivetNode parseC1(short instruction, long pc) {
+        int funct3 = instruction >>> 13 & 0b111;
+
+        return switch (funct3) {
+            case Opcode.C1.ADDI -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 0) {
+                    yield new HintNode(instruction);
+                }
+                int imm = (instruction >> 2) & 0b11111
+                        | ((instruction << 19) & 0x8000_0000) >> 27;
+
+                yield new SetRegisterNode(rd, new AddNode(GetRegisterNode.create(rd), new ConstantNode(imm)));
+            }
+            case Opcode.C1.ADDIW -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 0) {
+                    yield new HintNode(instruction);
+                }
+                int imm = (instruction >> 2) & 0b11111
+                        | ((instruction << 19) & 0x8000_0000) >> 27;
+
+                yield new SetRegisterNode(rd, new SignExtendIntNode(new AddNode(GetRegisterNode.create(rd), new ConstantNode(imm))));
+            }
+            case Opcode.C1.LI -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 0) {
+                    yield new HintNode(instruction);
+                }
+
+                int imm = (instruction >> 2) & 0b11111
+                        | ((instruction << 19) & 0x8000_0000) >> 27;
+
+                yield new SetRegisterNode(rd, new ConstantNode(imm));
+            }
+            case Opcode.C1.LUI -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 2) {
+                    // ADDI16SP
+                    int imm = ((instruction >> 6) & 0b1) << 4
+                            | ((instruction >> 2) & 0b1) << 5
+                            | ((instruction >> 5) & 0b1) << 6
+                            | ((instruction >> 3) & 0b11) << 7
+                            | ((instruction << 19) & 0x8000_0000) >> 22;
+                    if (imm == 0) {
+                        yield new IllegalInstructionNode(instruction);
+                    }
+                    yield new SetRegisterNode(2, new AddNode(GetRegisterNode.create(2), new ConstantNode(imm)));
+                } else {
+                    // LUI
+                    int imm = ((instruction >> 2) & 0b11111) << 12
+                            | ((instruction << 19) & 0x8000_0000) >> 14;
+                    if (imm == 0) {
+                        yield new IllegalInstructionNode(instruction);
+                    }
+                    if (rd == 0) {
+                        yield new HintNode(instruction);
+                    }
+                    yield new SetRegisterNode(rd, new ConstantNode(imm));
+                }
+            }
+            case Opcode.C1.ARITH -> {
+                int funct3l = (instruction >> 10) & 0b111;
+                yield switch (funct3l) {
+                    case 0b000, 0b100 -> {
+                        // SRLI
+                        int rd = ((instruction >> 7) & 0b111) + 8;
+                        int shiftAmount = ((instruction >> 2) & 0b11111)
+                                | ((instruction >> 12) & 0b1) << 5;
+                        if (shiftAmount == 0) {
+                            yield new HintNode(instruction);
+                        }
+                        yield new SetRegisterNode(rd, new ShiftRightLogicalNode(GetRegisterNode.create(rd), new ConstantNode(shiftAmount)));
+                    }
+                    case 0b001, 0b101 -> {
+                        // SRAI
+                        int rd = ((instruction >> 7) & 0b111) + 8;
+                        int shiftAmount = ((instruction >> 2) & 0b11111)
+                                | ((instruction >> 12) & 0b1) << 5;
+                        if (shiftAmount == 0) {
+                            yield new HintNode(instruction);
+                        }
+                        yield new SetRegisterNode(rd, new ShiftRightArithmeticNode(GetRegisterNode.create(rd), new ConstantNode(shiftAmount)));
+                    }
+                    case 0b010, 0b110 -> {
+                        // ANDI
+                        int rd = ((instruction >> 7) & 0b111) + 8;
+                        long imm = ((instruction >> 2) & 0b11111)
+                                | ((instruction << 19) & 0x8000_0000) >> 26;
+                        yield new SetRegisterNode(rd, new AndNode(GetRegisterNode.create(rd), new ConstantNode(imm)));
+                    }
+                    case 0b011 -> {
+                        int funct2 = (instruction >> 5) & 0b11;
+                        int rd = ((instruction >> 7) & 0b111) + 8;
+                        int rs2 = ((instruction >> 2) & 0b111) + 8;
+                        yield new SetRegisterNode(rd, switch (funct2) {
+                            case 0b00 -> new SubNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2));
+                            case 0b01 -> new XorNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2));
+                            case 0b10 -> new OrNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2));
+                            case 0b11 -> new AndNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2));
+                            default -> throw new IllegalStateException("Unexpected value: " + funct2);
+                        });
+                    }
+                    case 0b111 -> {
+                        int funct2 = (instruction >> 5) & 0b11;
+                        if (funct2 > 1) {
+                            yield new IllegalInstructionNode(instruction);
+                        }
+                        int rd = ((instruction >> 7) & 0b111) + 8;
+                        int rs2 = ((instruction >> 2) & 0b111) + 8;
+                        yield new SetRegisterNode(rd, switch (funct2) {
+                            case 0b00 -> new SignExtendIntNode(new SubNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2)));
+                            case 0b01 -> new SignExtendIntNode(new AddNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2)));
+                            default -> throw new IllegalStateException("Unexpected value: " + funct2);
+                        });
+                    }
+                    default -> throw new IllegalStateException("Unexpected value: " + funct3l);
+                };
+            }
+            case Opcode.C1.J -> {
+                int offset = ((instruction >> 3) & 0b111) << 1
+                        | ((instruction >> 11) & 0b1) << 4
+                        | ((instruction >> 2) & 0b1) << 5
+                        | ((instruction >> 7) & 0b1) << 6
+                        | ((instruction >> 6) & 0b1) << 7
+                        | ((instruction >> 9) & 0b11) << 8
+                        | ((instruction >> 8) & 0b1) << 10
+                        | ((instruction << 19) & 0x8000_0000) >> 20;
+                yield new JumpNode(new ConstantNode(pc + offset));
+            }
+            case Opcode.C1.BEQZ -> {
+                int offset = ((instruction >> 3) & 0b11) << 1
+                        | ((instruction >> 10) & 0b11) << 3
+                        | ((instruction >> 2) & 0b1) << 5
+                        | ((instruction >> 5) & 0b11) << 6
+                        | ((instruction << 19) & 0x8000_0000) >> 23;
+
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+                yield new BranchEqualNode(
+                        new ConstantNode(0), GetRegisterNode.create(rs1),
+                        pc + offset, pc + 2
+                );
+            }
+            case Opcode.C1.BNEZ -> {
+                int offset = ((instruction >> 3) & 0b11) << 1
+                        | ((instruction >> 10) & 0b11) << 3
+                        | ((instruction >> 2) & 0b1) << 5
+                        | ((instruction >> 5) & 0b11) << 6
+                        | ((instruction << 19) & 0x8000_0000) >> 23;
+
+                int rs1 = ((instruction >> 7) & 0b111) + 8;
+                yield new BranchEqualNode(
+                        new ConstantNode(0), GetRegisterNode.create(rs1),
+                        pc + 2, pc + offset
+                );
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + funct3);
+        };
+    }
+
+    public static RivetNode parseC2(short instruction, long pc) {
+        int funct3 = instruction >>> 13 & 0b111;
+
+        return switch (funct3) {
+            case Opcode.C2.SLLI -> {
+                int rd = (instruction >> 7) & 0b11111;
+                int shiftAmount = ((instruction >> 2) & 0b11111)
+                        | ((instruction >> 12) & 0b1) << 5;
+                if (shiftAmount == 0) {
+                    yield new HintNode(instruction);
+                }
+                yield new SetRegisterNode(rd, new ShiftLeftLogicalNode(GetRegisterNode.create(rd), new ConstantNode(shiftAmount)));
+            }
+            case Opcode.C2.LWSP -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 0) {
+                    yield new IllegalInstructionNode(instruction);
+                }
+
+                int offset = ((instruction >> 4) & 0b111) << 2
+                        | ((instruction >> 12) & 0b1) << 5
+                        | ((instruction >> 2) & 0b11) << 6;
+                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(2), offset));
+            }
+            case Opcode.C2.LDSP -> {
+                int rd = (instruction >> 7) & 0b11111;
+                if (rd == 0) {
+                    yield new IllegalInstructionNode(instruction);
+                }
+
+                int offset = ((instruction >> 5) & 0b11) << 3
+                        | ((instruction >> 12) & 0b1) << 5
+                        | ((instruction >> 2) & 0b111) << 6;
+                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(2), offset));
+            }
+            case Opcode.C2.J -> {
+                int rs2 = (instruction >> 2) & 0b11111;
+                if ((instruction >> 12 & 0b1) == 0) {
+                    if (rs2 == 0) {
+                        // JR
+                        int rs1 = (instruction >> 7) & 0b11111;
+                        if (rs1 == 0) {
+                            yield new IllegalInstructionNode(instruction);
+                        }
+                        yield new JumpNode(GetRegisterNode.create(rs1));
+                    } else {
+                        // MV
+                        int rd = (instruction >> 7) & 0b11111;
+                        if (rd == 0) {
+                            yield new HintNode(instruction);
+                        }
+                        yield new SetRegisterNode(rd, GetRegisterNode.create(rs2));
+                    }
+                } else {
+                    if (rs2 == 0) {
+                        int rs1 = (instruction >> 7) & 0b11111;
+                        if (rs1 == 0) {
+                            // EBREAK
+                            yield new BreakpointNode();
+                        } else {
+                            // JALR
+                            yield new JumpAndLinkNode(
+                                    GetRegisterNode.create(rs1),
+                                    new SetRegisterNode(1, new ConstantNode(pc + 2))
+                            );
+                        }
+                    } else {
+                        // ADD
+                        int rd = (instruction >> 7) & 0b11111;
+                        if (rd == 0) {
+                            yield new HintNode(instruction);
+                        }
+                        yield new SetRegisterNode(rd, new AddNode(GetRegisterNode.create(rd), GetRegisterNode.create(rs2)));
+                    }
+                }
+            }
+            case Opcode.C2.SWSP -> {
+                int rs2 = (instruction >> 2) & 0b11111;
+                int offset = ((instruction >> 9) & 0b1111) << 2
+                        | ((instruction >> 7) & 0b11) << 6;
+                yield new StoreWordNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2));
+            }
+            case Opcode.C2.SDSP -> {
+                int rs2 = (instruction >> 2) & 0b11111;
+                int offset = ((instruction >> 10) & 0b111) << 3
+                        | ((instruction >> 7) & 0b111) << 6;
+                yield new StoreDoubleNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2));
+            }
             default -> new IllegalInstructionNode(instruction);
         };
     }
@@ -413,10 +731,6 @@ public final class RivetParser {
                 | ((instruction >> 25) & 0b111111) << 5
                 | ((instruction >> 7) & 0b1) << 11
                 | (instruction >> 31) << 12;
-
-        if ((jumpOffset & 0b10) != 0) {
-            throw new IllegalStateException("Something went wrong calculating the jump offset");
-        }
 
         long branchPc = pc + jumpOffset;
         long nextInstrPc = pc + 4;

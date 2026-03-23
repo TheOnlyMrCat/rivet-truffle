@@ -15,6 +15,38 @@ public class Opcode {
     public static final int JAL = 0b1101111;
     public static final int SYSTEM = 0b1110011;
 
+    public static class C0 {
+        public static final int ADDI4SPN = 0b000;
+        public static final int FLD = 0b001;
+        public static final int LW = 0b010;
+        public static final int LD = 0b011;
+        public static final int FSD = 0b101;
+        public static final int SW = 0b110;
+        public static final int SD = 0b111;
+    }
+
+    public static class C1 {
+        public static final int ADDI = 0b000;
+        public static final int ADDIW = 0b001;
+        public static final int LI = 0b010;
+        public static final int LUI = 0b011;
+        public static final int ARITH = 0b100;
+        public static final int J = 0b101;
+        public static final int BEQZ = 0b110;
+        public static final int BNEZ = 0b111;
+    }
+
+    public static class C2 {
+        public static final int SLLI = 0b000;
+        public static final int FLDSP = 0b001;
+        public static final int LWSP = 0b010;
+        public static final int LDSP = 0b011;
+        public static final int J = 0b100;
+        public static final int FSDSP = 0b101;
+        public static final int SWSP = 0b110;
+        public static final int SDSP = 0b111;
+    }
+
     public static class MemWidth {
         public static final int BYTE = 0b000;
         public static final int HALF = 0b001;

@@ -1,6 +1,7 @@
 package au.mrcat.rivet.launcher;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
@@ -49,16 +50,24 @@ public class RiscvTests {
             IO.print(source.getName());
             IO.print(": ...");
 
-            long result = context.eval(source).asLong();
+            try {
+                long result = context.eval(source).asLong();
 
-            IO.print("\010\010\010");
-            if (result == 0) {
-                IO.println("\033[32mpass\033[0m");
-            } else {
-                IO.print("\033[31mfail ");
-                IO.print(result);
+                IO.print("\010\010\010");
+                if (result == 0) {
+                    IO.println("\033[32mpass\033[0m");
+                    passed++;
+                } else {
+                    IO.print("\033[31mfail ");
+                    IO.print(result);
+                    IO.println("\033[0m");
+                    failed.put(source.getName(), result);
+                }
+            } catch (PolyglotException e) {
+                IO.print("\010\010\010\033[31mthrows ");
+                IO.print(e.toString());
                 IO.println("\033[0m");
-                failed.put(source.getName(), result);
+                failed.put(source.getName(), 0L);
             }
         }
 
@@ -77,8 +86,12 @@ public class RiscvTests {
             for (var failedTest : failed.entrySet()) {
                 IO.print("\033[91m");
                 IO.print(failedTest.getKey());
-                IO.print("\033[0m failed with code ");
-                IO.println(failedTest.getValue());
+                if (failedTest.getValue() != 0) {
+                    IO.print("\033[0m failed with code ");
+                    IO.println(failedTest.getValue());
+                } else {
+                    IO.print("\033[0m threw an exception\n");
+                }
             }
         }
     }
