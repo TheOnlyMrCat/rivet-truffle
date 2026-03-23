@@ -6,17 +6,17 @@ import com.oracle.truffle.api.nodes.BlockNode;
 
 public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
     @Child BlockNode<RivetNode> instructions;
-    private final long baseAddress;
+    private final long nextPc;
 
-    public RiscvDispatchNode(RivetNode[] instructions, long baseAddress) {
+    public RiscvDispatchNode(RivetNode[] instructions, long nextPc) {
         this.instructions = BlockNode.create(instructions, this);
-        this.baseAddress = baseAddress;
+        this.nextPc = nextPc;
     }
 
     @Override
     public void executeVoid(VirtualFrame frame) {
         instructions.executeVoid(frame, BlockNode.NO_ARGUMENT);
-        throw new RiscvJumpException(this.baseAddress + 4L * instructions.getElements().length);
+        throw new RiscvJumpException(nextPc);
     }
 
     @Override

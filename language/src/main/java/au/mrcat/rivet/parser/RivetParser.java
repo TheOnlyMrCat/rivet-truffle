@@ -1,10 +1,7 @@
 package au.mrcat.rivet.parser;
 
 import au.mrcat.rivet.RivetContext;
-import au.mrcat.rivet.nodes.RiscvDispatchNode;
-import au.mrcat.rivet.nodes.RiscvStartupNode;
-import au.mrcat.rivet.nodes.RivetNode;
-import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.nodes.*;
 import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
@@ -42,31 +39,33 @@ public final class RivetParser {
 
     public static RiscvDispatchNode extractBasicBlock(RivetContext context, long baseAddress) {
         var instructions = new ArrayList<RivetNode>();
+        long pc_offset = 0;
 
         // Cap basic block length at 1024 for interrupt checking, etc.
-        bb: for (int pc_offset = 0; pc_offset < 4096;) {
+        bb: while (pc_offset < 4096) {
             long pc = baseAddress + pc_offset;
             int instruction = context.readIntMisaligned(pc);
-            var node = Objects.requireNonNull(parseInstruction(instruction, pc));
-            // TODO: Ignore Hint nodes, don't even store them here
-            instructions.add(node);
 
-            // For now, check basic block breaking here
-            int opcode = instruction & 0b1111111;
-            if ((opcode & 0b11) != 0b11) {
+            if ((instruction & 0b11) != 0b11) {
                 pc_offset += 2;
             } else {
                 pc_offset += 4;
             }
-            switch (opcode) {
-                case Opcode.BRANCH, Opcode.JAL, Opcode.JALR -> {
-                    // Break basic blocks at jump and branch instructions
+
+            var node = Objects.requireNonNull(parseInstruction(instruction, pc));
+            switch (node) {
+                case HintNode ignored -> {}
+                case RivetDivergentNode divergentNode -> {
+                    instructions.add(divergentNode);
                     break bb;
+                }
+                default -> {
+                    instructions.add(node);
                 }
             }
         }
 
-        return new RiscvDispatchNode(instructions.toArray(new RivetNode[0]), baseAddress);
+        return new RiscvDispatchNode(instructions.toArray(new RivetNode[0]), baseAddress + pc_offset);
     }
 
     public static RivetNode parseInstruction(int instruction, long pc) {
