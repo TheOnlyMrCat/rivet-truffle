@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
 
 public class RivetContext {
@@ -17,6 +18,9 @@ public class RivetContext {
     public static RivetContext get(Node node) {
         return REF.get(node);
     }
+
+    private static final VarHandle INT_ALIGNED = ValueLayout.JAVA_INT_UNALIGNED.withOrder(ByteOrder.LITTLE_ENDIAN).varHandle();
+    private static final VarHandle LONG_ALIGNED = ValueLayout.JAVA_LONG_UNALIGNED.withOrder(ByteOrder.LITTLE_ENDIAN).varHandle();
 
     private final Arena arena;
     public final RegisterState registerState;
@@ -100,58 +104,58 @@ public class RivetContext {
 
     public void writeByte(long address, byte value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         memory.set(ValueLayout.JAVA_BYTE, address - 0x8000_0000L, value);
     }
 
     public void writeShort(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         memory.set(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
     }
 
     public void writeShortMisaligned(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         memory.set(ValueLayout.JAVA_SHORT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
     }
 
     public void writeInt(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         memory.set(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
     }
 
     public void writeIntMisaligned(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         memory.set(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
     }
 
     public void writeLong(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
     }
 
     public void writeLongMisaligned(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
     }

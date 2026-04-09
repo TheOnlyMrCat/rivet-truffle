@@ -7,6 +7,7 @@ public class Opcode {
     public static final int AUIPC = 0b0010111;
     public static final int OP_IMM_32 = 0b0011011;
     public static final int STORE = 0b0100011;
+    public static final int AMO = 0b0101111;
     public static final int OP = 0b0110011;
     public static final int LUI = 0b0110111;
     public static final int OP_32 = 0b0111011;
@@ -60,6 +61,20 @@ public class Opcode {
     public static class MiscMem {
         public static final int FENCE = 0b000;
         public static final int FENCE_I = 0b001;
+    }
+
+    public static class Amo {
+        public static final int LR = 0b00010;
+        public static final int SC = 0b00011;
+        public static final int AMOSWAP = 0b00001;
+        public static final int AMOADD = 0b00000;
+        public static final int AMOXOR = 0b00100;
+        public static final int AMOAND = 0b01100;
+        public static final int AMOOR = 0b01000;
+        public static final int AMOMIN = 0b10000;
+        public static final int AMOMAX = 0b10100;
+        public static final int AMOMINU = 0b11000;
+        public static final int AMOMAXU = 0b11100;
     }
 
     public static class Op {

@@ -6,6 +6,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class GetRegisterNode extends RivetOpNode {
     private final int register;
 
+    public static final GetRegisterNode TEMP_REGISTER = new GetRegisterNode(SetRegisterNode.TEMP_REGISTER);
+
     private GetRegisterNode(int register) {
         this.register = register;
     }
@@ -16,6 +18,10 @@ public class GetRegisterNode extends RivetOpNode {
         } else {
             return new GetRegisterNode(register);
         }
+    }
+
+    public static RivetOpNode createIncludingTemp(int register) {
+        return new GetRegisterNode(register);
     }
 
     @Override

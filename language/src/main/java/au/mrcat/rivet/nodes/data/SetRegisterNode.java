@@ -8,6 +8,8 @@ public class SetRegisterNode extends RivetNode {
     private final int register;
     @Child RivetOpNode op;
 
+    public static final int TEMP_REGISTER = 0;
+
     public SetRegisterNode(int register, RivetOpNode op) {
         this.register = register;
         this.op = op;
