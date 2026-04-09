@@ -21,11 +21,13 @@ public class StoreDoubleConditionalNode extends RivetNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        // We're executing outside a WithLockedWordNode; always fail
-        address.executeLong(frame);
-        src.executeLong(frame);
+        var ctx = currentLanguageContext();
+
+        long address = this.address.executeLong(frame);
+        long value = src.executeLong(frame);
+        boolean succeeded = ctx.writeIntConditional(address, (int) value);
         if (rd != 0) {
-            currentLanguageContext().setRegister(rd, 1);
+            ctx.setRegister(rd, succeeded ? 0 : 1);
         }
     }
 }

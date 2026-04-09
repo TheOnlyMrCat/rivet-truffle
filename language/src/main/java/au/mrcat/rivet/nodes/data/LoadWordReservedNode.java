@@ -16,7 +16,10 @@ public class LoadWordReservedNode extends RivetNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
-        int word = ctx.readInt(address.executeLong(frame));
+
+        long address = this.address.executeLong(frame);
+        ctx.reserveAddress(address);
+        int word = ctx.readInt(address);
         if (rd != 0) {
             ctx.setRegister(rd, word);
         }

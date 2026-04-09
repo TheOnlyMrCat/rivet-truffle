@@ -585,6 +585,16 @@ public final class RivetParser {
         int funct5 = instruction >>> 27;
 
         return switch (funct5) {
+            case Opcode.Amo.LR -> switch (funct3) {
+                case Opcode.MemWidth.WORD -> new LoadWordReservedNode(GetRegisterNode.create(rs1), rd);
+                case Opcode.MemWidth.DOUBLE -> new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd);
+                default -> new IllegalInstructionNode(instruction);
+            };
+            case Opcode.Amo.SC -> switch (funct3) {
+                case Opcode.MemWidth.WORD -> new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), rd);
+                case Opcode.MemWidth.DOUBLE -> new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), rd);
+                default -> new IllegalInstructionNode(instruction);
+            };
             case Opcode.Amo.AMOSWAP -> switch (funct3) {
                 case Opcode.MemWidth.WORD -> new WithLockedWordNode(
                         new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),

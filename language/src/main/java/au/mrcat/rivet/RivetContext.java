@@ -19,12 +19,12 @@ public class RivetContext {
         return REF.get(node);
     }
 
-    private static final VarHandle INT_ALIGNED = ValueLayout.JAVA_INT_UNALIGNED.withOrder(ByteOrder.LITTLE_ENDIAN).varHandle();
-    private static final VarHandle LONG_ALIGNED = ValueLayout.JAVA_LONG_UNALIGNED.withOrder(ByteOrder.LITTLE_ENDIAN).varHandle();
-
     private final Arena arena;
     public final RegisterState registerState;
     public final MemorySegment memory;
+
+    private static final long NO_RESERVATION = 1;
+    private long reservedDoubleWord = NO_RESERVATION;
 
     public RivetContext() {
         registerState = new RegisterState();
@@ -102,6 +102,13 @@ public class RivetContext {
         return memory.get(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L);
     }
 
+    public void reserveAddress(long address) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        reservedDoubleWord = address & ~0b111L;
+    }
+
     public void writeByte(long address, byte value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
@@ -158,5 +165,37 @@ public class RivetContext {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN).withByteAlignment(1), address - 0x8000_0000L, value);
+    }
+
+    public boolean writeIntConditional(long address, int value) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+        }
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
+        long reserved = reservedDoubleWord;
+        reservedDoubleWord = NO_RESERVATION;
+        if ((address & ~0b111L) != reserved) {
+            return false;
+        }
+        memory.set(ValueLayout.JAVA_INT.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
+        return true;
+    }
+
+    public boolean writeLongConditional(long address, long value) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+        }
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
+        long reserved = reservedDoubleWord;
+        reservedDoubleWord = NO_RESERVATION;
+        if ((address & ~0b111L) != reserved) {
+            return false;
+        }
+        memory.set(ValueLayout.JAVA_LONG.withOrder(ByteOrder.LITTLE_ENDIAN), address - 0x8000_0000L, value);
+        return true;
     }
 }
