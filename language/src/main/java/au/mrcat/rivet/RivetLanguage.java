@@ -6,12 +6,13 @@ import au.mrcat.rivet.parser.RivetParser;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.nodes.Node;
 
 @TruffleLanguage.Registration(id = "rv64", name = "Rivet RV64I", byteMimeTypes = "application/x-elf-riscv")
 public final class RivetLanguage extends TruffleLanguage<RivetContext> {
     @Override
     protected RivetContext createContext(Env env) {
-        return new RivetContext();
+        return new RivetContext(env);
     }
 
     @Override

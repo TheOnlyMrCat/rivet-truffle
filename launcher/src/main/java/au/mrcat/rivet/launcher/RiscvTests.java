@@ -3,7 +3,6 @@ package au.mrcat.rivet.launcher;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,8 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RiscvTests {
@@ -35,8 +32,7 @@ public class RiscvTests {
             File f = p.toFile();
             return f.isFile() && f.canExecute();
         })) {
-            for (Iterator<Path> it = directoryStream.iterator(); it.hasNext(); ) {
-                Path p = it.next();
+            for (Path p : directoryStream) {
                 sources.add(Source.newBuilder("rv64", p.toFile()).build());
             }
         } catch (IOException e) {

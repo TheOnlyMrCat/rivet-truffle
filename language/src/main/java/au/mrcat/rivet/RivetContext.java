@@ -19,6 +19,7 @@ public class RivetContext {
         return REF.get(node);
     }
 
+    public final TruffleLanguage.Env env;
     private final Arena arena;
     public final RegisterState registerState;
     public final MemorySegment memory;
@@ -26,7 +27,8 @@ public class RivetContext {
     private static final long NO_RESERVATION = 1;
     private long reservedDoubleWord = NO_RESERVATION;
 
-    public RivetContext() {
+    public RivetContext(TruffleLanguage.Env env) {
+        this.env = env;
         registerState = new RegisterState();
         arena = Arena.ofAuto();
         memory = arena.allocate(1 * 1024 * 1024 * 1024, 4096);
@@ -42,6 +44,14 @@ public class RivetContext {
 
     public void dumpRegisterState() {
         registerState.dumpRegisterState();
+    }
+
+    public MemorySegment slice(long address, long size) {
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
+            // FIXME: Throw something different?
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        return memory.asSlice(address - 0x8000_0000L, size);
     }
 
     public byte readByte(long address) {

@@ -25,7 +25,7 @@ public class StoreDoubleConditionalNode extends RivetNode {
 
         long address = this.address.executeLong(frame);
         long value = src.executeLong(frame);
-        boolean succeeded = ctx.writeIntConditional(address, (int) value);
+        boolean succeeded = ctx.writeLongConditional(address, value);
         if (rd != 0) {
             ctx.setRegister(rd, succeeded ? 0 : 1);
         }

@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetContext;
+import au.mrcat.rivet.RivetLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
