@@ -1,28 +1,21 @@
 package au.mrcat.rivet.nodes.data;
 
-import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class LoadDoubleReservedNode extends RivetNode {
-    @Child
-    RivetOpNode address;
-    final int rd;
+public class LoadDoubleReservedNode extends RivetOpNode {
+    @Child RivetOpNode address;
 
-    public LoadDoubleReservedNode(RivetOpNode address, int rd) {
+    public LoadDoubleReservedNode(RivetOpNode address) {
         this.address = address;
-        this.rd = rd;
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
 
         long address = this.address.executeLong(frame);
         ctx.reserveAddress(address);
-        long doubleWord = ctx.readLong(address);
-        if (rd != 0) {
-            ctx.setRegister(rd, doubleWord);
-        }
+        return ctx.readLong(address);
     }
 }

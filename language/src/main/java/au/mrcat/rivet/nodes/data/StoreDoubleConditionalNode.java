@@ -1,33 +1,24 @@
 package au.mrcat.rivet.nodes.data;
 
-import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class StoreDoubleConditionalNode extends RivetNode {
+public class StoreDoubleConditionalNode extends RivetOpNode {
     @Child RivetOpNode address;
     @Child RivetOpNode src;
-    final int rd;
 
     public StoreDoubleConditionalNode(RivetOpNode address, RivetOpNode src) {
-        this(address, src, 0);
-    }
-
-    public StoreDoubleConditionalNode(RivetOpNode address, RivetOpNode src, int rd) {
         this.address = address;
         this.src = src;
-        this.rd = rd;
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
 
         long address = this.address.executeLong(frame);
         long value = src.executeLong(frame);
         boolean succeeded = ctx.writeLongConditional(address, value);
-        if (rd != 0) {
-            ctx.setRegister(rd, succeeded ? 0 : 1);
-        }
+        return succeeded ? 0 : 1;
     }
 }

@@ -584,148 +584,147 @@ public final class RivetParser {
         boolean rl = ((instruction >> 26) & 0b1) == 1;
         int funct5 = instruction >>> 27;
 
-        return switch (funct5) {
-            case Opcode.Amo.LR -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new LoadWordReservedNode(GetRegisterNode.create(rs1), rd);
-                case Opcode.MemWidth.DOUBLE -> new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd);
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.SC -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), rd);
-                case Opcode.MemWidth.DOUBLE -> new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), rd);
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOSWAP -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2))
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2))
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOADD -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new AddNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new AddNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOAND -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new AndNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new AndNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOOR -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new OrNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new OrNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOXOR -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new XorNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new XorNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOMAX -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(
-                                SetRegisterNode.TEMP_REGISTER,
-                                new MaxNode(GetRegisterNode.createIncludingTemp(rd), new SignExtendIntNode(GetRegisterNode.create(rs2)))
-                        )},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new MaxNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOMAXU -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(
-                                SetRegisterNode.TEMP_REGISTER,
-                                new MaxUnsignedNode(GetRegisterNode.createIncludingTemp(rd), new SignExtendIntNode(GetRegisterNode.create(rs2)))
-                        )},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new MaxUnsignedNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOMIN -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(
-                                SetRegisterNode.TEMP_REGISTER,
-                                new MinNode(GetRegisterNode.createIncludingTemp(rd), new SignExtendIntNode(GetRegisterNode.create(rs2)))
-                        )},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new MinNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            case Opcode.Amo.AMOMINU -> switch (funct3) {
-                case Opcode.MemWidth.WORD -> new WithLockedWordNode(
-                        new LoadWordReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(
-                                SetRegisterNode.TEMP_REGISTER,
-                                new MinUnsignedNode(GetRegisterNode.createIncludingTemp(rd), new SignExtendIntNode(GetRegisterNode.create(rs2)))
-                        )},
-                        new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                case Opcode.MemWidth.DOUBLE -> new WithLockedDoubleNode(
-                        new LoadDoubleReservedNode(GetRegisterNode.create(rs1), rd),
-                        new RivetNode[] {new SetRegisterNode(SetRegisterNode.TEMP_REGISTER, new MinUnsignedNode(GetRegisterNode.createIncludingTemp(rd), GetRegisterNode.create(rs2)))},
-                        new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.TEMP_REGISTER)
-                );
-                default -> new IllegalInstructionNode(instruction);
-            };
-            default -> new IllegalInstructionNode(instruction);
-        };
+        RivetOpNode op;
+        switch (funct5) {
+            case Opcode.Amo.LR -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new LoadWordReservedNode(GetRegisterNode.create(rs1));
+                    case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleReservedNode(GetRegisterNode.create(rs1));
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.SC -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                    case Opcode.MemWidth.DOUBLE -> op = new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
+                    default -> { return new IllegalInstructionNode(instruction); }
+                };
+            }
+            case Opcode.Amo.AMOSWAP -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2)
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            GetRegisterNode.create(rs2)
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOADD -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new AddNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new AddNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOAND -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new AndNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new AndNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOOR -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOXOR -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new XorNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new XorNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOMAX -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new MaxNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2)))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new MaxNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOMAXU -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new MaxUnsignedNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2)))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new MaxUnsignedNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOMIN -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new MinNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2)))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new MinNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            case Opcode.Amo.AMOMINU -> {
+                switch (funct3) {
+                    case Opcode.MemWidth.WORD -> op = new AmoWordNode(
+                            GetRegisterNode.create(rs1),
+                            new MinUnsignedNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2)))
+                    );
+                    case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
+                            GetRegisterNode.create(rs1),
+                            new MinUnsignedNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2))
+                    );
+                    default -> { return new IllegalInstructionNode(instruction); }
+                }
+            }
+            default -> { return new IllegalInstructionNode(instruction); }
+        }
+
+        if (rd == 0) {
+            // Here we do still want to perform the operation, since it has side effects
+            return op;
+        }
+        return new SetRegisterNode(rd, op);
     }
 
     private static RivetNode parseOp(int instruction) {
