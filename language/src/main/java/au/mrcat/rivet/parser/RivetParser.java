@@ -166,7 +166,7 @@ public final class RivetParser {
                     yield new HintNode(instruction);
                 }
                 int imm = (instruction >> 2) & 0b11111
-                        | ((instruction << 19) & 0x8000_0000) >> 27;
+                        | ((instruction << 19) & 0x8000_0000) >> 26;
 
                 yield new SetRegisterNode(rd, new AddNode(GetRegisterNode.create(rd), new ConstantNode(imm)));
             }
@@ -176,7 +176,7 @@ public final class RivetParser {
                     yield new HintNode(instruction);
                 }
                 int imm = (instruction >> 2) & 0b11111
-                        | ((instruction << 19) & 0x8000_0000) >> 27;
+                        | ((instruction << 19) & 0x8000_0000) >> 26;
 
                 yield new SetRegisterNode(rd, new SignExtendIntNode(new AddNode(GetRegisterNode.create(rd), new ConstantNode(imm))));
             }
@@ -187,7 +187,7 @@ public final class RivetParser {
                 }
 
                 int imm = (instruction >> 2) & 0b11111
-                        | ((instruction << 19) & 0x8000_0000) >> 27;
+                        | ((instruction << 19) & 0x8000_0000) >> 26;
 
                 yield new SetRegisterNode(rd, new ConstantNode(imm));
             }
@@ -440,10 +440,6 @@ public final class RivetParser {
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
         long immUnsigned = instruction >>> 20;
-
-        if (rd != 0 || rs1 != 0) {
-            throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
-        }
 
         return switch (funct3) {
             // Fences aren't technically hints, but we impose a total order anyway so they don't do anything here
