@@ -5,9 +5,7 @@ import au.mrcat.rivet.nodes.*;
 import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
-import au.mrcat.rivet.nodes.priv.BreakpointNode;
-import au.mrcat.rivet.nodes.priv.EnvironmentCallNode;
-import au.mrcat.rivet.nodes.priv.IllegalInstructionNode;
+import au.mrcat.rivet.nodes.priv.*;
 import au.mrcat.rivet.riscv.Opcode;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
@@ -965,19 +963,59 @@ public final class RivetParser {
         int rs1 = (instruction >> 15) & 0b11111;
         int funct12 = instruction >>> 20;
 
-        if (rd != 0 || rs1 != 0) {
-            return new IllegalInstructionNode(instruction, pc);
-        }
+        switch (funct3) {
+            case Opcode.System.PRIV -> {
+                if (rd != 0 || rs1 != 0) {
+                    return new IllegalInstructionNode(instruction, pc);
+                }
 
-        return switch (funct3) {
-            case Opcode.System.PRIV -> switch (funct12) {
-                case Opcode.Priv.EBREAK -> new BreakpointNode(pc);
-                case Opcode.Priv.ECALL -> new EnvironmentCallNode();
-                // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
-                case Opcode.Priv.WFI -> new HintNode(instruction);
-                default -> new IllegalInstructionNode(instruction, pc);
-            };
-            default -> new IllegalInstructionNode(instruction, pc);
-        };
+                return switch (funct12) {
+                    case Opcode.Priv.EBREAK -> new BreakpointNode(pc);
+                    case Opcode.Priv.ECALL -> new EnvironmentCallNode();
+                    // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
+                    case Opcode.Priv.WFI -> new HintNode(instruction);
+                    default -> new IllegalInstructionNode(instruction, pc);
+                };
+            }
+            case Opcode.System.CSRRW -> {
+                if (rd == 0) {
+                    return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pc);
+                }
+                return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pc);
+            }
+            case Opcode.System.CSRRS -> {
+                if (rs1 == 0) {
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                }
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc);
+            }
+            case Opcode.System.CSRRC -> {
+                if (rs1 == 0) {
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                }
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc);
+            }
+            case Opcode.System.CSRRWI -> {
+                if (rd == 0) {
+                    return new SetCsrNode(new ConstantNode(rs1), funct12, pc);
+                }
+                return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pc);
+            }
+            case Opcode.System.CSRRSI -> {
+                if (rs1 == 0) {
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                }
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc);
+            }
+            case Opcode.System.CSRRCI -> {
+                if (rs1 == 0) {
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                }
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc);
+            }
+            default -> {
+                return new IllegalInstructionNode(instruction, pc);
+            }
+        }
     }
 }

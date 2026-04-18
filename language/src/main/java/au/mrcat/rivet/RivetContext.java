@@ -1,6 +1,7 @@
 package au.mrcat.rivet;
 
 import au.mrcat.rivet.riscv.ExceptionCause;
+import au.mrcat.rivet.riscv.PrivilegedState;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -22,6 +23,7 @@ public class RivetContext {
     public final TruffleLanguage.Env env;
     private final Arena arena;
     public final RegisterState registerState;
+    public final PrivilegedState privilegedState;
     public final MemorySegment memory;
 
     private static final long NO_RESERVATION = 1;
@@ -30,6 +32,7 @@ public class RivetContext {
     public RivetContext(TruffleLanguage.Env env) {
         this.env = env;
         registerState = new RegisterState();
+        privilegedState = new PrivilegedState();
         arena = Arena.ofAuto();
         memory = arena.allocate(1 * 1024 * 1024 * 1024, 4096);
     }

@@ -116,6 +116,12 @@ public class Opcode {
 
     public static class System {
         public static final int PRIV = 0b000;
+        public static final int CSRRW = 0b001;
+        public static final int CSRRS = 0b010;
+        public static final int CSRRC = 0b011;
+        public static final int CSRRWI = 0b101;
+        public static final int CSRRSI = 0b110;
+        public static final int CSRRCI = 0b111;
     }
 
     public static class Priv {
