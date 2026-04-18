@@ -7,8 +7,14 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class BreakpointNode extends RivetDivergentNode {
+    private final long pc;
+
+    public BreakpointNode(long pc) {
+        this.pc = pc;
+    }
+
     @Override
     public void executeVoid(VirtualFrame frame) {
-        throw new RiscvTrapException(ExceptionCause.Breakpoint);
+        throw new RiscvTrapException(ExceptionCause.Breakpoint, pc);
     }
 }
