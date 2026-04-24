@@ -4,11 +4,11 @@ import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.BlockNode;
 
-public class RiscvDispatchNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
+public class RivetBasicBlockNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
     @Child BlockNode<RivetNode> instructions = null;
     private final long nextPc;
 
-    public RiscvDispatchNode(RivetNode[] instructions, long nextPc) {
+    public RivetBasicBlockNode(RivetNode[] instructions, long nextPc) {
         if (instructions.length != 0) {
             this.instructions = BlockNode.create(instructions, this);
         }

@@ -14,7 +14,7 @@ import org.graalvm.polyglot.io.ByteSequence;
 import java.util.*;
 
 public final class RivetParser {
-    public static RiscvStartupNode loadProgramHeader(ByteSequence elfFile) {
+    public static RivetStartupNode loadProgramHeader(ByteSequence elfFile) {
         var elf = ElfFile.from(elfFile.toByteArray());
 
         var segments = new HashMap<Long, ByteSequence>();
@@ -28,10 +28,10 @@ public final class RivetParser {
             segments.put(segment.p_vaddr, elfFile.subSequence((int) segment.p_offset, (int) (segment.p_offset + segment.p_filesz)));
         }
 
-        return new RiscvStartupNode(segments);
+        return new RivetStartupNode(segments);
     }
 
-    public static RiscvDispatchNode extractBasicBlock(RivetContext context, long baseAddress) {
+    public static RivetBasicBlockNode extractBasicBlock(RivetContext context, long baseAddress) {
         var instructions = new ArrayList<RivetNode>();
         long pc_offset = 0;
 
@@ -59,7 +59,7 @@ public final class RivetParser {
             }
         }
 
-        return new RiscvDispatchNode(instructions.toArray(new RivetNode[0]), baseAddress + pc_offset);
+        return new RivetBasicBlockNode(instructions.toArray(new RivetNode[0]), baseAddress + pc_offset);
     }
 
     public static RivetNode parseInstruction(int instruction, long pc) {

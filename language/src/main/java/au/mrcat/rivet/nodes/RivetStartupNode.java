@@ -7,10 +7,10 @@ import org.graalvm.polyglot.io.ByteSequence;
 
 import java.util.Map;
 
-public class RiscvStartupNode extends RivetNode {
+public class RivetStartupNode extends RivetNode {
     private final Map<Long, ByteSequence> initialMemory;
 
-    public RiscvStartupNode(Map<Long, ByteSequence> initialMemory) {
+    public RivetStartupNode(Map<Long, ByteSequence> initialMemory) {
         this.initialMemory = initialMemory;
     }
 
