@@ -22,7 +22,6 @@ public class RivetContext {
 
     public final TruffleLanguage.Env env;
     private final Arena arena;
-    public final RegisterState registerState;
     public final PrivilegedState privilegedState;
     public final MemorySegment memory;
 
@@ -31,22 +30,9 @@ public class RivetContext {
 
     public RivetContext(TruffleLanguage.Env env) {
         this.env = env;
-        registerState = new RegisterState();
         privilegedState = new PrivilegedState();
         arena = Arena.ofAuto();
         memory = arena.allocate(1 * 1024 * 1024 * 1024, 4096);
-    }
-
-    public long getRegister(int r) {
-        return registerState.getRegister(r);
-    }
-
-    public void setRegister(int r, long value) {
-        registerState.setRegister(r, value);
-    }
-
-    public void dumpRegisterState() {
-        registerState.dumpRegisterState();
     }
 
     public MemorySegment slice(long address, long size) {

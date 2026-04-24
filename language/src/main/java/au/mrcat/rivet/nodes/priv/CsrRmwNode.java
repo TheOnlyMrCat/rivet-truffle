@@ -29,9 +29,9 @@ public class CsrRmwNode extends RivetNode {
             case Csr.MSCRATCH -> {
                 // This uses the temp (0) register
                 long mscratch = ctx.privilegedState.mscratch;
-                ctx.setRegister(0, mscratch);
+                frame.setLongStatic(0, mscratch);
                 ctx.privilegedState.mscratch = op.executeLong(frame);
-                ctx.setRegister(rd, mscratch);
+                frame.setLongStatic(rd, mscratch);
             }
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
         }

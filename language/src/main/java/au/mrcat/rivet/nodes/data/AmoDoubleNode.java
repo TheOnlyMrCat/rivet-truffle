@@ -24,7 +24,7 @@ public class AmoDoubleNode extends RivetOpNode {
             long originalValue = ctx.readLong(address);
 
             // Use the zero register as a temporary
-            ctx.setRegister(0, originalValue);
+            frame.setLongStatic(0, originalValue);
             long opResult = op.executeLong(frame);
 
             ctx.writeLong(address, opResult);

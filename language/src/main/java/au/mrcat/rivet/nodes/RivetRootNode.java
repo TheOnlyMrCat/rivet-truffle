@@ -6,14 +6,19 @@ import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 
 public class RivetRootNode extends RootNode {
     @Child private RivetNode bodyNode;
 
-    public RivetRootNode(RivetLanguage language, FrameDescriptor frameDescriptor, RivetNode bodyNode) {
-        super(language, frameDescriptor);
+    public RivetRootNode(RivetLanguage language, RivetNode bodyNode) {
+        var frameDescriptor = FrameDescriptor.newBuilder();
+        frameDescriptor.useSlotKinds(false);
+        frameDescriptor.addSlots(32);
+        super(language, frameDescriptor.build());
+
         this.bodyNode = bodyNode;
     }
 
