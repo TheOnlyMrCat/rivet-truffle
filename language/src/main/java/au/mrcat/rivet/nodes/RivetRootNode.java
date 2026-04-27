@@ -6,18 +6,25 @@ import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.RootNode;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RivetRootNode extends RootNode {
     private final RivetLanguage language;
     @Child private RivetStartupNode startupNode;
-    private CallTarget callTarget;
-//    @Children RivetBasicBlockNode[] basicBlockNodes;
-//    long[] pcOffsets;
+
+    @Children private DirectCallNode[] callTargets;
+    private int callTargetsLength;
+    private final Map<Long, Integer> callTargetPcs;
 
     public RivetRootNode(RivetLanguage language, RivetStartupNode startupNode) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -27,6 +34,17 @@ public class RivetRootNode extends RootNode {
 
         this.language = language;
         this.startupNode = startupNode;
+        this.callTargets = new DirectCallNode[16];
+        this.callTargetsLength = 0;
+        this.callTargetPcs = new HashMap<>();
+    }
+
+    private int addCallTarget(CallTarget callTarget) {
+        if (callTargetsLength == callTargets.length) {
+            callTargets = Arrays.copyOf(callTargets, callTargets.length * 2);
+        }
+        callTargets[callTargetsLength] = DirectCallNode.create(callTarget);
+        return callTargetsLength++;
     }
 
     @Override
@@ -40,8 +58,18 @@ public class RivetRootNode extends RootNode {
 
         try {
             while (true) {
-                callTarget = RivetParser.extractCallTarget(language, RivetContext.get(this), pc).getCallTarget();
-                var returnFrame = (MaterializedFrame) callTarget.call(null, frame.materialize(), pc);
+                Integer callTargetIndex = callTargetPcs.get(pc);
+                if (callTargetIndex == null) {
+                    CompilerDirectives.transferToInterpreter();
+                    var root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
+                    callTargetIndex = addCallTarget(root.getCallTarget());
+                    for (long entryPc : root.getPcOffsets()) {
+                        callTargetPcs.put(entryPc, callTargetIndex);
+                    }
+                }
+
+                var callTarget = callTargets[callTargetIndex];
+                var returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
                 pc = returnFrame.getLongStatic(0);
                 for (int i = 1; i < 32; i++) {
                     frame.setLongStatic(i, returnFrame.getLongStatic(i));

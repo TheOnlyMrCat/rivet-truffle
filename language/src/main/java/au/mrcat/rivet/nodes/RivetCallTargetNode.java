@@ -12,7 +12,7 @@ import java.util.SequencedMap;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
-    long[] pcOffsets;
+    private final long[] pcOffsets;
 
     public RivetCallTargetNode(RivetLanguage language, SequencedMap<Long, RivetBasicBlockNode> basicBlocks) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -28,6 +28,10 @@ public class RivetCallTargetNode extends RootNode {
             basicBlockNodes[i] = entry.getValue();
             i++;
         }
+    }
+
+    public long[] getPcOffsets() {
+        return pcOffsets;
     }
 
     @Override
