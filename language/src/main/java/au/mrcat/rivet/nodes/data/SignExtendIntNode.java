@@ -14,4 +14,12 @@ public class SignExtendIntNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return (int) op.executeLong(frame);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("SignExtendIntNode{");
+        sb.append("op=").append(op);
+        sb.append('}');
+        return sb.toString();
+    }
 }

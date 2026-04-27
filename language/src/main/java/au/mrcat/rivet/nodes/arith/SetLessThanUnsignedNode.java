@@ -16,4 +16,13 @@ public class SetLessThanUnsignedNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return Long.compareUnsigned(lhs.executeLong(frame), rhs.executeLong(frame)) < 0 ? 1L : 0L;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("SetLessThanUnsignedNode{");
+        sb.append("lhs=").append(lhs);
+        sb.append(", rhs=").append(rhs);
+        sb.append('}');
+        return sb.toString();
+    }
 }

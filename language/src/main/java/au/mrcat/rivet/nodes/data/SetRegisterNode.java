@@ -19,4 +19,12 @@ public class SetRegisterNode extends RivetNode {
     public void executeVoid(VirtualFrame frame) {
         frame.setLongStatic(register, op.executeLong(frame));
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("x");
+        sb.append(register);
+        sb.append(" <- ").append(op);
+        return sb.toString();
+    }
 }

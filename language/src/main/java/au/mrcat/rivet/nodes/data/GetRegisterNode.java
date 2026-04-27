@@ -28,4 +28,11 @@ public class GetRegisterNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return frame.getLongStatic(register);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("x");
+        sb.append(register);
+        return sb.toString();
+    }
 }

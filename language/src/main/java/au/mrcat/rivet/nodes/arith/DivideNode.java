@@ -25,4 +25,13 @@ public class DivideNode extends RivetOpNode {
         }
         return dividend / divisor;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("DivideNode{");
+        sb.append("dividend=").append(dividend);
+        sb.append(", divisor=").append(divisor);
+        sb.append('}');
+        return sb.toString();
+    }
 }

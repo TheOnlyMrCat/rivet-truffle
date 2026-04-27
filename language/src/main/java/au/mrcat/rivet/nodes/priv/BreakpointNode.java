@@ -22,4 +22,12 @@ public class BreakpointNode extends RivetDivergentNode {
     public Long[] callTargetContinuations() {
         return new Long[0];
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("BreakpointNode{");
+        sb.append("pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

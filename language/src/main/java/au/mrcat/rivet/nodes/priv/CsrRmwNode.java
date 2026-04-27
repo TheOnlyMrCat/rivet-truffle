@@ -35,6 +35,16 @@ public class CsrRmwNode extends RivetNode {
             }
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
         }
+    }
 
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("CsrRmwNode{");
+        sb.append("op=").append(op);
+        sb.append(", csr=").append(csr);
+        sb.append(", rd=").append(rd);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
     }
 }

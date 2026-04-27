@@ -14,4 +14,12 @@ public class IntTruncateNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return op.executeLong(frame) & 0xFFFF_FFFFL;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("IntTruncateNode{");
+        sb.append("op=").append(op);
+        sb.append('}');
+        return sb.toString();
+    }
 }

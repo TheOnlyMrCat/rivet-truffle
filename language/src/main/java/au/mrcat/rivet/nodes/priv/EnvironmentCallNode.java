@@ -49,4 +49,11 @@ public class EnvironmentCallNode extends RivetNode {
             default -> throw new RuntimeException(String.format("Unimplemented syscall: %d", frame.getLongStatic(RegisterState.A7)));
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("EnvironmentCallNode{");
+        sb.append('}');
+        return sb.toString();
+    }
 }

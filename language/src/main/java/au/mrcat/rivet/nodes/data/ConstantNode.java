@@ -18,4 +18,9 @@ public class ConstantNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return value;
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value, 16);
+    }
 }

@@ -31,4 +31,15 @@ public class BranchLessThanNode extends RivetDivergentNode {
     public Long[] callTargetContinuations() {
         return new Long[] {trueBranchPc, falseBranchPc};
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("BranchLessThanNode{");
+        sb.append("lhs=").append(lhs);
+        sb.append(", rhs=").append(rhs);
+        sb.append(", trueBranchPc=").append(trueBranchPc);
+        sb.append(", falseBranchPc=").append(falseBranchPc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

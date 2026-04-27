@@ -16,4 +16,13 @@ public class MultiplyHighNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return Math.multiplyHigh(multiplicand.executeLong(frame), multiplier.executeLong(frame));
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("MultiplyHighNode{");
+        sb.append("multiplicand=").append(multiplicand);
+        sb.append(", multiplier=").append(multiplier);
+        sb.append('}');
+        return sb.toString();
+    }
 }

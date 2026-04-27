@@ -22,4 +22,13 @@ public class DivideUnsignedNode extends RivetOpNode {
         }
         return Long.divideUnsigned(dividend, divisor);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("DivideUnsignedNode{");
+        sb.append("dividend=").append(dividend);
+        sb.append(", divisor=").append(divisor);
+        sb.append('}');
+        return sb.toString();
+    }
 }

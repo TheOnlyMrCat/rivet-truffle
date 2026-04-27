@@ -16,4 +16,13 @@ public class OrNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return operand1.executeLong(frame) | operand2.executeLong(frame);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("OrNode{");
+        sb.append("operand1=").append(operand1);
+        sb.append(", operand2=").append(operand2);
+        sb.append('}');
+        return sb.toString();
+    }
 }

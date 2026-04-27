@@ -24,6 +24,14 @@ public class GetCsrNode extends RivetOpNode {
             case Csr.MSCRATCH -> { return ctx.privilegedState.mscratch; }
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
         }
+    }
 
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("GetCsrNode{");
+        sb.append("csr=").append(csr);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
     }
 }

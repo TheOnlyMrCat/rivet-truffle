@@ -26,6 +26,15 @@ public class SetCsrNode extends RivetNode {
             case Csr.MSCRATCH -> ctx.privilegedState.mscratch = value.executeLong(frame);
             default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
         }
+    }
 
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("SetCsrNode{");
+        sb.append("value=").append(value);
+        sb.append(", csr=").append(csr);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
     }
 }

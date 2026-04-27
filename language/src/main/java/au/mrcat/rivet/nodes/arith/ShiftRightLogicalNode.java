@@ -23,4 +23,14 @@ public class ShiftRightLogicalNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return operand.executeLong(frame) >>> (shiftAmount.executeLong(frame) & shiftAmountMask);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("ShiftRightLogicalNode{");
+        sb.append("operand=").append(operand);
+        sb.append(", shiftAmount=").append(shiftAmount);
+        sb.append(", shiftAmountMask=").append(shiftAmountMask);
+        sb.append('}');
+        return sb.toString();
+    }
 }

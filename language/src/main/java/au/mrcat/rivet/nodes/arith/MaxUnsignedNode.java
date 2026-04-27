@@ -22,4 +22,13 @@ public class MaxUnsignedNode extends RivetOpNode {
             return operand2;
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("MaxUnsignedNode{");
+        sb.append("operand1=").append(operand1);
+        sb.append(", operand2=").append(operand2);
+        sb.append('}');
+        return sb.toString();
+    }
 }

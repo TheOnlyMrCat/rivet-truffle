@@ -24,4 +24,13 @@ public class IllegalInstructionNode extends RivetDivergentNode {
     public Long[] callTargetContinuations() {
         return new Long[0];
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("IllegalInstructionNode{");
+        sb.append("instruction=").append(instruction);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

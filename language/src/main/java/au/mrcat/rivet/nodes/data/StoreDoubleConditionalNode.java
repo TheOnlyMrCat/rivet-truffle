@@ -29,4 +29,14 @@ public class StoreDoubleConditionalNode extends RivetOpNode {
             throw trap;
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("StoreDoubleConditionalNode{");
+        sb.append("address=").append(address);
+        sb.append(", src=").append(src);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

@@ -13,4 +13,12 @@ public class HintNode extends RivetNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("HintNode{");
+        sb.append("instruction=").append(instruction);
+        sb.append('}');
+        return sb.toString();
+    }
 }

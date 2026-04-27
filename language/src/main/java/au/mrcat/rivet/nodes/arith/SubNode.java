@@ -16,4 +16,13 @@ public class SubNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return minuend.executeLong(frame) - subtrahend.executeLong(frame);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("SubNode{");
+        sb.append("minuend=").append(minuend);
+        sb.append(", subtrahend=").append(subtrahend);
+        sb.append('}');
+        return sb.toString();
+    }
 }

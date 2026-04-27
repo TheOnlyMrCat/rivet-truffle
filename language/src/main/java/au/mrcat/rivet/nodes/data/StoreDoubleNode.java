@@ -28,4 +28,15 @@ public class StoreDoubleNode extends RivetNode {
             throw trap;
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("StoreDoubleNode{");
+        sb.append("address=").append(address);
+        sb.append(", offset=").append(offset);
+        sb.append(", value=").append(value);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

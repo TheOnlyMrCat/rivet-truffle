@@ -16,4 +16,13 @@ public class MaskNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return operand.executeLong(frame) & ~mask.executeLong(frame);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("MaskNode{");
+        sb.append("operand=").append(operand);
+        sb.append(", mask=").append(mask);
+        sb.append('}');
+        return sb.toString();
+    }
 }

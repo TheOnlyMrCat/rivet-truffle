@@ -16,4 +16,13 @@ public class MultiplyHighUnsignedNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return Math.unsignedMultiplyHigh(multiplicand.executeLong(frame), multiplier.executeLong(frame));
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("MultiplyHighUnsignedNode{");
+        sb.append("multiplicand=").append(multiplicand);
+        sb.append(", multiplier=").append(multiplier);
+        sb.append('}');
+        return sb.toString();
+    }
 }

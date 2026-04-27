@@ -27,4 +27,13 @@ public class JumpAndLinkNode extends RivetDivergentNode {
         // Deliberately break call targets at jal instructions
         return new Long[0];
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("JumpAndLinkNode{");
+        sb.append("targetPc=").append(targetPc);
+        sb.append(", link=").append(link);
+        sb.append('}');
+        return sb.toString();
+    }
 }

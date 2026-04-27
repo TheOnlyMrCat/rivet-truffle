@@ -25,4 +25,12 @@ public class JumpNode extends RivetDivergentNode {
         }
         return new Long[0];
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("JumpNode{");
+        sb.append("targetPc=").append(targetPc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

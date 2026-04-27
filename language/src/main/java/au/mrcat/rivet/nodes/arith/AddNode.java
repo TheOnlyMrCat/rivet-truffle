@@ -16,4 +16,13 @@ public class AddNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return addend1.executeLong(frame) + addend2.executeLong(frame);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("AddNode{");
+        sb.append("addend1=").append(addend1);
+        sb.append(", addend2=").append(addend2);
+        sb.append('}');
+        return sb.toString();
+    }
 }

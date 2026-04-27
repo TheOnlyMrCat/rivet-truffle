@@ -25,4 +25,14 @@ public class LoadByteUnsignedNode extends RivetOpNode {
             throw trap;
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("LoadByteUnsignedNode{");
+        sb.append("address=").append(address);
+        sb.append(", offset=").append(offset);
+        sb.append(", pc=").append(pc);
+        sb.append('}');
+        return sb.toString();
+    }
 }

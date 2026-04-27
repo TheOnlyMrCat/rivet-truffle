@@ -16,4 +16,13 @@ public class SetLessThanNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         return lhs.executeLong(frame) < rhs.executeLong(frame) ? 1L : 0L;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("SetLessThanNode{");
+        sb.append("lhs=").append(lhs);
+        sb.append(", rhs=").append(rhs);
+        sb.append('}');
+        return sb.toString();
+    }
 }
