@@ -17,4 +17,9 @@ public class BreakpointNode extends RivetDivergentNode {
     public void executeVoid(VirtualFrame frame) {
         throw new RiscvTrapException(ExceptionCause.Breakpoint, pc);
     }
+
+    @Override
+    public Long[] callTargetContinuations() {
+        return new Long[0];
+    }
 }

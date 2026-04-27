@@ -10,6 +10,10 @@ public class ConstantNode extends RivetOpNode {
         this.value = value;
     }
 
+    public long getValue() {
+        return value;
+    }
+
     @Override
     public long executeLong(VirtualFrame frame) {
         return value;

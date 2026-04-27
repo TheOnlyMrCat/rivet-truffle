@@ -1,7 +1,6 @@
 package au.mrcat.rivet.nodes.control;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
-import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -26,5 +25,10 @@ public class BranchLessThanUnsignedNode extends RivetDivergentNode {
         } else {
             throw new RiscvJumpException(falseBranchPc);
         }
+    }
+
+    @Override
+    public Long[] callTargetContinuations() {
+        return new Long[] {trueBranchPc, falseBranchPc};
     }
 }

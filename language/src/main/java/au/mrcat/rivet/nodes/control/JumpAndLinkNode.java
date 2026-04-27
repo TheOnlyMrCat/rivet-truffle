@@ -21,4 +21,10 @@ public class JumpAndLinkNode extends RivetDivergentNode {
         link.executeVoid(frame);
         throw new RiscvJumpException(targetPc & ~0b1);
     }
+
+    @Override
+    public Long[] callTargetContinuations() {
+        // Deliberately break call targets at jal instructions
+        return new Long[0];
+    }
 }

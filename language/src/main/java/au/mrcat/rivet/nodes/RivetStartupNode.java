@@ -3,18 +3,24 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import org.graalvm.polyglot.io.ByteSequence;
 
 import java.util.Map;
 
-public class RivetStartupNode extends RivetNode {
+public class RivetStartupNode extends Node {
     private final Map<Long, ByteSequence> initialMemory;
+    private final long startingPc;
 
-    public RivetStartupNode(Map<Long, ByteSequence> initialMemory) {
+    public RivetStartupNode(Map<Long, ByteSequence> initialMemory, long startingPc) {
         this.initialMemory = initialMemory;
+        this.startingPc = startingPc;
     }
 
-    @Override
+    public long getStartingPc() {
+        return startingPc;
+    }
+
     public void executeVoid(VirtualFrame frame) {
         RivetContext ctx = RivetContext.get(this);
         for (long startingOffset : initialMemory.keySet()) {
@@ -23,6 +29,5 @@ public class RivetStartupNode extends RivetNode {
                 ctx.writeByte(startingOffset + i, segment.byteAt(i));
             }
         }
-        throw new RiscvJumpException(0x8000_0000L);
     }
 }

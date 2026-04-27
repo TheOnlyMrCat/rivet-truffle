@@ -1,6 +1,7 @@
 package au.mrcat.rivet.parser;
 
 import au.mrcat.rivet.RivetContext;
+import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.nodes.*;
 import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
@@ -28,7 +29,50 @@ public final class RivetParser {
             segments.put(segment.p_vaddr, elfFile.subSequence((int) segment.p_offset, (int) (segment.p_offset + segment.p_filesz)));
         }
 
-        return new RivetStartupNode(segments);
+        return new RivetStartupNode(segments, elf.e_entry);
+    }
+
+    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, long initialPc) {
+        var currentBlock = new ArrayList<RivetNode>();
+        var basicBlocks = new TreeMap<Long, RivetBasicBlockNode>();
+        var frontier = new ArrayDeque<Long>();
+        frontier.addLast(initialPc);
+
+        while (!frontier.isEmpty()) {
+            long basePc = frontier.removeFirst();
+            if (basicBlocks.containsKey(basePc)) {
+                continue;
+            }
+
+            long currentPc = basePc;
+            currentBlock.clear();
+            bb: while (true) {
+                int instruction = context.readIntMisaligned(currentPc);
+                var node = Objects.requireNonNull(parseInstruction(instruction, currentPc));
+
+                if ((instruction & 0b11) != 0b11) {
+                    currentPc += 2;
+                } else {
+                    currentPc += 4;
+                }
+
+                switch (node) {
+                    case HintNode ignored -> {
+                    }
+                    case RivetDivergentNode divergentNode -> {
+                        currentBlock.add(divergentNode);
+                        frontier.addAll(List.of(divergentNode.callTargetContinuations()));
+                        break bb;
+                    }
+                    default -> {
+                        currentBlock.add(node);
+                    }
+                }
+            }
+            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), currentPc));
+        }
+
+        return new RivetCallTargetNode(language, basicBlocks);
     }
 
     public static RivetBasicBlockNode extractBasicBlock(RivetContext context, long baseAddress) {
