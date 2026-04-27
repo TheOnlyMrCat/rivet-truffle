@@ -4,6 +4,7 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.runtime.RiscvExitException;
+import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -69,8 +70,14 @@ public class RivetRootNode extends RootNode {
                 }
 
                 var callTarget = callTargets[callTargetIndex];
-                var returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
-                pc = returnFrame.getLongStatic(0);
+                MaterializedFrame returnFrame;
+                try {
+                    returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
+                    pc = returnFrame.getLongStatic(0);
+                } catch (RiscvInstructionFenceException fence) {
+                    returnFrame = fence.getFrame();
+                    pc = fence.getNextPc();;
+                }
                 for (int i = 1; i < 32; i++) {
                     frame.setLongStatic(i, returnFrame.getLongStatic(i));
                 }

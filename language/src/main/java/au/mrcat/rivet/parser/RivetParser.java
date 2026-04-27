@@ -484,8 +484,7 @@ public final class RivetParser {
         return switch (funct3) {
             // Fences aren't technically hints, but we impose a total order anyway so they don't do anything here
             case Opcode.MiscMem.FENCE -> new HintNode(instruction);
-            // FIXME: This will eventually have to invalidate instruction caches too. There just aren't any yet.
-            case Opcode.MiscMem.FENCE_I -> new JumpNode(new ConstantNode(pc + 4));
+            case Opcode.MiscMem.FENCE_I -> new InstructionFenceNode(pc + 4);
             default -> new IllegalInstructionNode(instruction, pc);
         };
     }
