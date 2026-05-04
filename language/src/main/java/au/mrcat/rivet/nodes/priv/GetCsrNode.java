@@ -18,11 +18,11 @@ public class GetCsrNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
-
-        switch (csr) {
-            case Csr.TIME -> { return System.nanoTime(); }
-            case Csr.MSCRATCH -> { return ctx.privilegedState.mscratch; }
-            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
+        try {
+            return ctx.privilegedState.tryRead(csr);
+        } catch (RiscvTrapException trap) {
+            trap.setPc(pc);
+            throw trap;
         }
     }
 

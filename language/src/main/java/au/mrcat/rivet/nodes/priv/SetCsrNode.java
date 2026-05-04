@@ -21,10 +21,11 @@ public class SetCsrNode extends RivetNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
-
-        switch (csr) {
-            case Csr.MSCRATCH -> ctx.privilegedState.mscratch = value.executeLong(frame);
-            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
+        try {
+            ctx.privilegedState.tryWrite(csr, value.executeLong(frame));
+        } catch (RiscvTrapException trap) {
+            trap.setPc(pc);
+            throw trap;
         }
     }
 

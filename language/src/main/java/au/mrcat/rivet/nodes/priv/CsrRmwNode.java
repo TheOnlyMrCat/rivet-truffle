@@ -24,16 +24,15 @@ public class CsrRmwNode extends RivetNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
-
-        switch (csr) {
-            case Csr.MSCRATCH -> {
-                // This uses the temp (0) register
-                long mscratch = ctx.privilegedState.mscratch;
-                frame.setLongStatic(0, mscratch);
-                ctx.privilegedState.mscratch = op.executeLong(frame);
-                frame.setLongStatic(rd, mscratch);
-            }
-            default -> throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
+        try {
+            long previousValue = ctx.privilegedState.tryReadWrite(csr);
+            // Use the temp (0) register as the operand
+            frame.setLongStatic(0, previousValue);
+            ctx.privilegedState.tryWrite(csr, op.executeLong(frame));
+            frame.setLongStatic(rd, previousValue);
+        } catch (RiscvTrapException trap) {
+            trap.setPc(pc);
+            throw trap;
         }
     }
 
