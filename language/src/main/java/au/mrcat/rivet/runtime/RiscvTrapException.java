@@ -16,6 +16,10 @@ public class RiscvTrapException extends ControlFlowException {
         this.pc = pc;
     }
 
+    public long getPc() {
+        return pc;
+    }
+
     public void setPc(long pc) {
         this.pc = pc;
     }
