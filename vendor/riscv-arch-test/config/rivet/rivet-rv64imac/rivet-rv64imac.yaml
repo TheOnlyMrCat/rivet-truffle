@@ -23,18 +23,6 @@ implemented_extensions:
   - { name: Za128rs, version: "= 1.0.0" }
   - { name: Zca, version: "= 1.0.0" }
   - { name: U, version: "= 1.0.0" }
-  - { name: S, version: "= 1.12.0" }
-  - { name: Ssccptr, version: "= 1.0.0" }
-  - { name: Ssstrict, version: "= 1.0.0" }
-  - { name: Sstc, version: "= 1.0.0" }
-  - { name: Sstvala, version: "= 1.0.0" }
-  - { name: Sstvecd, version: "= 1.0.0" }
-  - { name: Ssu64xl, version: "= 1.0.0" }
-  - { name: Sv39, version: "= 1.12.0" }
-  - { name: Svade, version: "= 1.0.0" }
-  - { name: Svadu, version: "= 1.0.0" }
-  - { name: Svbare, version: "= 1.0.0" }
-  - { name: Svinval, version: "= 1.0.0" }
   - { name: Sm, version: "= 1.12.0" }
 
 params:
@@ -47,8 +35,6 @@ params:
   MUTABLE_MISA_A: false
   # M params
   MUTABLE_MISA_M: false
-  # F params
-  MSTATUS_FS_LEGAL_VALUES: [0]
   # C params
   MUTABLE_MISA_C: false
   # Zicntr params
@@ -58,67 +44,6 @@ params:
   U_MODE_ENDIANNESS: dynamic
   UXLEN: [64]
   TRAP_ON_ECALL_FROM_U: true
-  # S params
-  MUTABLE_MISA_S: false
-  ASID_WIDTH: 16
-  S_MODE_ENDIANNESS: dynamic
-  SXLEN: [64]
-  REPORT_VA_IN_MTVAL_ON_LOAD_PAGE_FAULT: true
-  REPORT_VA_IN_MTVAL_ON_STORE_AMO_PAGE_FAULT: true
-  REPORT_VA_IN_MTVAL_ON_INSTRUCTION_PAGE_FAULT: true
-  REPORT_VA_IN_STVAL_ON_BREAKPOINT: true
-  REPORT_VA_IN_STVAL_ON_LOAD_MISALIGNED: true
-  REPORT_VA_IN_STVAL_ON_STORE_AMO_MISALIGNED: true
-  REPORT_VA_IN_STVAL_ON_INSTRUCTION_MISALIGNED: true
-  REPORT_VA_IN_STVAL_ON_LOAD_ACCESS_FAULT: true
-  REPORT_VA_IN_STVAL_ON_STORE_AMO_ACCESS_FAULT: true
-  REPORT_VA_IN_STVAL_ON_INSTRUCTION_ACCESS_FAULT: true
-  REPORT_VA_IN_STVAL_ON_LOAD_PAGE_FAULT: true
-  REPORT_VA_IN_STVAL_ON_STORE_AMO_PAGE_FAULT: true
-  REPORT_VA_IN_STVAL_ON_INSTRUCTION_PAGE_FAULT: true
-  REPORT_ENCODING_IN_STVAL_ON_ILLEGAL_INSTRUCTION: true
-  STVAL_WIDTH: 64
-  SCOUNTENABLE_EN:
-    [
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ]
-  STVEC_MODE_DIRECT: true
-  STVEC_MODE_VECTORED: true
-  SATP_MODE_BARE: true
-  TRAP_ON_ECALL_FROM_S: true
-  MSTATUS_VS_LEGAL_VALUES: [0]
-  MSTATUS_TVM_IMPLEMENTED: true
   # Sm params
   MXLEN: 64
   PRECISE_SYNCHRONOUS_EXCEPTIONS: true
@@ -157,8 +82,7 @@ params:
   MTVEC_BASE_ALIGNMENT_DIRECT: 4
   MTVEC_BASE_ALIGNMENT_VECTORED: 64
   MTVEC_ILLEGAL_WRITE_BEHAVIOR: retain
-  NUM_PMP_ENTRIES: 16
-  PMP_GRANULARITY: 4
+  NUM_PMP_ENTRIES: 0
   HPM_COUNTER_EN:
     [
       false,

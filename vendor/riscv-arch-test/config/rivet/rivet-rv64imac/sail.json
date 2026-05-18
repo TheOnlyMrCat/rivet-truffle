@@ -340,7 +340,7 @@
       "supported": false
     },
     "S": {
-      "supported": true
+      "supported": false
     },
     "U": {
       "supported": true
@@ -563,7 +563,7 @@
       "supported": false
     },
     "Ssccptr": {
-      "supported": true
+      "supported": false
     },
     "Sscofpmf": {
       "supported": false
@@ -572,7 +572,7 @@
       "supported": false
     },
     "Sstc": {
-      "supported": true
+      "supported": false
     },
     // Enabling Sstvala requires that the exceptions specified in the extension
     // have their appropriate settings under `base.xtval_nonzero`.
@@ -580,32 +580,32 @@
       "supported": false
     },
     "Svade": {
-      "supported": true
+      "supported": false
     },
     "Svadu": {
-      "supported": true
+      "supported": false
     },
     "Svinval": {
-      "supported": true
+      "supported": false
     },
     "Svrsw60t59b": {
       "supported": false
     },
     "Svnapot": {
-      "supported": true
+      "supported": false
     },
     "Smcntrpmf": {
       "supported": false
     },
     "Svbare": {
-      "supported": true,
+      "supported": false,
       "sfence_vma_illegal_if_svbare_only": true
     },
     "Sv32": {
       "supported": false
     },
     "Sv39": {
-      "supported": true
+      "supported": false
     },
     "Sv48": {
       "supported": false
