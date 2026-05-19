@@ -6,6 +6,7 @@ import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
+import au.mrcat.rivet.runtime.RiscvRebootException;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -50,40 +51,44 @@ public class RivetRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        startupNode.executeVoid(frame);
-        long pc = startupNode.getStartingPc();
+        while (true) {
+            startupNode.executeVoid(frame);
+            long pc = startupNode.getStartingPc();
 
-        for (int i = 0; i < 32; i++) {
-            frame.setLongStatic(i, 0);
-        }
+            for (int i = 0; i < 32; i++) {
+                frame.setLongStatic(i, 0);
+            }
 
-        try {
-            while (true) {
-                Integer callTargetIndex = callTargetPcs.get(pc);
-                if (callTargetIndex == null) {
-                    CompilerDirectives.transferToInterpreter();
-                    var root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
-                    callTargetIndex = addCallTarget(root.getCallTarget());
-                    for (long entryPc : root.getPcOffsets()) {
-                        callTargetPcs.put(entryPc, callTargetIndex);
+            try {
+                while (true) {
+                    Integer callTargetIndex = callTargetPcs.get(pc);
+                    if (callTargetIndex == null) {
+                        CompilerDirectives.transferToInterpreter();
+                        var root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
+                        callTargetIndex = addCallTarget(root.getCallTarget());
+                        for (long entryPc : root.getPcOffsets()) {
+                            callTargetPcs.put(entryPc, callTargetIndex);
+                        }
+                    }
+
+                    var callTarget = callTargets[callTargetIndex];
+                    MaterializedFrame returnFrame;
+                    try {
+                        returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
+                        pc = returnFrame.getLongStatic(0);
+                    } catch (RiscvInstructionFenceException fence) {
+                        returnFrame = fence.getFrame();
+                        pc = fence.getNextPc();;
+                    }
+                    for (int i = 1; i < 32; i++) {
+                        frame.setLongStatic(i, returnFrame.getLongStatic(i));
                     }
                 }
-
-                var callTarget = callTargets[callTargetIndex];
-                MaterializedFrame returnFrame;
-                try {
-                    returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
-                    pc = returnFrame.getLongStatic(0);
-                } catch (RiscvInstructionFenceException fence) {
-                    returnFrame = fence.getFrame();
-                    pc = fence.getNextPc();;
-                }
-                for (int i = 1; i < 32; i++) {
-                    frame.setLongStatic(i, returnFrame.getLongStatic(i));
-                }
+            } catch (RiscvExitException exit) {
+                return exit.exitCode;
+            } catch (RiscvRebootException _) {
+                // Loop back to beginning
             }
-        } catch (RiscvExitException exit) {
-            return exit.exitCode;
         }
     }
 }

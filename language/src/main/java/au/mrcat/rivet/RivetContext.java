@@ -3,6 +3,8 @@ package au.mrcat.rivet;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.PrivilegedState;
 import au.mrcat.rivet.riscv.RegisterState;
+import au.mrcat.rivet.runtime.RiscvExitException;
+import au.mrcat.rivet.runtime.RiscvRebootException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
@@ -142,6 +144,16 @@ public class RivetContext {
 
     public void writeInt(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            if (address == 0x10_0000L) {
+                if (value == 0x5555) {
+                    throw new RiscvExitException(0);
+                } else if ((value & 0xFFFF) == 0x3333) {
+                    throw new RiscvExitException(value >> 16);
+                } else if (value == 0x7777) {
+                    throw new RiscvRebootException();
+                }
+                return;
+            }
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b11) != 0) {
@@ -152,6 +164,16 @@ public class RivetContext {
 
     public void writeIntMisaligned(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            if (address == 0x10_0000L) {
+                if (value == 0x5555) {
+                    throw new RiscvExitException(0);
+                } else if ((value & 0xFFFF) == 0x3333) {
+                    throw new RiscvExitException(value >> 16);
+                } else if (value == 0x7777) {
+                    throw new RiscvRebootException();
+                }
+                return;
+            }
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
