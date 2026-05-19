@@ -11,6 +11,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
@@ -56,6 +57,8 @@ public class RiscvArchTest {
                         extensionSources.add(Source.newBuilder("rv64", p.toFile()).build());
                     }
                 }
+
+                extensionSources.sort(Comparator.comparing(Source::getName));
 
                 // Record the elfs as being from this extension
                 sources.put(extensionPath.getFileName().toString(), extensionSources);
