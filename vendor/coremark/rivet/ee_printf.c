@@ -660,7 +660,11 @@ ee_vsprintf(char *buf, const char *fmt, va_list args)
     return str - buf;
 }
 
-ee_u64 rv_syscall(ee_u64 a0, ee_u64 a1, ee_u64 a2, ee_u64 a3, ee_u64 a4, ee_u64 a5, ee_u64 a6, ee_u64 a7);
+void
+uart_send_char(char c)
+{
+    *((int*) 0x10000000) = c;
+}
 
 int
 ee_printf(const char *fmt, ...)
@@ -670,8 +674,15 @@ ee_printf(const char *fmt, ...)
     int     n = 0;
 
     va_start(args, fmt);
-    n = ee_vsprintf(buf, fmt, args);
+    ee_vsprintf(buf, fmt, args);
     va_end(args);
+    p = buf;
+    while (*p)
+    {
+        uart_send_char(*p);
+        n++;
+        p++;
+    }
 
-    return rv_syscall(1, (ee_u64) buf, n, 0, 0, 0, 0, 64);
+    return n;
 }

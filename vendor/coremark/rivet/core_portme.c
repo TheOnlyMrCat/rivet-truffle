@@ -138,6 +138,8 @@ portable_init(core_portable *p, int *argc, char *argv[])
     (void)argc; // prevent unused warning
     (void)argv; // prevent unused warning
 
+    *((int*) 0x10000008) = 0b1;
+
     if (sizeof(ee_ptr_int) != sizeof(ee_u8 *))
     {
         ee_printf(
