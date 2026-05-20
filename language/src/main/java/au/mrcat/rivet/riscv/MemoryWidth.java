@@ -13,4 +13,8 @@ public enum MemoryWidth {
         this.bytes = bytes;
         this.mask = mask;
     }
+
+    public boolean isNaturallyAligned(long address) {
+        return (address & bytes - 1) == 0;
+    }
 }

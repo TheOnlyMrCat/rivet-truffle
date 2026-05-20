@@ -3,10 +3,7 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
-import au.mrcat.rivet.runtime.RiscvExitException;
-import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
-import au.mrcat.rivet.runtime.RiscvJumpException;
-import au.mrcat.rivet.runtime.RiscvRebootException;
+import au.mrcat.rivet.runtime.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -51,6 +48,7 @@ public class RivetRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        var ctx = RivetContext.get(this);
         while (true) {
             startupNode.executeVoid(frame);
             long pc = startupNode.getStartingPc();
@@ -64,7 +62,13 @@ public class RivetRootNode extends RootNode {
                     Integer callTargetIndex = callTargetPcs.get(pc);
                     if (callTargetIndex == null) {
                         CompilerDirectives.transferToInterpreter();
-                        var root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
+                        RivetCallTargetNode root;
+                        try {
+                            root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
+                        } catch (RiscvTrapException trap) {
+                            pc = ctx.privilegedState.handleTrap(trap);
+                            continue;
+                        }
                         callTargetIndex = addCallTarget(root.getCallTarget());
                         for (long entryPc : root.getPcOffsets()) {
                             callTargetPcs.put(entryPc, callTargetIndex);
@@ -78,8 +82,12 @@ public class RivetRootNode extends RootNode {
                         pc = returnFrame.getLongStatic(0);
                     } catch (RiscvInstructionFenceException fence) {
                         returnFrame = fence.getFrame();
-                        pc = fence.getNextPc();;
+                        pc = fence.getNextPc();
+                    } catch (RiscvTrapException trap) {
+                        returnFrame = trap.getFrame();
+                        pc = ctx.privilegedState.handleTrap(trap);
                     }
+
                     for (int i = 1; i < 32; i++) {
                         frame.setLongStatic(i, returnFrame.getLongStatic(i));
                     }

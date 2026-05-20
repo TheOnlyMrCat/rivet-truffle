@@ -19,7 +19,7 @@ public class EnvironmentCallNode extends RivetNode {
             case User -> ExceptionCause.EnvironmentCallFromUMode;
             case Supervisor -> ExceptionCause.EnvironmentCallFromSMode;
             case Machine -> ExceptionCause.EnvironmentCallFromMMode;
-        });
+        }, pc);
     }
 
     @Override

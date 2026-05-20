@@ -156,12 +156,12 @@ public final class PrivilegedState {
         mtval = tval;
 
         // Return the program counter to jump to
-        if (mtvec < 0) {
-            // Vectored interrupt mode: add the exception number to the program counter
-            return ((mtvec & Long.MAX_VALUE) + exception) << 2;
+        long mtvec_mode = mtvec & 0b11;
+        long mtvec_addr = mtvec & ~0b11;
+        if (mtvec_mode == 1) {
+            return mtvec_addr + exception * 4;
         } else {
-            // Bare interrupt mode: jump to mtvec
-            return mtvec << 2;
+            return mtvec_addr;
         }
     }
 }

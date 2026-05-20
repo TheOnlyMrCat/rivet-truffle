@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -60,6 +61,9 @@ public class RivetCallTargetNode extends RootNode {
             } catch (RiscvInstructionFenceException fence) {
                 fence.setFrame(frame.materialize());
                 throw fence;
+            } catch (RiscvTrapException trap) {
+                trap.setFrame(frame.materialize());
+                throw trap;
             }
         }
     }

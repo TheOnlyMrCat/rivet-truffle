@@ -125,12 +125,12 @@ public class RivetContext {
     }
 
     public long readMmio(long address, MemoryWidth width) {
-        if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
-        }
-
         // Syscon
         if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
+            if (!width.isNaturallyAligned(address)) {
+                throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+            }
+
             if (width != MemoryWidth.Word) {
                 throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
             }
@@ -139,6 +139,10 @@ public class RivetContext {
 
         // SiFive UART
         if (0x1000_0000 <= address && address + width.bytes < 0x1000_1000) {
+            if (!width.isNaturallyAligned(address)) {
+                throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+            }
+
             long reg = address - 0x1000_0000;
             return uart.readMmio(reg, width);
         }
@@ -244,15 +248,15 @@ public class RivetContext {
     }
 
     private void writeMmio(long address, long value, MemoryWidth width) {
-        if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
-        }
-
         // Syscon
         if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
             if (address != 0x10_0000L || width != MemoryWidth.Word) {
                 throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
             }
+            if (!width.isNaturallyAligned(address)) {
+                throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+            }
+
             if (value == 0x5555) {
                 throw new RiscvExitException(0);
             } else if ((value & 0xFFFF) == 0x3333) {
@@ -265,6 +269,10 @@ public class RivetContext {
 
         // SiFive UART
         if (0x1000_0000 <= address && address + width.bytes < 0x1000_1000) {
+            if (!width.isNaturallyAligned(address)) {
+                throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+            }
+
             long reg = address - 0x1000_0000;
             uart.writeMmio(reg, value, width);
             return;
