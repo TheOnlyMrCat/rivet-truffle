@@ -1,6 +1,7 @@
 package au.mrcat.rivet;
 
 import au.mrcat.rivet.riscv.ExceptionCause;
+import au.mrcat.rivet.riscv.MemoryWidth;
 import au.mrcat.rivet.riscv.PrivilegedState;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvExitException;
@@ -120,6 +121,7 @@ public class RivetContext {
 
     public void writeByte(long address, byte value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
+            writeMmio(address, value, MemoryWidth.Byte);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         BYTE.set(memory, address - 0x8000_0000L, value);
@@ -127,6 +129,7 @@ public class RivetContext {
 
     public void writeShort(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            writeMmio(address, value, MemoryWidth.HalfWord);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b1) != 0) {
@@ -137,6 +140,7 @@ public class RivetContext {
 
     public void writeShortMisaligned(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            writeMmio(address, value, MemoryWidth.HalfWord);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         LE_SHORT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
@@ -144,16 +148,7 @@ public class RivetContext {
 
     public void writeInt(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            if (address == 0x10_0000L) {
-                if (value == 0x5555) {
-                    throw new RiscvExitException(0);
-                } else if ((value & 0xFFFF) == 0x3333) {
-                    throw new RiscvExitException(value >> 16);
-                } else if (value == 0x7777) {
-                    throw new RiscvRebootException();
-                }
-                return;
-            }
+            writeMmio(address, value, MemoryWidth.Word);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b11) != 0) {
@@ -164,16 +159,7 @@ public class RivetContext {
 
     public void writeIntMisaligned(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            if (address == 0x10_0000L) {
-                if (value == 0x5555) {
-                    throw new RiscvExitException(0);
-                } else if ((value & 0xFFFF) == 0x3333) {
-                    throw new RiscvExitException(value >> 16);
-                } else if (value == 0x7777) {
-                    throw new RiscvRebootException();
-                }
-                return;
-            }
+            writeMmio(address, value, MemoryWidth.Word);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
@@ -181,6 +167,7 @@ public class RivetContext {
 
     public void writeLong(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            writeMmio(address, value, MemoryWidth.DoubleWord);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b111) != 0) {
@@ -191,6 +178,7 @@ public class RivetContext {
 
     public void writeLongMisaligned(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            writeMmio(address, value, MemoryWidth.DoubleWord);
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         LE_LONG_UNALIGNED.set(memory, address - 0x8000_0000L, value);
@@ -226,5 +214,27 @@ public class RivetContext {
         }
         LE_LONG.set(memory, address - 0x8000_0000L, value);
         return true;
+    }
+
+    private void writeMmio(long address, long value, MemoryWidth width) {
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
+
+        // Syscon
+        if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
+            if (address != 0x10_0000L || width != MemoryWidth.Word) {
+                throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            }
+            if (value == 0x5555) {
+                throw new RiscvExitException(0);
+            } else if ((value & 0xFFFF) == 0x3333) {
+                throw new RiscvExitException(value >> 16);
+            } else if (value == 0x7777) {
+                throw new RiscvRebootException();
+            }
+        }
+
+        throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
     }
 }
