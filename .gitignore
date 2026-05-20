@@ -1,6 +1,12 @@
 # Test scripts
 *.sh
 
+# Compilation outputs
+**/*.o
+**/*.exe
+**/*.elf
+**/*.bin
+**/*.log
 
 
 target/
