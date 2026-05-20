@@ -1014,7 +1014,7 @@ public final class RivetParser {
 
                 return switch (funct12) {
                     case Opcode.Priv.EBREAK -> new BreakpointNode(pc);
-                    case Opcode.Priv.ECALL -> new EnvironmentCallNode();
+                    case Opcode.Priv.ECALL -> new EnvironmentCallNode(pc);
                     // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
                     case Opcode.Priv.WFI -> new HintNode(instruction);
                     default -> new IllegalInstructionNode(instruction, pc);

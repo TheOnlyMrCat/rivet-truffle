@@ -28,6 +28,10 @@ public final class PrivilegedState {
 
     private long mcountinhibit;
 
+    public PrivilegeMode currentMode() {
+        return mode;
+    }
+
     public long tryRead(int csr) {
         // Do an initial rough check based on the privilege mode/CSR pair
         int minimumMode = (csr >> 8) & 0b11;
