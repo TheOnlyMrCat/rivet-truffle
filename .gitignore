@@ -1,50 +1,30 @@
-# Test scripts
-*.sh
+*
 
-# Compilation outputs
-**/*.o
-**/*.exe
-**/*.elf
-**/*.bin
-**/*.log
+!.gitignore
 
+# Whitelist maven project source files
+!pom.xml
 
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-.kotlin
+!language/
+!language/pom.xml
+!language/src/
+!language/src/**/
+!language/src/**/*
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-*.iws
-*.iml
-*.ipr
+!launcher/
+!launcher/pom.xml
+!launcher/src/
+!launcher/src/**/
+!launcher/src/**/*
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Let vendored dependencies define their own ignore rules
+!vendor/
+!vendor/**/
+!vendor/**/*
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
+# Ignore compilation artifacts in vendor/coremark
+vendor/coremark/**/*.o
+vendor/coremark/**/*.exe
+vendor/coremark/**/*.elf
+vendor/coremark/**/*.bin
+vendor/coremark/**/*.log
