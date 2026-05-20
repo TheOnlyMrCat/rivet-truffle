@@ -1,5 +1,6 @@
 package au.mrcat.rivet;
 
+import au.mrcat.rivet.mmio.SifiveUart;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.MemoryWidth;
 import au.mrcat.rivet.riscv.PrivilegedState;
@@ -10,6 +11,7 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
 
+import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -28,6 +30,8 @@ public class RivetContext {
     public final PrivilegedState privilegedState;
     public final MemorySegment memory;
 
+    private final SifiveUart uart;
+
     private static final long NO_RESERVATION = 1;
     private long reservedDoubleWord = NO_RESERVATION;
 
@@ -44,6 +48,7 @@ public class RivetContext {
         privilegedState = new PrivilegedState();
         arena = Arena.ofAuto();
         memory = arena.allocate(1 * 1024 * 1024 * 1024, 4096);
+        uart = new SifiveUart(this);
     }
 
     public MemorySegment slice(long address, long size) {
@@ -56,14 +61,14 @@ public class RivetContext {
 
     public byte readByte(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return (byte) readMmio(address, MemoryWidth.Byte);
         }
         return (byte) BYTE.get(memory, address - 0x8000_0000L);
     }
 
     public short readShort(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return (short) readMmio(address, MemoryWidth.HalfWord);
         }
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -73,14 +78,14 @@ public class RivetContext {
 
     public short readShortMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return (short) readMmio(address, MemoryWidth.HalfWord);
         }
         return (short) LE_SHORT_UNALIGNED.get(memory, address - 0x8000_0000L);
     }
 
     public int readInt(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return (int) readMmio(address, MemoryWidth.Word);
         }
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -90,14 +95,14 @@ public class RivetContext {
 
     public int readIntMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return (int) readMmio(address, MemoryWidth.Word);
         }
         return (int) LE_INT_UNALIGNED.get(memory, address - 0x8000_0000L);
     }
 
     public long readLong(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return readMmio(address, MemoryWidth.DoubleWord);
         }
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -107,7 +112,7 @@ public class RivetContext {
 
     public long readLongMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            return readMmio(address, MemoryWidth.DoubleWord);
         }
         return (long) LE_LONG_UNALIGNED.get(memory, address - 0x8000_0000L);
     }
@@ -119,10 +124,32 @@ public class RivetContext {
         reservedDoubleWord = address & ~0b111L;
     }
 
+    public long readMmio(long address, MemoryWidth width) {
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+        }
+
+        // Syscon
+        if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
+            if (width != MemoryWidth.Word) {
+                throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+            }
+            return 0;
+        }
+
+        // SiFive UART
+        if (0x1000_0000 <= address && address + width.bytes < 0x1000_1000) {
+            long reg = address - 0x1000_0000;
+            return uart.readMmio(reg, width);
+        }
+
+        throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+    }
+
     public void writeByte(long address, byte value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
             writeMmio(address, value, MemoryWidth.Byte);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         BYTE.set(memory, address - 0x8000_0000L, value);
     }
@@ -130,7 +157,7 @@ public class RivetContext {
     public void writeShort(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.HalfWord);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -141,7 +168,7 @@ public class RivetContext {
     public void writeShortMisaligned(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.HalfWord);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         LE_SHORT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
     }
@@ -149,7 +176,7 @@ public class RivetContext {
     public void writeInt(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.Word);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -160,7 +187,7 @@ public class RivetContext {
     public void writeIntMisaligned(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.Word);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
     }
@@ -168,7 +195,7 @@ public class RivetContext {
     public void writeLong(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.DoubleWord);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -179,7 +206,7 @@ public class RivetContext {
     public void writeLongMisaligned(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.DoubleWord);
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            return;
         }
         LE_LONG_UNALIGNED.set(memory, address - 0x8000_0000L, value);
     }
@@ -233,6 +260,14 @@ public class RivetContext {
             } else if (value == 0x7777) {
                 throw new RiscvRebootException();
             }
+            return;
+        }
+
+        // SiFive UART
+        if (0x1000_0000 <= address && address + width.bytes < 0x1000_1000) {
+            long reg = address - 0x1000_0000;
+            uart.writeMmio(reg, value, width);
+            return;
         }
 
         throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
