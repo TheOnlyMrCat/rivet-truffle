@@ -25,50 +25,48 @@
 
 # Terminate test with a pass indication.
 # When the test is run in simulation, this should end the simulation.
-#define RVMODEL_HALT_PASS  \
-  li a7, 93;               \
-  la a0, 0;                \
-  ecall;
+#define RVMODEL_HALT_PASS \
+  li t0, 0x100000;        \
+  li t1, 0x5555;          \
+  sw t1, 0(t0);
 
 # Terminate test with a fail indication.
 # When the test is run in simulation, this should end the simulation.
 #define RVMODEL_HALT_FAIL \
-  li a7, 93;              \
-  la a0, 1;               \
-  ecall;
+  li t0, 0x100000;        \
+  li t1, 0x13333;         \
+  sw t1, 0(t0);
 
 ##### IO #####
+
+.EQU UART_BASE_ADDR, 0x10000000
+.EQU UART_TXDATA, (UART_BASE_ADDR + 0)
+.EQU UART_TXCTRL, (UART_BASE_ADDR + 8)
+
+# Initialization steps needed prior to writing to the console
+# _R1, _R2, and _R3 can be used as temporary registers if needed.
+# Do not modify any other registers (or make sure to restore them).
+# Can be empty or left undefined if no initialization is needed.
+#define RVMODEL_IO_INIT(_R1, _R2, _R3) \
+  uart_init:                           \
+    li _R1, UART_TXCTRL;               \
+    li _R2, 1;                         \
+    sw _R2, 0(_R1);
 
 # Prints a null-terminated string using a DUT specific mechanism.
 # A pointer to the string is passed in _STR_PTR.
 # _R1, _R2, and _R3 can be used as temporary registers if needed.
 # Do not modify any other registers (or make sure to restore them).
-#define RVMODEL_IO_WRITE_STR(_R1, _R2, _R3, _STR_PTR)               \
-  /* save registers */                                \
-  la _R1, tempr4;                                     \
-  sd a7, 0(_R1);                                      \
-  mv _R1, a0;                                         \
-  mv _R2, a1;                                         \
-  mv _R3, a2;                                         \
-  /* set up syscall */                                \
-  li a7, 64; /* sys_write */                          \
-  mv a1, _STR_PTR; /* buf parameter */                \
-  li a2, 0; /* count parameter */                     \
-1: /* strlen */                                       \
-  lbu a0, 0(_STR_PTR); /* Load byte */                \
-  beqz a0, 2f; /* Exit if null */                     \
-  addi a2, a2, 1; /* Increment count */               \
-  addi _STR_PTR, _STR_PTR, 1; /* Next char */         \
-  j 1b; /* Loop */                                    \
-2: /* syscall */                                      \
-  li a0, 1; /* fd parameter (stdout) */               \
-  ecall;                                              \
-  /* restore registers */                             \
-  mv a2, _R3;                                         \
-  mv a1, _R2;                                         \
-  mv a0, _R1;                                         \
-  la _R1, tempr4;                                     \
-  ld a7, 0(_R1);
+#define RVMODEL_IO_WRITE_STR(_R1, _R2, _R3, _STR_PTR) \
+1:                                                    \
+  lbu _R1, 0(_STR_PTR);        /* Load byte */        \
+  beqz _R1, 3f;                /* Exit if null */     \
+2: /* uart_putc */                                    \
+    li _R2, UART_TXDATA; /* transmit character */     \
+    sw _R1, 0(_R2) ;                                  \
+  addi _STR_PTR, _STR_PTR, 1 ;/* Next char */         \
+  j 1b                       ;/* Loop */              \
+3:
 
 ##### Access Fault #####
 
