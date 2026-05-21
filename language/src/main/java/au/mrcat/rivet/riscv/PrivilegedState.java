@@ -1,5 +1,6 @@
 package au.mrcat.rivet.riscv;
 
+import au.mrcat.rivet.nodes.RivetBasicBlockNode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 
 public final class PrivilegedState {
@@ -7,11 +8,12 @@ public final class PrivilegedState {
 
     private static final long MSTATUS_FIELDS_MASK =
             0b0111_1110_0001_1001_1010_1010;
+    private static final long MSTATUS_RESET_VALUE = 0b1010_0000_0000_0000_0000_0001_1000_1010_0000L;
     private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
     private static final long INTERRUPT_MASK = 0;
     private static final long COUNTER_MASK = 0b101;
 
-    private long mstatus = 0b1010_0000_0000_0000_0000_0001_1000_1010_0000L;
+    private long mstatus = MSTATUS_RESET_VALUE;
     private long medeleg;
     private long mideleg;
     private long mie;
@@ -25,6 +27,9 @@ public final class PrivilegedState {
     private long mip;
 
     private long menvcfg;
+
+    private long mcycle;
+    private long minstret;
 
     private long mcountinhibit;
 
@@ -56,7 +61,24 @@ public final class PrivilegedState {
     private long tryReadPrivileged(int csr) {
         switch (csr) {
             // User-level CSRs
-            case Csr.TIME -> { return System.nanoTime(); }
+            case Csr.CYCLE -> {
+                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 0)) == 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return mcycle;
+            }
+            case Csr.TIME -> {
+                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 1)) == 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return System.nanoTime();
+            }
+            case Csr.INSTRET -> {
+                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 2)) == 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return minstret;
+            }
 
             // Machine-level CSRs
             case Csr.MVENDORID -> { return 0; }
@@ -81,11 +103,18 @@ public final class PrivilegedState {
 
             case Csr.MENVCFG -> { return menvcfg; }
 
+            case Csr.MCYCLE -> {
+                return mcycle;
+            }
+            case Csr.MINSTRET -> {
+                return minstret;
+            }
+
             case Csr.MCOUNTINHIBIT -> { return mcountinhibit; }
 
             default -> {
                 if (Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
-                    // Hardware performance counters; not implemented, but read-only zero
+                    // Hardware performance counters: not implemented, but read-only zero
                     return 0;
                 } else {
                     // CSR doesn't exist/is not implemented/is not readable
@@ -124,18 +153,21 @@ public final class PrivilegedState {
             case Csr.MCOUNTEREN -> mcounteren = value & COUNTER_MASK;
 
             case Csr.MSCRATCH -> mscratch = value;
-            case Csr.MEPC -> mepc = value;
+            case Csr.MEPC -> mepc = value & ~0b1;
             case Csr.MCAUSE -> mcause = value;
             case Csr.MTVAL -> mtval = value;
             case Csr.MIP -> mip = value;
 
             case Csr.MENVCFG -> menvcfg = value & 0;
 
+            case Csr.MCYCLE -> mcycle = value;
+            case Csr.MINSTRET -> minstret = value;
+
             case Csr.MCOUNTINHIBIT -> mcountinhibit = value & COUNTER_MASK;
 
             default -> {
                 if (Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
-                    // Hardware performance counters; not implemented, but read-only zero
+                    // Hardware performance counters: not implemented, but read-only zero
                 } else {
                     // CSR doesn't exist/is not implemented/is not writeable
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
@@ -187,5 +219,21 @@ public final class PrivilegedState {
         }
 
         return mepc;
+    }
+
+    public void stepPerformanceCounters(short instructionsRetired) {
+        mcycle += instructionsRetired;
+        minstret += instructionsRetired;
+    }
+
+    public void stepPerformanceCounters(short cycles, short instructionsRetired) {
+        mcycle += cycles;
+        minstret += instructionsRetired;
+    }
+
+    public void reset() {
+        mstatus = MSTATUS_RESET_VALUE;
+        mode = PrivilegeMode.Machine;
+        mcause = 0;
     }
 }

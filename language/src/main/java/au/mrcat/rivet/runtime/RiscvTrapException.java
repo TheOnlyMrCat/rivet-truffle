@@ -9,6 +9,7 @@ public class RiscvTrapException extends ControlFlowException {
     public final ExceptionCause cause;
     private long pc;
     private long tval = 0;
+    private short instret = 0;
 
     public RiscvTrapException(ExceptionCause cause) {
         this.cause = cause;
@@ -25,6 +26,13 @@ public class RiscvTrapException extends ControlFlowException {
         this.tval = tval;
     }
 
+    public RiscvTrapException(ExceptionCause cause, long pc, long tval, short instret) {
+        this.cause = cause;
+        this.pc = pc;
+        this.tval = tval;
+        this.instret = instret;
+    }
+
     public long getPc() {
         return pc;
     }
@@ -39,6 +47,14 @@ public class RiscvTrapException extends ControlFlowException {
 
     public void setTval(long tval) {
         this.tval = tval;
+    }
+
+    public short getInstret() {
+        return instret;
+    }
+
+    public void setInstret(short instret) {
+        this.instret = instret;
     }
 
     public MaterializedFrame getFrame() {

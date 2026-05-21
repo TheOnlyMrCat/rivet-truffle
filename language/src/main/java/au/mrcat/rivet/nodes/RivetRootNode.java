@@ -51,6 +51,7 @@ public class RivetRootNode extends RootNode {
         var ctx = RivetContext.get(this);
         while (true) {
             startupNode.executeVoid(frame);
+            ctx.privilegedState.reset();
             long pc = startupNode.getStartingPc();
 
             for (int i = 0; i < 32; i++) {
@@ -82,9 +83,11 @@ public class RivetRootNode extends RootNode {
                         pc = returnFrame.getLongStatic(0);
                     } catch (RiscvInstructionFenceException fence) {
                         returnFrame = fence.getFrame();
+                        ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
                         pc = fence.getNextPc();
                     } catch (RiscvTrapException trap) {
                         returnFrame = trap.getFrame();
+                        ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
                         pc = ctx.privilegedState.handleTrap(trap);
                     }
 

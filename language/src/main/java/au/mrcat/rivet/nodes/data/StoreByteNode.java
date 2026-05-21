@@ -10,12 +10,14 @@ public class StoreByteNode extends RivetNode {
     private final long offset;
     @Child RivetOpNode value;
     private final long pc;
+    private final short instret;
 
-    public StoreByteNode(RivetOpNode address, long offset, RivetOpNode value, long pc) {
+    public StoreByteNode(RivetOpNode address, long offset, RivetOpNode value, long pc, short instret) {
         this.address = address;
         this.offset = offset;
         this.value = value;
         this.pc = pc;
+        this.instret = instret;
     }
 
     @Override
@@ -27,6 +29,7 @@ public class StoreByteNode extends RivetNode {
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);
+            trap.setInstret(instret);
             throw trap;
         }
     }

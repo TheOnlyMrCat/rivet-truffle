@@ -1,5 +1,6 @@
 package au.mrcat.rivet.nodes;
 
+import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
@@ -38,6 +39,7 @@ public class RivetCallTargetNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        var ctx = RivetContext.get(this);
         var registers = (MaterializedFrame) frame.getArguments()[0];
         long pc = (Long) frame.getArguments()[1];
 
@@ -56,8 +58,10 @@ public class RivetCallTargetNode extends RootNode {
             }
             try {
                 basicBlockNodes[bbIndex].executeVoid(frame);
+                throw new IllegalStateException("Basic block exited without updating pc");
             } catch (RiscvJumpException jump) {
                 pc = jump.targetPc;
+                ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[bbIndex].instructionsRetired);
             } catch (RiscvInstructionFenceException fence) {
                 fence.setFrame(frame.materialize());
                 throw fence;

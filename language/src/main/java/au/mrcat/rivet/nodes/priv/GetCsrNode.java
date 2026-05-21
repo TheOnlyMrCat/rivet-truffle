@@ -10,21 +10,30 @@ public class GetCsrNode extends RivetOpNode {
     private final int csr;
     private final long pc;
     private final int instruction;
+    private final short instret;
 
-    public GetCsrNode(int csr, long pc, int instruction) {
+    public GetCsrNode(int csr, long pc, int instruction, short instret) {
         this.csr = csr;
         this.pc = pc;
         this.instruction = instruction;
+        this.instret = instret;
     }
 
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
         try {
-            return ctx.privilegedState.tryRead(csr);
+            long result = ctx.privilegedState.tryRead(csr);
+            // If we've just read an instruction counter, it will be inaccurate in the case we're in the middle of a
+            // basic block. Add the instret counter to the result to account for this.
+            if (csr == Csr.MCYCLE || csr == Csr.MINSTRET || csr == Csr.CYCLE || csr == Csr.INSTRET) {
+                result += instret;
+            }
+            return result;
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(Integer.toUnsignedLong(instruction));
+            trap.setInstret(instret);
             throw trap;
         }
     }

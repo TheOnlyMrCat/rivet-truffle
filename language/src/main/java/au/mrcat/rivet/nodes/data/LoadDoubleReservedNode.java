@@ -7,10 +7,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class LoadDoubleReservedNode extends RivetOpNode {
     @Child RivetOpNode address;
     private final long pc;
+    private final short instret;
 
-    public LoadDoubleReservedNode(RivetOpNode address, long pc) {
+    public LoadDoubleReservedNode(RivetOpNode address, long pc, short instret) {
         this.address = address;
         this.pc = pc;
+        this.instret = instret;
     }
 
     @Override
@@ -24,6 +26,7 @@ public class LoadDoubleReservedNode extends RivetOpNode {
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);
+            trap.setInstret(instret);
             throw trap;
         }
     }

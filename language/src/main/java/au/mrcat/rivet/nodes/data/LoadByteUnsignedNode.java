@@ -8,11 +8,13 @@ public class LoadByteUnsignedNode extends RivetOpNode {
     @Child RivetOpNode address;
     private final int offset;
     private final long pc;
+    private final short instret;
 
-    public LoadByteUnsignedNode(RivetOpNode address, int offset, long pc) {
+    public LoadByteUnsignedNode(RivetOpNode address, int offset, long pc, short instret) {
         this.address = address;
         this.offset = offset;
         this.pc = pc;
+        this.instret = instret;
     }
 
     @Override
@@ -24,6 +26,7 @@ public class LoadByteUnsignedNode extends RivetOpNode {
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);
+            trap.setInstret(instret);
             throw trap;
         }
     }

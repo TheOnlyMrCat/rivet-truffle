@@ -45,10 +45,15 @@ public final class RivetParser {
             }
 
             long currentPc = basePc;
+            short instret = 0;
             currentBlock.clear();
             bb: while (true) {
+                if (instret < 0) {
+                    throw new IllegalStateException("Instructions retired counter overflow during parse");
+                }
+
                 int instruction = context.readIntMisaligned(currentPc);
-                var node = Objects.requireNonNull(parseInstruction(instruction, currentPc));
+                var node = Objects.requireNonNull(parseInstruction(instruction, currentPc, instret));
 
                 if ((instruction & 0b11) != 0b11) {
                     currentPc += 2;
@@ -58,54 +63,61 @@ public final class RivetParser {
 
                 switch (node) {
                     case HintNode ignored -> {
+                        instret += 1;
+                    }
+                    case RivetTrapNode trapNode -> {
+                        currentBlock.add(trapNode);
+                        break bb;
                     }
                     case RivetDivergentNode divergentNode -> {
                         currentBlock.add(divergentNode);
+                        instret += 1;
                         frontier.addAll(List.of(divergentNode.callTargetContinuations()));
                         break bb;
                     }
                     default -> {
+                        instret += 1;
                         currentBlock.add(node);
                     }
                 }
             }
-            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), currentPc));
+            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), currentPc, instret));
         }
 
         return new RivetCallTargetNode(language, basicBlocks);
     }
 
-    public static RivetNode parseInstruction(int instruction, long pc) {
+    public static RivetNode parseInstruction(int instruction, long pc, short instret) {
         int compressed_opcode = instruction & 0b11;
         return switch (compressed_opcode) {
-            case 0b00 -> parseC0((short) instruction, pc);
-            case 0b01 -> parseC1((short) instruction, pc);
-            case 0b10 -> parseC2((short) instruction, pc);
+            case 0b00 -> parseC0((short) instruction, pc, instret);
+            case 0b01 -> parseC1((short) instruction, pc, instret);
+            case 0b10 -> parseC2((short) instruction, pc, instret);
             case 0b11 -> {
                 int opcode = instruction & 0x7f;
                 yield switch (opcode) {
-                    case Opcode.LOAD -> parseLoad(instruction, pc);
-                    case Opcode.MISC_MEM -> parseMiscMem(instruction, pc);
-                    case Opcode.OP_IMM -> parseOpImm(instruction, pc);
+                    case Opcode.LOAD -> parseLoad(instruction, pc, instret);
+                    case Opcode.MISC_MEM -> parseMiscMem(instruction, pc, instret);
+                    case Opcode.OP_IMM -> parseOpImm(instruction, pc, instret);
                     case Opcode.AUIPC -> parseAuipc(instruction, pc);
-                    case Opcode.OP_IMM_32 -> parseOpImm32(instruction, pc);
-                    case Opcode.STORE -> parseStore(instruction, pc);
-                    case Opcode.AMO -> parseAmo(instruction, pc);
-                    case Opcode.OP -> parseOp(instruction, pc);
+                    case Opcode.OP_IMM_32 -> parseOpImm32(instruction, pc, instret);
+                    case Opcode.STORE -> parseStore(instruction, pc, instret);
+                    case Opcode.AMO -> parseAmo(instruction, pc, instret);
+                    case Opcode.OP -> parseOp(instruction, pc, instret);
                     case Opcode.LUI -> parseLui(instruction);
-                    case Opcode.OP_32 -> parseOp32(instruction, pc);
-                    case Opcode.BRANCH -> parseBranch(instruction, pc);
+                    case Opcode.OP_32 -> parseOp32(instruction, pc, instret);
+                    case Opcode.BRANCH -> parseBranch(instruction, pc, instret);
                     case Opcode.JAL -> parseJal(instruction, pc);
-                    case Opcode.JALR -> parseJalr(instruction, pc);
-                    case Opcode.SYSTEM -> parseSystem(instruction, pc);
-                    default -> new IllegalInstructionNode(instruction, pc);
+                    case Opcode.JALR -> parseJalr(instruction, pc, instret);
+                    case Opcode.SYSTEM -> parseSystem(instruction, pc, instret);
+                    default -> new IllegalInstructionNode(instruction, pc, instret);
                 };
             }
             default -> throw new IllegalStateException("Unexpected value of compressed_opcode");
         };
     }
 
-    public static RivetNode parseC0(short instruction, long pc) {
+    public static RivetNode parseC0(short instruction, long pc, short instret) {
         int funct3 = instruction >>> 13 & 0b111;
 
         return switch (funct3) {
@@ -116,7 +128,7 @@ public final class RivetParser {
                         | ((instruction >> 7) & 0b1111) << 6;
 
                 if (imm == 0) {
-                    yield new IllegalInstructionNode(instruction, pc);
+                    yield new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 int rd = ((instruction >> 2) & 0b111) + 8;
@@ -131,7 +143,7 @@ public final class RivetParser {
                 int rd = ((instruction >> 2) & 0b111) + 8;
                 int rs1 = ((instruction >> 7) & 0b111) + 8;
 
-                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(rs1), offset, pc));
+                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(rs1), offset, pc, instret));
             }
             case Opcode.C0.LD -> {
                 int offset = ((instruction >> 10) & 0b111) << 3
@@ -140,7 +152,7 @@ public final class RivetParser {
                 int rd = ((instruction >> 2) & 0b111) + 8;
                 int rs1 = ((instruction >> 7) & 0b111) + 8;
 
-                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(rs1), offset, pc));
+                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(rs1), offset, pc, instret));
             }
             case Opcode.C0.SW -> {
                 int offset = ((instruction >> 6) & 0b1) << 2
@@ -150,7 +162,7 @@ public final class RivetParser {
                 int rs2 = ((instruction >> 2) & 0b111) + 8;
                 int rs1 = ((instruction >> 7) & 0b111) + 8;
 
-                yield new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
+                yield new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
             }
             case Opcode.C0.SD -> {
                 int offset = ((instruction >> 10) & 0b111) << 3
@@ -159,13 +171,13 @@ public final class RivetParser {
                 int rs2 = ((instruction >> 2) & 0b111) + 8;
                 int rs1 = ((instruction >> 7) & 0b111) + 8;
 
-                yield new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
+                yield new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
             }
-            default -> new IllegalInstructionNode(instruction, pc);
+            default -> new IllegalInstructionNode(instruction, pc, instret);
         };
     }
 
-    public static RivetNode parseC1(short instruction, long pc) {
+    public static RivetNode parseC1(short instruction, long pc, short instret) {
         int funct3 = instruction >>> 13 & 0b111;
 
         return switch (funct3) {
@@ -210,7 +222,7 @@ public final class RivetParser {
                             | ((instruction >> 3) & 0b11) << 7
                             | ((instruction << 19) & 0x8000_0000) >> 22;
                     if (imm == 0) {
-                        yield new IllegalInstructionNode(instruction, pc);
+                        yield new IllegalInstructionNode(instruction, pc, instret);
                     }
                     yield new SetRegisterNode(2, new AddNode(GetRegisterNode.create(2), new ConstantNode(imm)));
                 } else {
@@ -218,7 +230,7 @@ public final class RivetParser {
                     int imm = ((instruction >> 2) & 0b11111) << 12
                             | ((instruction << 19) & 0x8000_0000) >> 14;
                     if (imm == 0) {
-                        yield new IllegalInstructionNode(instruction, pc);
+                        yield new IllegalInstructionNode(instruction, pc, instret);
                     }
                     if (rd == 0) {
                         yield new HintNode(instruction);
@@ -271,7 +283,7 @@ public final class RivetParser {
                     case 0b111 -> {
                         int funct2 = (instruction >> 5) & 0b11;
                         if (funct2 > 1) {
-                            yield new IllegalInstructionNode(instruction, pc);
+                            yield new IllegalInstructionNode(instruction, pc, instret);
                         }
                         int rd = ((instruction >> 7) & 0b111) + 8;
                         int rs2 = ((instruction >> 2) & 0b111) + 8;
@@ -325,7 +337,7 @@ public final class RivetParser {
         };
     }
 
-    public static RivetNode parseC2(short instruction, long pc) {
+    public static RivetNode parseC2(short instruction, long pc, short instret) {
         int funct3 = instruction >>> 13 & 0b111;
 
         return switch (funct3) {
@@ -341,24 +353,24 @@ public final class RivetParser {
             case Opcode.C2.LWSP -> {
                 int rd = (instruction >> 7) & 0b11111;
                 if (rd == 0) {
-                    yield new IllegalInstructionNode(instruction, pc);
+                    yield new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 int offset = ((instruction >> 4) & 0b111) << 2
                         | ((instruction >> 12) & 0b1) << 5
                         | ((instruction >> 2) & 0b11) << 6;
-                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(2), offset, pc));
+                yield new SetRegisterNode(rd, new LoadWordNode(GetRegisterNode.create(2), offset, pc, instret));
             }
             case Opcode.C2.LDSP -> {
                 int rd = (instruction >> 7) & 0b11111;
                 if (rd == 0) {
-                    yield new IllegalInstructionNode(instruction, pc);
+                    yield new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 int offset = ((instruction >> 5) & 0b11) << 3
                         | ((instruction >> 12) & 0b1) << 5
                         | ((instruction >> 2) & 0b111) << 6;
-                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(2), offset, pc));
+                yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(2), offset, pc, instret));
             }
             case Opcode.C2.J -> {
                 int rs2 = (instruction >> 2) & 0b11111;
@@ -367,7 +379,7 @@ public final class RivetParser {
                         // JR
                         int rs1 = (instruction >> 7) & 0b11111;
                         if (rs1 == 0) {
-                            yield new IllegalInstructionNode(instruction, pc);
+                            yield new IllegalInstructionNode(instruction, pc, instret);
                         }
                         yield new JumpNode(GetRegisterNode.create(rs1));
                     } else {
@@ -383,7 +395,7 @@ public final class RivetParser {
                         int rs1 = (instruction >> 7) & 0b11111;
                         if (rs1 == 0) {
                             // EBREAK
-                            yield new BreakpointNode(pc);
+                            yield new BreakpointNode(pc, instret);
                         } else {
                             // JALR
                             yield new JumpAndLinkNode(
@@ -405,19 +417,19 @@ public final class RivetParser {
                 int rs2 = (instruction >> 2) & 0b11111;
                 int offset = ((instruction >> 9) & 0b1111) << 2
                         | ((instruction >> 7) & 0b11) << 6;
-                yield new StoreWordNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2), pc);
+                yield new StoreWordNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2), pc, instret);
             }
             case Opcode.C2.SDSP -> {
                 int rs2 = (instruction >> 2) & 0b11111;
                 int offset = ((instruction >> 10) & 0b111) << 3
                         | ((instruction >> 7) & 0b111) << 6;
-                yield new StoreDoubleNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2), pc);
+                yield new StoreDoubleNode(GetRegisterNode.create(2), offset, GetRegisterNode.create(rs2), pc, instret);
             }
-            default -> new IllegalInstructionNode(instruction, pc);
+            default -> new IllegalInstructionNode(instruction, pc, instret);
         };
     }
 
-    private static RivetNode parseLoad(int instruction, long pc) {
+    private static RivetNode parseLoad(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -425,15 +437,15 @@ public final class RivetParser {
 
         RivetOpNode op;
         switch (funct3) {
-            case Opcode.MemWidth.BYTE -> op = new LoadByteNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.BYTE_UNSIGNED -> op = new LoadByteUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.HALF -> op = new LoadHalfNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.HALF_UNSIGNED -> op = new LoadHalfUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.WORD -> op = new LoadWordNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.WORD_UNSIGNED -> op = new LoadWordUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc);
-            case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleNode(GetRegisterNode.create(rs1), immSigned, pc);
+            case Opcode.MemWidth.BYTE -> op = new LoadByteNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.BYTE_UNSIGNED -> op = new LoadByteUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.HALF -> op = new LoadHalfNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.HALF_UNSIGNED -> op = new LoadHalfUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.WORD -> op = new LoadWordNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.WORD_UNSIGNED -> op = new LoadWordUnsignedNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
+            case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleNode(GetRegisterNode.create(rs1), immSigned, pc, instret);
             default -> {
-                return new IllegalInstructionNode(instruction, pc);
+                return new IllegalInstructionNode(instruction, pc, instret);
             }
         }
 
@@ -444,7 +456,7 @@ public final class RivetParser {
         }
     }
 
-    private static RivetNode parseMiscMem(int instruction, long pc) {
+    private static RivetNode parseMiscMem(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -453,12 +465,12 @@ public final class RivetParser {
         return switch (funct3) {
             // Fences aren't technically hints, but we impose a total order anyway so they don't do anything here
             case Opcode.MiscMem.FENCE -> new HintNode(instruction);
-            case Opcode.MiscMem.FENCE_I -> new InstructionFenceNode(pc + 4);
-            default -> new IllegalInstructionNode(instruction, pc);
+            case Opcode.MiscMem.FENCE_I -> new InstructionFenceNode(pc + 4, instret);
+            default -> new IllegalInstructionNode(instruction, pc, instret);
         };
     }
 
-    private static RivetNode parseOpImm(int instruction, long pc) {
+    private static RivetNode parseOpImm(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -475,13 +487,13 @@ public final class RivetParser {
             case Opcode.OpInt.AND -> op = new AndNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
             case Opcode.OpInt.SLL -> {
                 if ((immUnsigned & ~0b111111) != 0) {
-                    return new IllegalInstructionNode(instruction, pc);
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
                 op = new ShiftLeftLogicalNode(GetRegisterNode.create(rs1), new ConstantNode(immUnsigned));
             }
             case Opcode.OpInt.SR -> {
                 if ((immUnsigned & 0b101111_000000) != 0) {
-                    return new IllegalInstructionNode(instruction, pc);
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 long shift = immUnsigned & 0b111111;
@@ -511,7 +523,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, new ConstantNode(pc + immSigned));
     }
 
-    private static RivetNode parseOpImm32(int instruction, long pc) {
+    private static RivetNode parseOpImm32(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -526,7 +538,7 @@ public final class RivetParser {
             ));
             case Opcode.OpInt.SLL -> {
                 if ((immUnsigned & ~0b111111_1) != 0) {
-                    return new IllegalInstructionNode(instruction, pc);
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
                 op = new SignExtendIntNode(new ShiftLeftLogicalNode(
                         GetRegisterNode.create(rs1),
@@ -535,7 +547,7 @@ public final class RivetParser {
             }
             case Opcode.OpInt.SR -> {
                 if ((immUnsigned & 0b1011111_00000) != 0) {
-                    return new IllegalInstructionNode(instruction, pc);
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 long shift = immUnsigned & 0b11111;
@@ -553,7 +565,7 @@ public final class RivetParser {
                 }
             }
             default -> {
-                return new IllegalInstructionNode(instruction, pc);
+                return new IllegalInstructionNode(instruction, pc, instret);
             }
         }
 
@@ -563,7 +575,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-    private static RivetNode parseStore(int instruction, long pc) {
+    private static RivetNode parseStore(int instruction, long pc, short instret) {
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
         int rs2 = (instruction >> 20) & 0b11111;
@@ -571,15 +583,15 @@ public final class RivetParser {
                 | (instruction >> 25) << 5;
 
         return switch (funct3) {
-            case Opcode.MemWidth.BYTE -> new StoreByteNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
-            case Opcode.MemWidth.HALF -> new StoreHalfNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
-            case Opcode.MemWidth.WORD -> new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
-            case Opcode.MemWidth.DOUBLE -> new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc);
-            default -> new IllegalInstructionNode(instruction, pc);
+            case Opcode.MemWidth.BYTE -> new StoreByteNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
+            case Opcode.MemWidth.HALF -> new StoreHalfNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
+            case Opcode.MemWidth.WORD -> new StoreWordNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
+            case Opcode.MemWidth.DOUBLE -> new StoreDoubleNode(GetRegisterNode.create(rs1), offset, GetRegisterNode.create(rs2), pc, instret);
+            default -> new IllegalInstructionNode(instruction, pc, instret);
         };
     }
 
-    private static RivetNode parseAmo(int instruction, long pc) {
+    private static RivetNode parseAmo(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -592,16 +604,16 @@ public final class RivetParser {
         switch (funct5) {
             case Opcode.Amo.LR -> {
                 switch (funct3) {
-                    case Opcode.MemWidth.WORD -> op = new LoadWordReservedNode(GetRegisterNode.create(rs1), pc);
-                    case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleReservedNode(GetRegisterNode.create(rs1), pc);
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    case Opcode.MemWidth.WORD -> op = new LoadWordReservedNode(GetRegisterNode.create(rs1), pc, instret);
+                    case Opcode.MemWidth.DOUBLE -> op = new LoadDoubleReservedNode(GetRegisterNode.create(rs1), pc, instret);
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.SC -> {
                 switch (funct3) {
-                    case Opcode.MemWidth.WORD -> op = new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), pc);
-                    case Opcode.MemWidth.DOUBLE -> op = new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), pc);
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    case Opcode.MemWidth.WORD -> op = new StoreWordConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), pc, instret);
+                    case Opcode.MemWidth.DOUBLE -> op = new StoreDoubleConditionalNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2), pc, instret);
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 };
             }
             case Opcode.Amo.AMOSWAP -> {
@@ -609,14 +621,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             GetRegisterNode.create(rs2),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             GetRegisterNode.create(rs2),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOADD -> {
@@ -624,14 +638,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new AddNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new AddNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOAND -> {
@@ -639,14 +655,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new AndNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new AndNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOOR -> {
@@ -654,14 +672,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOXOR -> {
@@ -669,14 +689,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new XorNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new XorNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOMAX -> {
@@ -684,14 +706,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new MaxNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2))),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new MaxNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOMAXU -> {
@@ -699,14 +723,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new MaxUnsignedNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2))),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new MaxUnsignedNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOMIN -> {
@@ -714,14 +740,16 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new MinNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2))),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new MinNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
             case Opcode.Amo.AMOMINU -> {
@@ -729,17 +757,19 @@ public final class RivetParser {
                     case Opcode.MemWidth.WORD -> op = new AmoWordNode(
                             GetRegisterNode.create(rs1),
                             new MinUnsignedNode(GetRegisterNode.TEMP_REGISTER, new SignExtendIntNode(GetRegisterNode.create(rs2))),
-                            pc
+                            pc,
+                            instret
                     );
                     case Opcode.MemWidth.DOUBLE -> op = new AmoDoubleNode(
                             GetRegisterNode.create(rs1),
                             new MinUnsignedNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs2)),
-                            pc
+                            pc,
+                            instret
                     );
-                    default -> { return new IllegalInstructionNode(instruction, pc); }
+                    default -> { return new IllegalInstructionNode(instruction, pc, instret); }
                 }
             }
-            default -> { return new IllegalInstructionNode(instruction, pc); }
+            default -> { return new IllegalInstructionNode(instruction, pc, instret); }
         }
 
         if (rd == 0) {
@@ -749,7 +779,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-    private static RivetNode parseOp(int instruction, long pc) {
+    private static RivetNode parseOp(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -785,12 +815,12 @@ public final class RivetParser {
                     case Opcode.OpInt.ADD -> op = new SubNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
                     case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(GetRegisterNode.create(rs1), GetRegisterNode.create(rs2));
                     default -> {
-                        return new IllegalInstructionNode(instruction, pc);
+                        return new IllegalInstructionNode(instruction, pc, instret);
                     }
                 }
             }
             default -> {
-                return new IllegalInstructionNode(instruction, pc);
+                return new IllegalInstructionNode(instruction, pc, instret);
             }
         }
 
@@ -810,7 +840,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, new ConstantNode(immSigned));
     }
 
-    private static RivetNode parseOp32(int instruction, long pc) {
+    private static RivetNode parseOp32(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -836,7 +866,7 @@ public final class RivetParser {
                             0b11_111
                     ));
                     default -> {
-                        return new IllegalInstructionNode(instruction, pc);
+                        return new IllegalInstructionNode(instruction, pc, instret);
                     }
                 }
             }
@@ -863,7 +893,7 @@ public final class RivetParser {
                             new IntTruncateNode(GetRegisterNode.create(rs2))
                     ));
                     default -> {
-                        return new IllegalInstructionNode(instruction, pc);
+                        return new IllegalInstructionNode(instruction, pc, instret);
                     }
                 }
             }
@@ -879,12 +909,12 @@ public final class RivetParser {
                             0b11_111
                     );
                     default -> {
-                        return new IllegalInstructionNode(instruction, pc);
+                        return new IllegalInstructionNode(instruction, pc, instret);
                     }
                 }
             }
             default -> {
-                return new IllegalInstructionNode(instruction, pc);
+                return new IllegalInstructionNode(instruction, pc, instret);
             }
         }
 
@@ -894,7 +924,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-    private static RivetNode parseBranch(int instruction, long pc) {
+    private static RivetNode parseBranch(int instruction, long pc, short instret) {
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
         int rs2 = (instruction >> 20) & 0b11111;
@@ -932,7 +962,7 @@ public final class RivetParser {
                     GetRegisterNode.create(rs1), GetRegisterNode.create(rs2),
                     nextInstrPc, branchPc
             );
-            default -> new IllegalInstructionNode(instruction, pc);
+            default -> new IllegalInstructionNode(instruction, pc, instret);
         };
     }
 
@@ -951,14 +981,14 @@ public final class RivetParser {
         return new JumpAndLinkNode(new ConstantNode(newPc), new SetRegisterNode(rd, new ConstantNode(pc + 4)));
     }
 
-    private static RivetNode parseJalr(int instruction, long pc) {
+    private static RivetNode parseJalr(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
         long immSigned = instruction >> 20;
 
         if (funct3 != 0) {
-            return new IllegalInstructionNode(instruction, pc);
+            return new IllegalInstructionNode(instruction, pc, instret);
         }
 
         var newPc = new AddNode(GetRegisterNode.create(rs1), new ConstantNode(immSigned));
@@ -969,7 +999,7 @@ public final class RivetParser {
         return new JumpAndLinkNode(newPc, new SetRegisterNode(rd, new ConstantNode(pc + 4)));
     }
 
-    private static RivetNode parseSystem(int instruction, long pc) {
+    private static RivetNode parseSystem(int instruction, long pc, short instret) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -978,56 +1008,56 @@ public final class RivetParser {
         switch (funct3) {
             case Opcode.System.PRIV -> {
                 if (rd != 0 || rs1 != 0) {
-                    return new IllegalInstructionNode(instruction, pc);
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 return switch (funct12) {
-                    case Opcode.Priv.EBREAK -> new BreakpointNode(pc);
-                    case Opcode.Priv.ECALL -> new EnvironmentCallNode(pc);
-                    case Opcode.Priv.MRET -> new MachineReturn(instruction, pc);
+                    case Opcode.Priv.EBREAK -> new BreakpointNode(pc, instret);
+                    case Opcode.Priv.ECALL -> new EnvironmentCallNode(pc, instret);
+                    case Opcode.Priv.MRET -> new MachineReturn(instruction, pc, instret);
                     // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
                     case Opcode.Priv.WFI -> new HintNode(instruction);
-                    default -> new IllegalInstructionNode(instruction, pc);
+                    default -> new IllegalInstructionNode(instruction, pc, instret);
                 };
             }
             case Opcode.System.CSRRW -> {
                 if (rd == 0) {
-                    return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pc, instruction);
+                    return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pc, instruction, instret);
                 }
-                return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pc, instruction);
+                return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pc, instruction, instret);
             }
             case Opcode.System.CSRRS -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction, instret));
                 }
-                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction);
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction, instret);
             }
             case Opcode.System.CSRRC -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction, instret));
                 }
-                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction);
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction, instret);
             }
             case Opcode.System.CSRRWI -> {
                 if (rd == 0) {
-                    return new SetCsrNode(new ConstantNode(rs1), funct12, pc, instruction);
+                    return new SetCsrNode(new ConstantNode(rs1), funct12, pc, instruction, instret);
                 }
-                return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pc, instruction);
+                return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pc, instruction, instret);
             }
             case Opcode.System.CSRRSI -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction, instret));
                 }
-                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction);
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction, instret);
             }
             case Opcode.System.CSRRCI -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction, instret));
                 }
-                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction);
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction, instret);
             }
             default -> {
-                return new IllegalInstructionNode(instruction, pc);
+                return new IllegalInstructionNode(instruction, pc, instret);
             }
         }
     }

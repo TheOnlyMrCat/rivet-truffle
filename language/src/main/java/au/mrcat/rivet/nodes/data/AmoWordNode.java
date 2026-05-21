@@ -9,11 +9,13 @@ public class AmoWordNode extends RivetOpNode {
     @Child RivetOpNode address;
     @Child RivetOpNode op;
     private final long pc;
+    private final short instret;
 
-    public AmoWordNode(RivetOpNode address, RivetOpNode op, long pc) {
+    public AmoWordNode(RivetOpNode address, RivetOpNode op, long pc, short instret) {
         this.address = address;
         this.op = op;
         this.pc = pc;
+        this.instret = instret;
     }
 
     @Override
@@ -32,6 +34,7 @@ public class AmoWordNode extends RivetOpNode {
             return originalValue;
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setInstret(instret);
             throw trap;
         }
     }

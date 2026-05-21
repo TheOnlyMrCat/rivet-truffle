@@ -6,14 +6,16 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class InstructionFenceNode extends RivetDivergentNode {
     private final long nextPc;
+    private final short instret;
 
-    public InstructionFenceNode(long nextPc) {
+    public InstructionFenceNode(long nextPc, short instret) {
         this.nextPc = nextPc;
+        this.instret = instret;
     }
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        throw new RiscvInstructionFenceException(nextPc);
+        throw new RiscvInstructionFenceException(nextPc, instret);
     }
 
     @Override

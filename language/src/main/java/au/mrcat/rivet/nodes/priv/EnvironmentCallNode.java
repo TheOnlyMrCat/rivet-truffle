@@ -1,14 +1,15 @@
 package au.mrcat.rivet.nodes.priv;
 
-import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetTrapNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class EnvironmentCallNode extends RivetNode {
+public class EnvironmentCallNode extends RivetTrapNode {
     private final long pc;
 
-    public EnvironmentCallNode(long pc) {
+    public EnvironmentCallNode(long pc, short instret) {
+        super(instret);
         this.pc = pc;
     }
 
@@ -19,7 +20,7 @@ public class EnvironmentCallNode extends RivetNode {
             case User -> ExceptionCause.EnvironmentCallFromUMode;
             case Supervisor -> ExceptionCause.EnvironmentCallFromSMode;
             case Machine -> ExceptionCause.EnvironmentCallFromMMode;
-        }, pc);
+        }, pc, 0, instret);
     }
 
     @Override

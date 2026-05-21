@@ -12,24 +12,33 @@ public class SetCsrNode extends RivetNode {
     private final int csr;
     private final long pc;
     private final int instruction;
+    private final short instret;
 
-    public SetCsrNode(RivetOpNode value, int csr, long pc, int instruction) {
+    public SetCsrNode(RivetOpNode value, int csr, long pc, int instruction, short instret) {
         this.value = value;
         this.csr = csr;
         this.pc = pc;
         this.instruction = instruction;
+        this.instret = instret;
     }
 
     @Override
     public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+
         try {
             ctx.privilegedState.tryWrite(csr, value.executeLong(frame));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(Integer.toUnsignedLong(instruction));
+            trap.setInstret(instret);
             throw trap;
         }
+
+        // CSR-write instructions reset the basic-block instruction counter, to allow them to read an accurate count.
+        // Additionally, writes to mcycle and minstret are considered to happen after the instruction has othewrise retired.
+        // We therefore need to step the counters here, only if we haven't just written to them
+        ctx.privilegedState.stepPerformanceCounters((short) (csr != Csr.MCYCLE ? instret + 1 : 0), (short) (csr != Csr.MINSTRET ? instret + 1 : 0));
     }
 
     @Override
