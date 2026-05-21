@@ -10,4 +10,13 @@ public enum PrivilegeMode {
     PrivilegeMode(int value) {
         this.value = value;
     }
+
+    public static PrivilegeMode fromValue(int value) {
+        switch (value) {
+            case 0 -> { return User; }
+            case 1 -> { return Supervisor; }
+            case 3 -> { return Machine; }
+            default -> throw new IllegalStateException("Unexpected value: " + value);
+        }
+    }
 }

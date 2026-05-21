@@ -11,7 +11,7 @@ public final class PrivilegedState {
     private static final long INTERRUPT_MASK = 0;
     private static final long COUNTER_MASK = 0b101;
 
-    private long mstatus;
+    private long mstatus = 0b1010_0000_0000_0000_0000_0001_1000_1010_0000L;
     private long medeleg;
     private long mideleg;
     private long mie;
@@ -105,10 +105,16 @@ public final class PrivilegedState {
         switch (csr) {
             // Machine-level CSRs
             case Csr.MSTATUS -> {
+                long prevMstatus = mstatus;
                 // Mask out invalid fields
                 mstatus = value & MSTATUS_FIELDS_MASK;
                 // Set SXL and UXL to 64-bit
                 mstatus |= 0b1010L << 32L;
+                // Restrict MPP to valid privilege modes only
+                long newMpp = ((mstatus >> 11) & 0b11);
+                if (!(newMpp == 0b00 || newMpp == 0b11)) {
+                    mstatus = mstatus & ~(0b11 << 11) | prevMstatus & (0b11 << 11);
+                }
             }
             case Csr.MISA -> { /* Do nothing */ }
             case Csr.MEDELEG -> medeleg = value & EXCEPTION_MASK;
@@ -163,5 +169,23 @@ public final class PrivilegedState {
         } else {
             return mtvec_addr;
         }
+    }
+
+    public long handleMret() {
+        // Switch to the privilege mode specified by MPP
+        mode = PrivilegeMode.fromValue((int) ((mstatus >> 11) & 0b11));
+
+        // Set MPP to the lowest supported privilege mode (U mode)
+        mstatus = mstatus & ~(0b11 << 11);
+
+        // Set MIE to MPIE and MPIE to 1
+        mstatus = mstatus & ~(1 << 3) | (mstatus >> 4) & 0b1 | (1 << 7);
+
+        // Set MPRV to 0 if our new privilege mode is less than M
+        if (mode != PrivilegeMode.Machine) {
+            mstatus = mstatus & ~(1 << 17);
+        }
+
+        return mepc;
     }
 }
