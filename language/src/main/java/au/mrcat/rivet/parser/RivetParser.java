@@ -75,37 +75,6 @@ public final class RivetParser {
         return new RivetCallTargetNode(language, basicBlocks);
     }
 
-    public static RivetBasicBlockNode extractBasicBlock(RivetContext context, long baseAddress) {
-        var instructions = new ArrayList<RivetNode>();
-        long pc_offset = 0;
-
-        // Cap basic block length at 1024 for interrupt checking, etc.
-        bb: while (pc_offset < 4096) {
-            long pc = baseAddress + pc_offset;
-            int instruction = context.readIntMisaligned(pc);
-
-            if ((instruction & 0b11) != 0b11) {
-                pc_offset += 2;
-            } else {
-                pc_offset += 4;
-            }
-
-            var node = Objects.requireNonNull(parseInstruction(instruction, pc));
-            switch (node) {
-                case HintNode ignored -> {}
-                case RivetDivergentNode divergentNode -> {
-                    instructions.add(divergentNode);
-                    break bb;
-                }
-                default -> {
-                    instructions.add(node);
-                }
-            }
-        }
-
-        return new RivetBasicBlockNode(instructions.toArray(new RivetNode[0]), baseAddress + pc_offset);
-    }
-
     public static RivetNode parseInstruction(int instruction, long pc) {
         int compressed_opcode = instruction & 0b11;
         return switch (compressed_opcode) {
