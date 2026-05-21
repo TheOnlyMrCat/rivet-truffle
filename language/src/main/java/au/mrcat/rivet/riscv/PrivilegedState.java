@@ -139,7 +139,7 @@ public final class PrivilegedState {
     }
 
     public long handleTrap(RiscvTrapException trap) {
-        return handleException(trap.cause.value, trap.getPc(), 0);
+        return handleException(trap.cause.value, trap.getPc(), trap.getTval());
     }
 
     private long handleException(long exception, long epc, long tval) {

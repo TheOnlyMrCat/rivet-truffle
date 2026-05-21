@@ -21,10 +21,12 @@ public class StoreByteNode extends RivetNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame) + offset;
         try {
-            ctx.writeByte(address.executeLong(frame) + offset, (byte) value.executeLong(frame));
+            ctx.writeByte(virtualAddress, (byte) value.executeLong(frame));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

@@ -18,10 +18,12 @@ public class LoadByteUnsignedNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return Byte.toUnsignedLong(ctx.readByte(address.executeLong(frame) + offset));
+            return Byte.toUnsignedLong(ctx.readByte(virtualAddress));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

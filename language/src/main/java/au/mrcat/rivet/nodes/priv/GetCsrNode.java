@@ -9,10 +9,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class GetCsrNode extends RivetOpNode {
     private final int csr;
     private final long pc;
+    private final int instruction;
 
-    public GetCsrNode(int csr, long pc) {
+    public GetCsrNode(int csr, long pc, int instruction) {
         this.csr = csr;
         this.pc = pc;
+        this.instruction = instruction;
     }
 
     @Override
@@ -22,6 +24,7 @@ public class GetCsrNode extends RivetOpNode {
             return ctx.privilegedState.tryRead(csr);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(Integer.toUnsignedLong(instruction));
             throw trap;
         }
     }

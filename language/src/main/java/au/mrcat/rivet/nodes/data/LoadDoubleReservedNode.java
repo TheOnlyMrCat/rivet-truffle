@@ -16,13 +16,14 @@ public class LoadDoubleReservedNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame);
 
         try {
-            long address = this.address.executeLong(frame);
-            ctx.reserveAddress(address);
-            return ctx.readLong(address);
+            ctx.reserveAddress(virtualAddress);
+            return ctx.readLong(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

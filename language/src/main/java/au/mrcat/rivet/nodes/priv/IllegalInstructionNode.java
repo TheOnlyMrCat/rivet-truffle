@@ -17,7 +17,7 @@ public class IllegalInstructionNode extends RivetDivergentNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc);
+        throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc, Integer.toUnsignedLong(instruction));
     }
 
     @Override

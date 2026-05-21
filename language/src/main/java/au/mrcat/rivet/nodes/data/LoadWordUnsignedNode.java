@@ -18,10 +18,12 @@ public class LoadWordUnsignedNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return Integer.toUnsignedLong(ctx.readIntMisaligned(address.executeLong(frame) + offset));
+            return Integer.toUnsignedLong(ctx.readIntMisaligned(virtualAddress));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

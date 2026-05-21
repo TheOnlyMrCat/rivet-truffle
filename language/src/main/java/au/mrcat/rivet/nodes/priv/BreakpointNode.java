@@ -15,7 +15,7 @@ public class BreakpointNode extends RivetDivergentNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        throw new RiscvTrapException(ExceptionCause.Breakpoint, pc);
+        throw new RiscvTrapException(ExceptionCause.Breakpoint, pc, pc);
     }
 
     @Override

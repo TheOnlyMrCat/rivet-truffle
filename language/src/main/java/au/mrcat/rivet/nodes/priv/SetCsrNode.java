@@ -11,11 +11,13 @@ public class SetCsrNode extends RivetNode {
     @Child RivetOpNode value;
     private final int csr;
     private final long pc;
+    private final int instruction;
 
-    public SetCsrNode(RivetOpNode value, int csr, long pc) {
+    public SetCsrNode(RivetOpNode value, int csr, long pc, int instruction) {
         this.value = value;
         this.csr = csr;
         this.pc = pc;
+        this.instruction = instruction;
     }
 
     @Override
@@ -25,6 +27,7 @@ public class SetCsrNode extends RivetNode {
             ctx.privilegedState.tryWrite(csr, value.executeLong(frame));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(Integer.toUnsignedLong(instruction));
             throw trap;
         }
     }

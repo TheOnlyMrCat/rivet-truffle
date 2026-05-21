@@ -18,10 +18,12 @@ public class LoadHalfNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return ctx.readShortMisaligned(address.executeLong(frame) + offset);
+            return ctx.readShortMisaligned(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

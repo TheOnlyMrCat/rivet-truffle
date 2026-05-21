@@ -19,13 +19,14 @@ public class StoreDoubleConditionalNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
 
-        long address = this.address.executeLong(frame);
+        long virtualAddress = address.executeLong(frame);
         long value = src.executeLong(frame);
         try {
-            boolean succeeded = ctx.writeLongConditional(address, value);
+            boolean succeeded = ctx.writeLongConditional(virtualAddress, value);
             return succeeded ? 0 : 1;
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

@@ -16,13 +16,14 @@ public class LoadWordReservedNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame);
 
         try {
-            long address = this.address.executeLong(frame);
-            ctx.reserveAddress(address);
-            return ctx.readInt(address);
+            ctx.reserveAddress(virtualAddress);
+            return ctx.readInt(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             throw trap;
         }
     }

@@ -13,12 +13,14 @@ public class CsrRmwNode extends RivetNode {
     private final int csr;
     private final int rd;
     private final long pc;
+    private final int instruction;
 
-    public CsrRmwNode(RivetOpNode op, int csr, int rd, long pc) {
+    public CsrRmwNode(RivetOpNode op, int csr, int rd, long pc, int instruction) {
         this.op = op;
         this.csr = csr;
         this.rd = rd;
         this.pc = pc;
+        this.instruction = instruction;
     }
 
     @Override
@@ -32,6 +34,7 @@ public class CsrRmwNode extends RivetNode {
             frame.setLongStatic(rd, previousValue);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(Integer.toUnsignedLong(instruction));
             throw trap;
         }
     }

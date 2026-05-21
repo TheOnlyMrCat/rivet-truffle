@@ -1022,39 +1022,39 @@ public final class RivetParser {
             }
             case Opcode.System.CSRRW -> {
                 if (rd == 0) {
-                    return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pc);
+                    return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pc, instruction);
                 }
-                return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pc);
+                return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pc, instruction);
             }
             case Opcode.System.CSRRS -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
                 }
-                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc);
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction);
             }
             case Opcode.System.CSRRC -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
                 }
-                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc);
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pc, instruction);
             }
             case Opcode.System.CSRRWI -> {
                 if (rd == 0) {
-                    return new SetCsrNode(new ConstantNode(rs1), funct12, pc);
+                    return new SetCsrNode(new ConstantNode(rs1), funct12, pc, instruction);
                 }
-                return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pc);
+                return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pc, instruction);
             }
             case Opcode.System.CSRRSI -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
                 }
-                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc);
+                return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction);
             }
             case Opcode.System.CSRRCI -> {
                 if (rs1 == 0) {
-                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc));
+                    return new SetRegisterNode(rd, new GetCsrNode(funct12, pc, instruction));
                 }
-                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc);
+                return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pc, instruction);
             }
             default -> {
                 return new IllegalInstructionNode(instruction, pc);

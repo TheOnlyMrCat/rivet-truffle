@@ -18,10 +18,12 @@ public class LoadWordNode extends RivetOpNode {
     @Override
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
+        long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return ctx.readIntMisaligned(address.executeLong(frame) + offset);
+            return ctx.readIntMisaligned(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
+            trap.setTval(virtualAddress);
             return pc;
         }
     }
