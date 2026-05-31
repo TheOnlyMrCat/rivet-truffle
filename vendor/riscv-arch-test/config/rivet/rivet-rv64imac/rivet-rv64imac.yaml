@@ -22,6 +22,8 @@ implemented_extensions:
   - { name: Za128rs, version: "= 1.0.0" }
   - { name: Zca, version: "= 1.0.0" }
   - { name: U, version: "= 1.0.0" }
+  - { name: Ssstrict, version: "= 1.0.0" }
+  - { name: Smdbltrp, version: "= 1.0.0" }
   - { name: Sm, version: "= 1.12.0" }
 
 params:
@@ -118,6 +120,7 @@ params:
       true,
     ]
   HPM_EVENTS: [0]
+  MCOUNTINHIBIT_IMPLEMENTED: true
   COUNTINHIBIT_EN:
     [
       true,
