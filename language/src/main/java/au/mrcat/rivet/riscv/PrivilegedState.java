@@ -1,14 +1,15 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.nodes.RivetBasicBlockNode;
+import au.mrcat.rivet.runtime.RiscvDoubleTrapException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 
 public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
 
     private static final long MSTATUS_FIELDS_MASK =
-            0b0111_1110_0001_1001_1010_1010;
-    private static final long MSTATUS_RESET_VALUE = 0b1010_0000_0000_0000_0000_0001_1000_1010_0000L;
+            0b0100_0000_0000_0000_0000_0111_1110_0001_1001_1010_1010L;
+    private static final long MSTATUS_RESET_VALUE = 0b0100_0000_1010_0000_0000_0000_0000_0001_1000_1010_0000L;
     private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
     private static final long INTERRUPT_MASK = 0;
     private static final long COUNTER_MASK = 0b101;
@@ -144,6 +145,10 @@ public final class PrivilegedState {
                 if (!(newMpp == 0b00 || newMpp == 0b11)) {
                     mstatus = mstatus & ~(0b11 << 11) | prevMstatus & (0b11 << 11);
                 }
+                // If MDT was just set, clear MIE
+                if ((prevMstatus & (1L << 42)) == 0 && (mstatus & (1L << 42)) != 0) {
+                    mstatus &= ~(1 << 3);
+                }
             }
             case Csr.MISA -> { /* Do nothing */ }
             case Csr.MEDELEG -> medeleg = value & EXCEPTION_MASK;
@@ -181,6 +186,14 @@ public final class PrivilegedState {
     }
 
     private long handleException(long exception, long epc, long tval) {
+        // If MDT is 1, this is a double-trap. Abort execution
+        if ((mstatus & (1L << 42)) != 0) {
+            throw new RiscvDoubleTrapException();
+        }
+
+        // Otherwise, set MDT to 1
+        mstatus = mstatus | (1L << 42);
+
         // Switch to machine mode, storing the previous privilege in MPP
         mstatus = mstatus & ~(0b11 << 11) | ((long) mode.value << 11);
         mode = PrivilegeMode.Machine;
@@ -212,6 +225,9 @@ public final class PrivilegedState {
 
         // Set MIE to MPIE and MPIE to 1
         mstatus = mstatus & ~(1 << 3) | (mstatus >> 4) & 0b1 | (1 << 7);
+
+        // Clear MDT
+        mstatus = mstatus & ~(1L << 42);
 
         // Set MPRV to 0 if our new privilege mode is less than M
         if (mode != PrivilegeMode.Machine) {
