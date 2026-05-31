@@ -13,10 +13,10 @@
 
 `define COVER_VLS16
 `define COVER_VLSCUSTOM16
-`ifdef ELEN16
+`ifdef UDB_ELEN_16
     `define SEW_16_EQ_ELEN
 `endif
-`ifdef ELEN32
+`ifdef UDB_ELEN_32
     `define SEW_16_EQ_ELEN_DIV_2
 `endif
 covergroup Vls16_vl1re16_v_cg with function sample(ins_t ins);
@@ -3591,41 +3591,84 @@ covergroup Vls16_vloxei16_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=16).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=16 -> rule (b): vd group sits at lowest part of vs2 group
-        // (same starting register: vd == vs2). EMUL_src = 2*LMUL, EMUL_dest = LMUL.
+        // SEW=8, EEW=16 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew16_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=16 -> rule (a): vd == vs2 legal.
+        // SEW=16, EEW=16 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew16_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=16 -> rule (c): vs2 in upper part of vd group. LMUL >= 2.
+        // SEW=32, EEW=16 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew16_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=16 -> rule (c): vs2 in upper part of vd group. LMUL >= 4.
+        // SEW=64, EEW=16 -> rule (c). LMUL >= 4 -> vd aligned to 4.
         cp_custom_indexed_overlap_eew16_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew16////////////////////////////////////////////////
@@ -3634,7 +3677,7 @@ covergroup Vls16_vloxei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -3789,37 +3832,81 @@ covergroup Vls16_vloxei32_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=32).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=32 -> rule (b): vd at lowest of vs2 group (vd == vs2).
+        // SEW=8, EEW=32 -> rule (b). EMUL_src=4*LMUL, vd aligned to 4.
         cp_custom_indexed_overlap_eew32_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=32 -> rule (b): vd at lowest of vs2 group.
+        // SEW=16, EEW=32 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew32_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=32 -> rule (a): vd == vs2 legal.
+        // SEW=32, EEW=32 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew32_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=32 -> rule (c): vs2 in upper part of vd group. LMUL >= 2.
+        // SEW=64, EEW=32 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew32_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew32////////////////////////////////////////////////
@@ -3828,7 +3915,7 @@ covergroup Vls16_vloxei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -3983,31 +4070,63 @@ covergroup Vls16_vloxei64_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=64).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=8, EEW=64 -> rule (b). EMUL_src=8*LMUL, vd aligned to 8, max v24.
         cp_custom_indexed_overlap_eew64_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v8  = {v8};
+            bins v16 = {v16};
+            bins v24 = {v24};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=16, EEW=64 -> rule (b). EMUL_src=4*LMUL, vd aligned to 4.
         cp_custom_indexed_overlap_eew64_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=32, EEW=64 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew64_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=64 -> rule (a): vd == vs2 legal.
+        // SEW=64, EEW=64 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew64_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
@@ -4019,7 +4138,7 @@ covergroup Vls16_vloxei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -4173,44 +4292,75 @@ covergroup Vls16_vloxei8_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=8).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=8 -> rule (a): vd == vs2 legal.
+        // SEW=8, EEW=8 -> rule (a): vd == vs2 legal. Any vd hittable.
         cp_custom_indexed_overlap_eew8_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=8 -> rule (c): vs2 sits in upper part of vd group
-        // (vd < vs2 < vd + LMUL). LMUL must be >= 2 for EMUL_src >= 1.
+        // SEW=16, EEW=8 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew8_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=8 -> rule (c). LMUL must be >= 4 for EMUL_src >= 1.
+        // SEW=32, EEW=8 -> rule (c). LMUL >= 4 -> vd aligned to 4.
         cp_custom_indexed_overlap_eew8_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=8 -> rule (c). LMUL must be 8 for EMUL_src >= 1.
+        // SEW=64, EEW=8 -> rule (c). LMUL = 8 -> vd aligned to 8, max v24.
         cp_custom_indexed_overlap_eew8_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v8  = {v8};
+            bins v16 = {v16};
+            bins v24 = {v24};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew8////////////////////////////////////////////////
@@ -4219,7 +4369,7 @@ covergroup Vls16_vloxei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -4392,7 +4542,7 @@ covergroup Vls16_vloxseg2ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -4568,7 +4718,7 @@ covergroup Vls16_vloxseg2ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -4720,7 +4870,7 @@ covergroup Vls16_vloxseg2ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -4895,7 +5045,7 @@ covergroup Vls16_vloxseg2ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5046,7 +5196,7 @@ covergroup Vls16_vloxseg3ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5198,7 +5348,7 @@ covergroup Vls16_vloxseg3ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5350,7 +5500,7 @@ covergroup Vls16_vloxseg3ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5500,7 +5650,7 @@ covergroup Vls16_vloxseg3ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5675,7 +5825,7 @@ covergroup Vls16_vloxseg4ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -5852,7 +6002,7 @@ covergroup Vls16_vloxseg4ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6029,7 +6179,7 @@ covergroup Vls16_vloxseg4ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6204,7 +6354,7 @@ covergroup Vls16_vloxseg4ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6356,7 +6506,7 @@ covergroup Vls16_vloxseg5ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6509,7 +6659,7 @@ covergroup Vls16_vloxseg5ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6663,7 +6813,7 @@ covergroup Vls16_vloxseg5ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6813,7 +6963,7 @@ covergroup Vls16_vloxseg5ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -6967,7 +7117,7 @@ covergroup Vls16_vloxseg6ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7121,7 +7271,7 @@ covergroup Vls16_vloxseg6ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7276,7 +7426,7 @@ covergroup Vls16_vloxseg6ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7427,7 +7577,7 @@ covergroup Vls16_vloxseg6ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7582,7 +7732,7 @@ covergroup Vls16_vloxseg7ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7737,7 +7887,7 @@ covergroup Vls16_vloxseg7ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -7893,7 +8043,7 @@ covergroup Vls16_vloxseg7ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -8045,7 +8195,7 @@ covergroup Vls16_vloxseg7ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -8225,7 +8375,7 @@ covergroup Vls16_vloxseg8ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -8405,7 +8555,7 @@ covergroup Vls16_vloxseg8ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -8586,7 +8736,7 @@ covergroup Vls16_vloxseg8ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -8763,7 +8913,7 @@ covergroup Vls16_vloxseg8ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -16449,41 +16599,84 @@ covergroup Vls16_vluxei16_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=16).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=16 -> rule (b): vd group sits at lowest part of vs2 group
-        // (same starting register: vd == vs2). EMUL_src = 2*LMUL, EMUL_dest = LMUL.
+        // SEW=8, EEW=16 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew16_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=16 -> rule (a): vd == vs2 legal.
+        // SEW=16, EEW=16 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew16_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=16 -> rule (c): vs2 in upper part of vd group. LMUL >= 2.
+        // SEW=32, EEW=16 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew16_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=16 -> rule (c): vs2 in upper part of vd group. LMUL >= 4.
+        // SEW=64, EEW=16 -> rule (c). LMUL >= 4 -> vd aligned to 4.
         cp_custom_indexed_overlap_eew16_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew16////////////////////////////////////////////////
@@ -16492,7 +16685,7 @@ covergroup Vls16_vluxei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -16647,37 +16840,81 @@ covergroup Vls16_vluxei32_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=32).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=32 -> rule (b): vd at lowest of vs2 group (vd == vs2).
+        // SEW=8, EEW=32 -> rule (b). EMUL_src=4*LMUL, vd aligned to 4.
         cp_custom_indexed_overlap_eew32_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=32 -> rule (b): vd at lowest of vs2 group.
+        // SEW=16, EEW=32 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew32_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=32 -> rule (a): vd == vs2 legal.
+        // SEW=32, EEW=32 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew32_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=32 -> rule (c): vs2 in upper part of vd group. LMUL >= 2.
+        // SEW=64, EEW=32 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew32_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew32////////////////////////////////////////////////
@@ -16686,7 +16923,7 @@ covergroup Vls16_vluxei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -16841,31 +17078,63 @@ covergroup Vls16_vluxei64_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=64).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=8, EEW=64 -> rule (b). EMUL_src=8*LMUL, vd aligned to 8, max v24.
         cp_custom_indexed_overlap_eew64_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v8  = {v8};
+            bins v16 = {v16};
+            bins v24 = {v24};
+        }
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=16, EEW=64 -> rule (b). EMUL_src=4*LMUL, vd aligned to 4.
         cp_custom_indexed_overlap_eew64_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=64 -> rule (b): vd at lowest of vs2 group.
+        // SEW=32, EEW=64 -> rule (b). EMUL_src=2*LMUL, vd aligned to 2.
         cp_custom_indexed_overlap_eew64_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=64 -> rule (a): vd == vs2 legal.
+        // SEW=64, EEW=64 -> rule (a): any vd legal.
         cp_custom_indexed_overlap_eew64_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
@@ -16877,7 +17146,7 @@ covergroup Vls16_vluxei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17031,44 +17300,75 @@ covergroup Vls16_vluxei8_v_cg with function sample(ins_t ins);
     //   (b) EEW_dest <  EEW_src           -> overlap in LOWEST part of source group
     //   (c) EEW_dest >  EEW_src, EMUL_src>=1 -> overlap in HIGHEST part of destination group
     // For indexed loads: dest = vd (EEW=SEW), src = vs2 (EEW=8).
+    // Bins enumerate only vd values aligned to the minimum legal EMUL_dest.
     //////////////////////////////////////////////////////////////////////////////////
 
     `ifdef COVER_VLS8
-        // SEW=8, EEW=8 -> rule (a): vd == vs2 legal.
+        // SEW=8, EEW=8 -> rule (a): vd == vs2 legal. Any vd hittable.
         cp_custom_indexed_overlap_eew8_sew8 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (ins.current.vd == ins.current.vs2) & (ins.trap == 0)
         );
     `endif
 
     `ifdef COVER_VLS16
-        // SEW=16, EEW=8 -> rule (c): vs2 sits in upper part of vd group
-        // (vd < vs2 < vd + LMUL). LMUL must be >= 2 for EMUL_src >= 1.
+        // SEW=16, EEW=8 -> rule (c). LMUL >= 2 -> vd aligned to 2.
         cp_custom_indexed_overlap_eew8_sew16 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v2  = {v2};
+            bins v4  = {v4};
+            bins v6  = {v6};
+            bins v8  = {v8};
+            bins v10 = {v10};
+            bins v12 = {v12};
+            bins v14 = {v14};
+            bins v16 = {v16};
+            bins v18 = {v18};
+            bins v20 = {v20};
+            bins v22 = {v22};
+            bins v24 = {v24};
+            bins v26 = {v26};
+            bins v28 = {v28};
+            bins v30 = {v30};
+        }
     `endif
 
     `ifdef COVER_VLS32
-        // SEW=32, EEW=8 -> rule (c). LMUL must be >= 4 for EMUL_src >= 1.
+        // SEW=32, EEW=8 -> rule (c). LMUL >= 4 -> vd aligned to 4.
         cp_custom_indexed_overlap_eew8_sew32 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v4  = {v4};
+            bins v8  = {v8};
+            bins v12 = {v12};
+            bins v16 = {v16};
+            bins v20 = {v20};
+            bins v24 = {v24};
+            bins v28 = {v28};
+        }
     `endif
 
     `ifdef COVER_VLS64
-        // SEW=64, EEW=8 -> rule (c). LMUL must be 8 for EMUL_src >= 1.
+        // SEW=64, EEW=8 -> rule (c). LMUL = 8 -> vd aligned to 8, max v24.
         cp_custom_indexed_overlap_eew8_sew64 : coverpoint ins.get_vr_reg(ins.current.vd) iff (
             (get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul") < 4) &
             (ins.get_vr_reg(ins.current.vs2) > ins.get_vr_reg(ins.current.vd)) &
             (ins.get_vr_reg(ins.current.vs2) < ins.get_vr_reg(ins.current.vd) + (1 << get_csr_val(ins.hart, ins.issue, `SAMPLE_BEFORE, "vtype", "vlmul"))) &
             (ins.trap == 0)
-        );
+        ) {
+            bins v0  = {v0};
+            bins v8  = {v8};
+            bins v16 = {v16};
+            bins v24 = {v24};
+        }
     `endif
 
     //// end cp_custom_indexed_overlap_eew8////////////////////////////////////////////////
@@ -17077,7 +17377,7 @@ covergroup Vls16_vluxei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17250,7 +17550,7 @@ covergroup Vls16_vluxseg2ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17426,7 +17726,7 @@ covergroup Vls16_vluxseg2ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17578,7 +17878,7 @@ covergroup Vls16_vluxseg2ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17753,7 +18053,7 @@ covergroup Vls16_vluxseg2ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -17904,7 +18204,7 @@ covergroup Vls16_vluxseg3ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18056,7 +18356,7 @@ covergroup Vls16_vluxseg3ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18208,7 +18508,7 @@ covergroup Vls16_vluxseg3ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18358,7 +18658,7 @@ covergroup Vls16_vluxseg3ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18533,7 +18833,7 @@ covergroup Vls16_vluxseg4ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18710,7 +19010,7 @@ covergroup Vls16_vluxseg4ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -18887,7 +19187,7 @@ covergroup Vls16_vluxseg4ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19062,7 +19362,7 @@ covergroup Vls16_vluxseg4ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19214,7 +19514,7 @@ covergroup Vls16_vluxseg5ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19367,7 +19667,7 @@ covergroup Vls16_vluxseg5ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19521,7 +19821,7 @@ covergroup Vls16_vluxseg5ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19671,7 +19971,7 @@ covergroup Vls16_vluxseg5ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19825,7 +20125,7 @@ covergroup Vls16_vluxseg6ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -19979,7 +20279,7 @@ covergroup Vls16_vluxseg6ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20134,7 +20434,7 @@ covergroup Vls16_vluxseg6ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20285,7 +20585,7 @@ covergroup Vls16_vluxseg6ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20440,7 +20740,7 @@ covergroup Vls16_vluxseg7ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20595,7 +20895,7 @@ covergroup Vls16_vluxseg7ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20751,7 +21051,7 @@ covergroup Vls16_vluxseg7ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -20903,7 +21203,7 @@ covergroup Vls16_vluxseg7ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -21083,7 +21383,7 @@ covergroup Vls16_vluxseg8ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -21263,7 +21563,7 @@ covergroup Vls16_vluxseg8ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -21444,7 +21744,7 @@ covergroup Vls16_vluxseg8ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -21621,7 +21921,7 @@ covergroup Vls16_vluxseg8ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -22953,7 +23253,7 @@ covergroup Vls16_vsoxei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23103,7 +23403,7 @@ covergroup Vls16_vsoxei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23253,7 +23553,7 @@ covergroup Vls16_vsoxei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23402,7 +23702,7 @@ covergroup Vls16_vsoxei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23543,15 +23843,14 @@ endgroup
 covergroup Vls16_vsoxseg2ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte30
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte30 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte30////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg2ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -23586,7 +23885,7 @@ covergroup Vls16_vsoxseg2ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23762,7 +24061,7 @@ covergroup Vls16_vsoxseg2ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -23914,7 +24213,7 @@ covergroup Vls16_vsoxseg2ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24089,7 +24388,7 @@ covergroup Vls16_vsoxseg2ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24232,15 +24531,15 @@ endgroup
 covergroup Vls16_vsoxseg3ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte29
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte29 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte29////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg3ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -24251,7 +24550,7 @@ covergroup Vls16_vsoxseg3ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24403,7 +24702,7 @@ covergroup Vls16_vsoxseg3ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24555,7 +24854,7 @@ covergroup Vls16_vsoxseg3ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24705,7 +25004,7 @@ covergroup Vls16_vsoxseg3ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -24848,15 +25147,16 @@ endgroup
 covergroup Vls16_vsoxseg4ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte28
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte28 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte28////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg4ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -24891,7 +25191,7 @@ covergroup Vls16_vsoxseg4ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25068,7 +25368,7 @@ covergroup Vls16_vsoxseg4ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25245,7 +25545,7 @@ covergroup Vls16_vsoxseg4ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25420,7 +25720,7 @@ covergroup Vls16_vsoxseg4ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25564,15 +25864,17 @@ endgroup
 covergroup Vls16_vsoxseg5ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte27
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte27 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte27////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg5ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -25583,7 +25885,7 @@ covergroup Vls16_vsoxseg5ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25736,7 +26038,7 @@ covergroup Vls16_vsoxseg5ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -25890,7 +26192,7 @@ covergroup Vls16_vsoxseg5ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26040,7 +26342,7 @@ covergroup Vls16_vsoxseg5ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26186,15 +26488,18 @@ endgroup
 covergroup Vls16_vsoxseg6ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte26
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte26 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte26////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg6ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -26205,7 +26510,7 @@ covergroup Vls16_vsoxseg6ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26359,7 +26664,7 @@ covergroup Vls16_vsoxseg6ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26514,7 +26819,7 @@ covergroup Vls16_vsoxseg6ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26665,7 +26970,7 @@ covergroup Vls16_vsoxseg6ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26812,15 +27117,19 @@ endgroup
 covergroup Vls16_vsoxseg7ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte25
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte25 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
+        ignore_bins v26 = {v26};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte25////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg7ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -26831,7 +27140,7 @@ covergroup Vls16_vsoxseg7ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -26986,7 +27295,7 @@ covergroup Vls16_vsoxseg7ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -27142,7 +27451,7 @@ covergroup Vls16_vsoxseg7ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -27294,7 +27603,7 @@ covergroup Vls16_vsoxseg7ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -27442,15 +27751,20 @@ endgroup
 covergroup Vls16_vsoxseg8ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte24
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte24 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
+        ignore_bins v26 = {v26};
+        ignore_bins v25 = {v25};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte24////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsoxseg8ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -27485,7 +27799,7 @@ covergroup Vls16_vsoxseg8ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -27665,7 +27979,7 @@ covergroup Vls16_vsoxseg8ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -27846,7 +28160,7 @@ covergroup Vls16_vsoxseg8ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -28023,7 +28337,7 @@ covergroup Vls16_vsoxseg8ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -32882,7 +33196,7 @@ covergroup Vls16_vsuxei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33032,7 +33346,7 @@ covergroup Vls16_vsuxei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33182,7 +33496,7 @@ covergroup Vls16_vsuxei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33331,7 +33645,7 @@ covergroup Vls16_vsuxei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33472,15 +33786,14 @@ endgroup
 covergroup Vls16_vsuxseg2ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte30
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte30 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte30////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg2ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -33515,7 +33828,7 @@ covergroup Vls16_vsuxseg2ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33691,7 +34004,7 @@ covergroup Vls16_vsuxseg2ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -33843,7 +34156,7 @@ covergroup Vls16_vsuxseg2ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34018,7 +34331,7 @@ covergroup Vls16_vsuxseg2ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34161,15 +34474,15 @@ endgroup
 covergroup Vls16_vsuxseg3ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte29
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte29 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte29////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg3ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -34180,7 +34493,7 @@ covergroup Vls16_vsuxseg3ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34332,7 +34645,7 @@ covergroup Vls16_vsuxseg3ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34484,7 +34797,7 @@ covergroup Vls16_vsuxseg3ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34634,7 +34947,7 @@ covergroup Vls16_vsuxseg3ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34777,15 +35090,16 @@ endgroup
 covergroup Vls16_vsuxseg4ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte28
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte28 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte28////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg4ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -34820,7 +35134,7 @@ covergroup Vls16_vsuxseg4ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -34997,7 +35311,7 @@ covergroup Vls16_vsuxseg4ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35174,7 +35488,7 @@ covergroup Vls16_vsuxseg4ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35349,7 +35663,7 @@ covergroup Vls16_vsuxseg4ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35493,15 +35807,17 @@ endgroup
 covergroup Vls16_vsuxseg5ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte27
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte27 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte27////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg5ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -35512,7 +35828,7 @@ covergroup Vls16_vsuxseg5ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35665,7 +35981,7 @@ covergroup Vls16_vsuxseg5ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35819,7 +36135,7 @@ covergroup Vls16_vsuxseg5ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -35969,7 +36285,7 @@ covergroup Vls16_vsuxseg5ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36115,15 +36431,18 @@ endgroup
 covergroup Vls16_vsuxseg6ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte26
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte26 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte26////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg6ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -36134,7 +36453,7 @@ covergroup Vls16_vsuxseg6ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36288,7 +36607,7 @@ covergroup Vls16_vsuxseg6ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36443,7 +36762,7 @@ covergroup Vls16_vsuxseg6ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36594,7 +36913,7 @@ covergroup Vls16_vsuxseg6ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36741,15 +37060,19 @@ endgroup
 covergroup Vls16_vsuxseg7ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte25
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte25 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
+        ignore_bins v26 = {v26};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte25////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg7ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -36760,7 +37083,7 @@ covergroup Vls16_vsuxseg7ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -36915,7 +37238,7 @@ covergroup Vls16_vsuxseg7ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37071,7 +37394,7 @@ covergroup Vls16_vsuxseg7ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37223,7 +37546,7 @@ covergroup Vls16_vsuxseg7ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37371,15 +37694,20 @@ endgroup
 covergroup Vls16_vsuxseg8ei16_v_cg with function sample(ins_t ins);
     option.per_instance = 0;
     //////////////////////////////////////////////////////////////////////////////////
-    // cmp_vs3_vs2_eew_eq_sew
+    // cmp_vs3_vs2_eew_eq_sew_lte24
     //////////////////////////////////////////////////////////////////////////////////
 
-    cmp_vs3_vs2_eew_eq_sew : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
-        // Compare assignments of all 32 registers (only meaningful when EEW == SEW;
-        // testgen filters generation accordingly so non-matching SEWs produce no hits).
+    cmp_vs3_vs2_eew_eq_sew_lte24 : coverpoint ins.get_vr_reg(ins.current.vs3)  iff (ins.current.vs3 == ins.current.vs2 & ins.trap == 0 )  {
+        ignore_bins v31 = {v31};
+        ignore_bins v30 = {v30};
+        ignore_bins v29 = {v29};
+        ignore_bins v28 = {v28};
+        ignore_bins v27 = {v27};
+        ignore_bins v26 = {v26};
+        ignore_bins v25 = {v25};
     }
 
-    //// end cmp_vs3_vs2_eew_eq_sew////////////////////////////////////////////////
+    //// end cmp_vs3_vs2_eew_eq_sew_lte24////////////////////////////////////////////////
 
     cp_asm_count : coverpoint ins.ins_str == "vsuxseg8ei16.v"  iff (ins.trap == 0 )  {
         // Number of times instruction is executed
@@ -37414,7 +37742,7 @@ covergroup Vls16_vsuxseg8ei16_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37594,7 +37922,7 @@ covergroup Vls16_vsuxseg8ei32_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37775,7 +38103,7 @@ covergroup Vls16_vsuxseg8ei64_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
@@ -37952,7 +38280,7 @@ covergroup Vls16_vsuxseg8ei8_v_cg with function sample(ins_t ins);
     // cp_custom_ls_indexed
     //////////////////////////////////////////////////////////////////////////////////
 
-    `ifdef XLEN32
+    `ifdef UDB_MXLEN_32
     `ifdef COVER_VLS64
         vs2_element_zero_top_32_ones_bottom_zero : coverpoint get_vr_element_zero(ins.hart, ins.issue, ins.current.vs2_val) {
             bins target = {64'hFFFF_FFFF_0000_0000};
