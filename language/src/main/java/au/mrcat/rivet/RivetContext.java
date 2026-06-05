@@ -4,14 +4,12 @@ import au.mrcat.rivet.mmio.SifiveUart;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.MemoryWidth;
 import au.mrcat.rivet.riscv.PrivilegedState;
-import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvRebootException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -80,7 +78,10 @@ public class RivetContext {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return (short) readMmio(address, MemoryWidth.HalfWord);
         }
-        return (short) LE_SHORT_UNALIGNED.get(memory, address - 0x8000_0000L);
+        if ((address & 0b1) != 0) {
+            return (short) LE_SHORT_UNALIGNED.get(memory, address - 0x8000_0000L);
+        }
+        return (short) LE_SHORT.get(memory, address - 0x8000_0000L);
     }
 
     public int readInt(long address) {
@@ -97,7 +98,10 @@ public class RivetContext {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return (int) readMmio(address, MemoryWidth.Word);
         }
-        return (int) LE_INT_UNALIGNED.get(memory, address - 0x8000_0000L);
+        if ((address & 0b11) != 0) {
+            return (int) LE_INT_UNALIGNED.get(memory, address - 0x8000_0000L);
+        }
+        return (int) LE_INT.get(memory, address - 0x8000_0000L);
     }
 
     public long readLong(long address) {
@@ -114,7 +118,10 @@ public class RivetContext {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return readMmio(address, MemoryWidth.DoubleWord);
         }
-        return (long) LE_LONG_UNALIGNED.get(memory, address - 0x8000_0000L);
+        if ((address & 0b111) != 0) {
+            return (long) LE_LONG_UNALIGNED.get(memory, address - 0x8000_0000L);
+        }
+        return (long) LE_LONG.get(memory, address - 0x8000_0000L);
     }
 
     public void reserveAddress(long address) {
@@ -174,7 +181,10 @@ public class RivetContext {
             writeMmio(address, value, MemoryWidth.HalfWord);
             return;
         }
-        LE_SHORT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        if ((address & 0b1) != 0) {
+            LE_SHORT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        }
+        LE_SHORT.set(memory, address - 0x8000_0000L, value);
     }
 
     public void writeInt(long address, int value) {
@@ -193,7 +203,10 @@ public class RivetContext {
             writeMmio(address, value, MemoryWidth.Word);
             return;
         }
-        LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        if ((address & 0b11) != 0) {
+            LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        }
+        LE_INT.set(memory, address - 0x8000_0000L, value);
     }
 
     public void writeLong(long address, long value) {
@@ -212,7 +225,10 @@ public class RivetContext {
             writeMmio(address, value, MemoryWidth.DoubleWord);
             return;
         }
-        LE_LONG_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        if ((address & 0b111) != 0) {
+            LE_LONG_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+        }
+        LE_LONG.set(memory, address - 0x8000_0000L, value);
     }
 
     public boolean writeIntConditional(long address, int value) {
