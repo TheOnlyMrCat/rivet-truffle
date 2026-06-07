@@ -21,7 +21,7 @@ public class LoadDoubleReservedNode extends RivetOpNode {
         long virtualAddress = address.executeLong(frame);
 
         try {
-            ctx.reserveAddress(virtualAddress);
+            ctx.reserveLongAddress(virtualAddress);
             return ctx.readLong(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);

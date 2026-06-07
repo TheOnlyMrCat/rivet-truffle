@@ -7,7 +7,9 @@ import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.*;
+import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -52,7 +54,20 @@ public final class RivetParser {
                     throw new IllegalStateException("Instructions retired counter overflow during parse");
                 }
 
-                int instruction = context.readIntMisaligned(currentPc);
+                int instruction;
+                try {
+                    instruction = context.readIntMisaligned(currentPc);
+                } catch (RiscvTrapException trap) {
+                    // Convert this into an instruction-access fault. Only actually do so if this is the first
+                    // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
+                    // to and re-parse
+                    if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
+                        throw new RiscvTrapException(ExceptionCause.InstructionAccessFault, currentPc, currentPc);
+                    } else {
+                        currentBlock.add(new JumpNode(new ConstantNode(currentPc)));
+                        break;
+                    }
+                }
                 var node = Objects.requireNonNull(parseInstruction(instruction, currentPc, instret));
 
                 if ((instruction & 0b11) != 0b11) {

@@ -21,7 +21,7 @@ public class LoadWordReservedNode extends RivetOpNode {
         long virtualAddress = address.executeLong(frame);
 
         try {
-            ctx.reserveAddress(virtualAddress);
+            ctx.reserveIntAddress(virtualAddress);
             return ctx.readInt(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);

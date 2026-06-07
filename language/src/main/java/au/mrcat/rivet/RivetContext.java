@@ -65,11 +65,11 @@ public class RivetContext {
     }
 
     public short readShort(long address) {
-        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            return (short) readMmio(address, MemoryWidth.HalfWord);
-        }
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+        }
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            return (short) readMmio(address, MemoryWidth.HalfWord);
         }
         return (short) LE_SHORT.get(memory, address - 0x8000_0000L);
     }
@@ -85,11 +85,11 @@ public class RivetContext {
     }
 
     public int readInt(long address) {
-        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            return (int) readMmio(address, MemoryWidth.Word);
-        }
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+        }
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            return (int) readMmio(address, MemoryWidth.Word);
         }
         return (int) LE_INT.get(memory, address - 0x8000_0000L);
     }
@@ -105,11 +105,11 @@ public class RivetContext {
     }
 
     public long readLong(long address) {
-        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
-            return readMmio(address, MemoryWidth.DoubleWord);
-        }
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+        }
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            return readMmio(address, MemoryWidth.DoubleWord);
         }
         return (long) LE_LONG.get(memory, address - 0x8000_0000L);
     }
@@ -124,7 +124,20 @@ public class RivetContext {
         return (long) LE_LONG.get(memory, address - 0x8000_0000L);
     }
 
-    public void reserveAddress(long address) {
+    public void reserveIntAddress(long address) {
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        reservedDoubleWord = address & ~0b111L;
+    }
+
+    public void reserveLongAddress(long address) {
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
@@ -166,12 +179,12 @@ public class RivetContext {
     }
 
     public void writeShort(long address, short value) {
+        if ((address & 0b1) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.HalfWord);
             return;
-        }
-        if ((address & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         LE_SHORT.set(memory, address - 0x8000_0000L, value);
     }
@@ -183,17 +196,18 @@ public class RivetContext {
         }
         if ((address & 0b1) != 0) {
             LE_SHORT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+            return;
         }
         LE_SHORT.set(memory, address - 0x8000_0000L, value);
     }
 
     public void writeInt(long address, int value) {
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.Word);
             return;
-        }
-        if ((address & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         LE_INT.set(memory, address - 0x8000_0000L, value);
     }
@@ -205,17 +219,18 @@ public class RivetContext {
         }
         if ((address & 0b11) != 0) {
             LE_INT_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+            return;
         }
         LE_INT.set(memory, address - 0x8000_0000L, value);
     }
 
     public void writeLong(long address, long value) {
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+        }
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.DoubleWord);
             return;
-        }
-        if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
         LE_LONG.set(memory, address - 0x8000_0000L, value);
     }
@@ -227,6 +242,7 @@ public class RivetContext {
         }
         if ((address & 0b111) != 0) {
             LE_LONG_UNALIGNED.set(memory, address - 0x8000_0000L, value);
+            return;
         }
         LE_LONG.set(memory, address - 0x8000_0000L, value);
     }
@@ -236,7 +252,7 @@ public class RivetContext {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         long reserved = reservedDoubleWord;
         reservedDoubleWord = NO_RESERVATION;
@@ -252,7 +268,7 @@ public class RivetContext {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         long reserved = reservedDoubleWord;
         reservedDoubleWord = NO_RESERVATION;

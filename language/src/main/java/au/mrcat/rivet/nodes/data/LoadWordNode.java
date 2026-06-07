@@ -27,7 +27,7 @@ public class LoadWordNode extends RivetOpNode {
             trap.setPc(pc);
             trap.setTval(virtualAddress);
             trap.setInstret(instret);
-            return pc;
+            throw trap;
         }
     }
 

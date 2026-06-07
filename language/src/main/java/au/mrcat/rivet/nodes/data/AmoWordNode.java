@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -22,8 +23,8 @@ public class AmoWordNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame) {
         var ctx = currentLanguageContext();
 
+        long address = this.address.executeLong(frame);
         try {
-            long address = this.address.executeLong(frame);
             int originalValue = ctx.readInt(address);
 
             // Use the zero register as a temporary
@@ -33,9 +34,7 @@ public class AmoWordNode extends RivetOpNode {
             ctx.writeInt(address, (int) opResult);
             return originalValue;
         } catch (RiscvTrapException trap) {
-            trap.setPc(pc);
-            trap.setInstret(instret);
-            throw trap;
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
         }
     }
 

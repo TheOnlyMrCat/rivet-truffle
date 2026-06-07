@@ -122,16 +122,18 @@ public class RiscvArchTest {
     }
 
     static void formatResults(BankResults results) {
-        IO.println(String.format("Bank %s results: %d run; %d passed; %d failed",
-                results.name(),
-                results.totalRun(),
-                results.totalPassed(),
-                results.totalRun() - results.totalPassed()));
+        IO.println(String.format("Bank %s results:", results.name()));
 
         int firstColWidth = results.extensions().keySet().stream()
                 .map(String::length)
                 .reduce(0, Integer::max);
         String tableRow = String.format("%%%ds: %%3d run; %%3d passed; %%3d failed", firstColWidth);
+
+        IO.println(String.format(tableRow,
+                "",
+                results.totalRun(),
+                results.totalPassed(),
+                results.totalRun() - results.totalPassed()));
 
         for (var entry : results.extensions().entrySet()) {
             var extension = entry.getKey();
