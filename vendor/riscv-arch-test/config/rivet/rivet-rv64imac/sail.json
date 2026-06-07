@@ -104,7 +104,7 @@
         // (use `{"Some": "AlignmentException"}`).
         // This option controls scalar loads/stores.
         "load_store": {
-          "Some": "AlignmentException"
+          "None": null
         },
         // A misaligned vector load/store can be configured
         // independently of the scalar case above, but uses the same
@@ -127,7 +127,7 @@
       // 2^allowed_within_exp sized regions will be split into multiple
       // memory operations. 0 means all misaligned accesses will be split.
       // The maximum value is 12 (one page).
-      "allowed_within_exp": 0,
+      "allowed_within_exp": 12,
       // If the access gets split due to `allowed_within_exp` then the size
       // of the operations will be one byte if `byte_by_byte` is set, otherwise
       // they will be the maximum size possible based on the alignment. For
