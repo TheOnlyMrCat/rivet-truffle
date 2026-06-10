@@ -10,6 +10,7 @@ import au.mrcat.rivet.nodes.priv.*;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import net.fornwall.jelf.ElfException;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -18,6 +19,15 @@ import java.util.*;
 
 public final class RivetParser {
     public static RivetStartupNode loadProgramHeader(ByteSequence elfFile) {
+        byte[] elfBytes = elfFile.toByteArray();
+        if (elfBytes[0] != 0x7f || elfBytes[1] != 'E' || elfBytes[2] != 'L' || elfBytes[3] != 'F') {
+            // Not an elf file, load as a RISC-V binary
+            var segments = new HashMap<Long, ByteSequence>();
+            segments.put(0x8000_0000L, elfFile);
+            return new RivetStartupNode(segments, 0x8000_0000L);
+        }
+
+        // Otherwise, load it as an elf file
         var elf = ElfFile.from(elfFile.toByteArray());
 
         var segments = new HashMap<Long, ByteSequence>();

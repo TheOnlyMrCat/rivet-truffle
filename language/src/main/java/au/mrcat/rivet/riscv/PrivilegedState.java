@@ -89,7 +89,7 @@ public final class PrivilegedState {
             case Csr.MCONFIGPTR -> { return 0; }
 
             case Csr.MSTATUS -> { return mstatus; }
-            case Csr.MISA -> { return 0x8000000000000000L | 0b00_0000_0000_0001_0001_0000_0101; }
+            case Csr.MISA -> { return 0x8000000000000000L | 0b00_0001_0000_0001_0001_0000_0101; }
             case Csr.MEDELEG -> { return medeleg; }
             case Csr.MIDELEG -> { return mideleg; }
             case Csr.MIE -> { return mie; }
@@ -114,7 +114,7 @@ public final class PrivilegedState {
             case Csr.MCOUNTINHIBIT -> { return mcountinhibit; }
 
             default -> {
-                if (Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
+                if (Csr.MCYCLE + 3 <= csr && csr <= Csr.MCYCLE + 31 || Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
                     // Hardware performance counters: not implemented, but read-only zero
                     return 0;
                 } else {
@@ -171,7 +171,7 @@ public final class PrivilegedState {
             case Csr.MCOUNTINHIBIT -> mcountinhibit = value & COUNTER_MASK;
 
             default -> {
-                if (Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
+                if (Csr.MCYCLE + 3 <= csr && csr <= Csr.MCYCLE + 31 || Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {
                     // Hardware performance counters: not implemented, but read-only zero
                 } else {
                     // CSR doesn't exist/is not implemented/is not writeable

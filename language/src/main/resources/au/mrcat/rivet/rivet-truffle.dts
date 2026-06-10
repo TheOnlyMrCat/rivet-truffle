@@ -1,0 +1,76 @@
+// SPDX-FileCopyrightText: © 2024 Max Guppy <theonly@mrcat.au>
+// SPDX-License-Identifier: MPL-2.0
+
+/dts-v1/;
+/{
+	#address-cells = <2>;
+	#size-cells = <2>;
+	compatible = "riscv-virtio";
+	model = "riscv-virtio,rivet-truffle";
+
+	poweroff {
+		value = <0x5555>;
+		offset = <0x00>;
+		regmap = <&test>;
+		compatible = "syscon-poweroff";
+	};
+
+	reboot {
+		value = <0x7777>;
+		offset = <0x00>;
+		regmap = <&test>;
+		compatible = "syscon-reboot";
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		// 1GiB starting at 0x80000000
+		reg = <0x00 0x80000000 0x00 0x40000000>;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		timebase-frequency = <1000000000>;
+
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			compatible = "riscv";
+			mmu-type = "riscv,svbare";
+
+			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+
+			hart0_int: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+	};
+
+	chosen {
+		bootargs = "console=ttyS0";
+		stdout-path = &serial;
+	};
+
+	soc {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		compatible = "simple-bus";
+		ranges;
+
+		serial: serial@10000000 {
+			compatible = "sifive,uart0";
+			reg = <0x00 0x10000000 0x00 0x1000>;
+			clock-frequency = <3686400>;
+		};
+
+		test: test@1000 {
+			reg = <0x00 0x1000 0x00 0x1000>;
+			compatible = "sifive,test1\0sifive,test0\0syscon";
+		};
+	};
+};

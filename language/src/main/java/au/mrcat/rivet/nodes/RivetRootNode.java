@@ -51,12 +51,7 @@ public class RivetRootNode extends RootNode {
         var ctx = RivetContext.get(this);
         while (true) {
             startupNode.executeVoid(frame);
-            ctx.privilegedState.reset();
             long pc = startupNode.getStartingPc();
-
-            for (int i = 0; i < 32; i++) {
-                frame.setLongStatic(i, 0);
-            }
 
             try {
                 while (true) {
