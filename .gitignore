@@ -17,6 +17,9 @@
 !launcher/src/**/
 !launcher/src/**/*
 
+# Whitelist our fake build system shell script
+!build_resources.sh
+
 # Let vendored dependencies define their own ignore rules
 !vendor/
 !vendor/**/
