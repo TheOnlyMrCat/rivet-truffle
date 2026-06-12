@@ -11,7 +11,7 @@ public class Main {
     static void main(String[] args) {
         Source source;
         try {
-            source = Source.newBuilder("rv64", new File(args[0])).build();
+            source = Source.newBuilder("rv64", new File(args[0])).option("rv64.opensbi", "false").build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

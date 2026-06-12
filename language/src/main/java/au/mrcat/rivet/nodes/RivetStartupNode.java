@@ -2,7 +2,6 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.riscv.RegisterState;
-import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -12,11 +11,26 @@ import java.util.Map;
 
 public class RivetStartupNode extends Node {
     private final Map<Long, ByteSequence> initialMemory;
-    private final long startingPc;
+    private long startingPc;
+    private long nextPhasePc;
+    private boolean provideNextPhaseInfo = false;
 
     public RivetStartupNode(Map<Long, ByteSequence> initialMemory, long startingPc) {
         this.initialMemory = initialMemory;
         this.startingPc = startingPc;
+    }
+
+    public void loadOpensbi() {
+        long baseAddress = 0xbff00000L;
+        try (var opensbi = getClass().getResourceAsStream("../fw_dynamic.bin")) {
+            byte[] bytes = opensbi.readAllBytes();
+            initialMemory.put(baseAddress, ByteSequence.create(bytes));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        nextPhasePc = startingPc;
+        startingPc = baseAddress;
+        provideNextPhaseInfo = true;
     }
 
     public long getStartingPc() {
@@ -51,18 +65,22 @@ public class RivetStartupNode extends Node {
             throw new RuntimeException(e);
         }
 
-        // Write an OpenSBI struct fw_dynamic_info
-        long baseAddr = 0xbfffd000L;
-        ctx.writeLong(baseAddr, 0x4942534f); // Magic value ('OSBI' in little endian)
-        ctx.writeLong(baseAddr + 8L, 0x2); // Info version
-        ctx.writeLong(baseAddr + 16L, 0x8800_0000L); // Next booting stage address
-        ctx.writeLong(baseAddr + 24L, 0x0); // Next booting stage mode (U-mode)
-        ctx.writeLong(baseAddr + 32L, 0x0); // OpenSBI options
-        ctx.writeLong(baseAddr + 40L, 0x0); // Preferred boot hart
+        if (provideNextPhaseInfo) {
+            // Write an OpenSBI struct fw_dynamic_info
+            long baseAddr = 0xbfffd000L;
+            ctx.writeLong(baseAddr, 0x4942534f); // Magic value ('OSBI' in little endian)
+            ctx.writeLong(baseAddr + 8L, 0x2); // Info version
+            ctx.writeLong(baseAddr + 16L, nextPhasePc); // Next booting stage address
+            ctx.writeLong(baseAddr + 24L, 0x0); // Next booting stage mode (U-mode)
+            ctx.writeLong(baseAddr + 32L, 0x0); // OpenSBI options
+            ctx.writeLong(baseAddr + 40L, 0x0); // Preferred boot hart
+        }
 
         // Prepare boot arguments
         frame.setLongStatic(RegisterState.A0, 0);
         frame.setLongStatic(RegisterState.A1, 0xbffff000L);
-        frame.setLongStatic(RegisterState.A2, 0xbfffd000L);
+        if (provideNextPhaseInfo) {
+            frame.setLongStatic(RegisterState.A2, 0xbfffd000L);
+        }
     }
 }
