@@ -4,6 +4,8 @@ import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.BlockNode;
 
+import java.util.Arrays;
+
 public class RivetBasicBlockNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
     @Child BlockNode<RivetNode> instructions = null;
     private final long nextPc;
@@ -28,5 +30,15 @@ public class RivetBasicBlockNode extends RivetNode implements BlockNode.ElementE
     @Override
     public void executeVoid(VirtualFrame frame, RivetNode node, int index, int argument) {
         node.executeVoid(frame);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("RivetBasicBlockNode{");
+        sb.append("instructions=").append(Arrays.toString(instructions.getElements()));
+        sb.append(", nextPc=").append(nextPc);
+        sb.append(", instructionsRetired=").append(instructionsRetired);
+        sb.append('}');
+        return sb.toString();
     }
 }

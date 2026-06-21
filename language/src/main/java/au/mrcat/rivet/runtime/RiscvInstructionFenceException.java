@@ -1,5 +1,6 @@
 package au.mrcat.rivet.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
@@ -8,6 +9,7 @@ public class RiscvInstructionFenceException extends ControlFlowException {
     private final long nextPc;
     private final short instret;
 
+    @CompilerDirectives.TruffleBoundary
     public RiscvInstructionFenceException(long nextPc, short instret) {
         this.nextPc = nextPc;
         this.instret = instret;

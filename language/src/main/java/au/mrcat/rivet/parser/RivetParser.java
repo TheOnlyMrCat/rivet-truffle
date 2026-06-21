@@ -10,6 +10,7 @@ import au.mrcat.rivet.nodes.priv.*;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import net.fornwall.jelf.ElfException;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
@@ -44,6 +45,7 @@ public final class RivetParser {
         return new RivetStartupNode(segments, elf.e_entry);
     }
 
+    @CompilerDirectives.TruffleBoundary
     public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, long initialPc) {
         var currentBlock = new ArrayList<RivetNode>();
         var basicBlocks = new TreeMap<Long, RivetBasicBlockNode>();

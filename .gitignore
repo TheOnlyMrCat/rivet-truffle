@@ -1,3 +1,4 @@
+# Ignore everything by default
 *
 
 !.gitignore
@@ -19,6 +20,12 @@
 
 # Whitelist our fake build system shell script
 !build_resources.sh
+
+# Whitelist our tiny profiling programs
+!perftests/
+!perftests/Makefile
+!perftests/*.ld
+!perftests/*.s
 
 # Let vendored dependencies define their own ignore rules
 !vendor/

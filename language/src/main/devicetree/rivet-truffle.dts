@@ -68,8 +68,8 @@
 			clock-frequency = <3686400>;
 		};
 
-		test: test@1000 {
-			reg = <0x00 0x1000 0x00 0x1000>;
+		test: test@100000 {
+			reg = <0x00 0x100000 0x00 0x1000>;
 			compatible = "sifive,test1\0sifive,test0\0syscon";
 		};
 	};

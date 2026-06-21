@@ -5,6 +5,8 @@ import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -12,6 +14,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 
 import java.util.Arrays;
 import java.util.SequencedMap;
+import java.util.StringJoiner;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
@@ -57,18 +60,30 @@ public class RivetCallTargetNode extends RootNode {
                 return frame.materialize();
             }
             try {
+                CompilerDirectives.transferToInterpreter();
                 basicBlockNodes[bbIndex].executeVoid(frame);
-                throw new IllegalStateException("Basic block exited without updating pc");
+                CompilerDirectives.shouldNotReachHere("Basic block exited without updating pc");
             } catch (RiscvJumpException jump) {
                 pc = jump.targetPc;
                 ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[bbIndex].instructionsRetired);
             } catch (RiscvInstructionFenceException fence) {
+                CompilerAsserts.neverPartOfCompilation("Instruction fences should always deoptimise");
                 fence.setFrame(frame.materialize());
                 throw fence;
             } catch (RiscvTrapException trap) {
+                CompilerAsserts.neverPartOfCompilation("Traps should always deoptimise");
                 trap.setFrame(frame.materialize());
                 throw trap;
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("RivetCallTargetNode{");
+        sb.append("basicBlockNodes=").append(Arrays.toString(basicBlockNodes));
+        sb.append(", pcOffsets=").append(Arrays.toString(pcOffsets));
+        sb.append('}');
+        return sb.toString();
     }
 }
