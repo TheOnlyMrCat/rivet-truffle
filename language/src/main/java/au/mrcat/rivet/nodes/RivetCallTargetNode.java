@@ -18,7 +18,7 @@ import java.util.StringJoiner;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
-    private final long[] pcOffsets;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] pcOffsets;
 
     public RivetCallTargetNode(RivetLanguage language, SequencedMap<Long, RivetBasicBlockNode> basicBlocks) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -60,17 +60,18 @@ public class RivetCallTargetNode extends RootNode {
                 return frame.materialize();
             }
             try {
-                CompilerDirectives.transferToInterpreter();
                 basicBlockNodes[bbIndex].executeVoid(frame);
                 CompilerDirectives.shouldNotReachHere("Basic block exited without updating pc");
             } catch (RiscvJumpException jump) {
                 pc = jump.targetPc;
                 ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[bbIndex].instructionsRetired);
             } catch (RiscvInstructionFenceException fence) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 CompilerAsserts.neverPartOfCompilation("Instruction fences should always deoptimise");
                 fence.setFrame(frame.materialize());
                 throw fence;
             } catch (RiscvTrapException trap) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 CompilerAsserts.neverPartOfCompilation("Traps should always deoptimise");
                 trap.setFrame(frame.materialize());
                 throw trap;

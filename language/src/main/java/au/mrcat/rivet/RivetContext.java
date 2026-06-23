@@ -58,7 +58,6 @@ public class RivetContext {
         return memory.asSlice(address - 0x8000_0000L, size);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public byte readByte(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
             return (byte) readMmio(address, MemoryWidth.Byte);
@@ -66,7 +65,6 @@ public class RivetContext {
         return (byte) BYTE.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public short readShort(long address) {
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -77,7 +75,6 @@ public class RivetContext {
         return (short) LE_SHORT.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public short readShortMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return (short) readMmio(address, MemoryWidth.HalfWord);
@@ -88,7 +85,6 @@ public class RivetContext {
         return (short) LE_SHORT.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public int readInt(long address) {
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -99,7 +95,6 @@ public class RivetContext {
         return (int) LE_INT.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public int readIntMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return (int) readMmio(address, MemoryWidth.Word);
@@ -110,7 +105,6 @@ public class RivetContext {
         return (int) LE_INT.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public long readLong(long address) {
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
@@ -121,7 +115,6 @@ public class RivetContext {
         return (long) LE_LONG.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public long readLongMisaligned(long address) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             return readMmio(address, MemoryWidth.DoubleWord);
@@ -132,7 +125,6 @@ public class RivetContext {
         return (long) LE_LONG.get(memory, address - 0x8000_0000L);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void reserveIntAddress(long address) {
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -143,7 +135,6 @@ public class RivetContext {
         reservedDoubleWord = address & ~0b111L;
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void reserveLongAddress(long address) {
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
@@ -154,7 +145,6 @@ public class RivetContext {
         reservedDoubleWord = address & ~0b111L;
     }
 
-    @CompilerDirectives.TruffleBoundary
     public long readMmio(long address, MemoryWidth width) {
         // Syscon
         if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
@@ -181,7 +171,6 @@ public class RivetContext {
         throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeByte(long address, byte value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize()) {
             writeMmio(address, value, MemoryWidth.Byte);
@@ -190,7 +179,6 @@ public class RivetContext {
         BYTE.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeShort(long address, short value) {
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -202,7 +190,6 @@ public class RivetContext {
         LE_SHORT.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeShortMisaligned(long address, short value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.HalfWord);
@@ -215,7 +202,6 @@ public class RivetContext {
         LE_SHORT.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeInt(long address, int value) {
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -227,7 +213,6 @@ public class RivetContext {
         LE_INT.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeIntMisaligned(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.Word);
@@ -240,7 +225,6 @@ public class RivetContext {
         LE_INT.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeLong(long address, long value) {
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
@@ -252,7 +236,6 @@ public class RivetContext {
         LE_LONG.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public void writeLongMisaligned(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             writeMmio(address, value, MemoryWidth.DoubleWord);
@@ -265,7 +248,6 @@ public class RivetContext {
         LE_LONG.set(memory, address - 0x8000_0000L, value);
     }
 
-    @CompilerDirectives.TruffleBoundary
     public boolean writeIntConditional(long address, int value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
@@ -282,7 +264,6 @@ public class RivetContext {
         return true;
     }
 
-    @CompilerDirectives.TruffleBoundary
     public boolean writeLongConditional(long address, long value) {
         if (address < 0x8000_0000L || address - 0x8000_0000L > memory.byteSize() - 1) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
@@ -299,7 +280,6 @@ public class RivetContext {
         return true;
     }
 
-    @CompilerDirectives.TruffleBoundary
     private void writeMmio(long address, long value, MemoryWidth width) {
         // Syscon
         if (0x10_0000L <= address && address + width.bytes < 0x10_1000) {
