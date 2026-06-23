@@ -2,19 +2,19 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
+import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
-import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.RootNode;
 
 import java.util.Arrays;
 import java.util.SequencedMap;
-import java.util.StringJoiner;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
@@ -22,8 +22,8 @@ public class RivetCallTargetNode extends RootNode {
 
     public RivetCallTargetNode(RivetLanguage language, SequencedMap<Long, RivetBasicBlockNode> basicBlocks) {
         var frameDescriptor = FrameDescriptor.newBuilder();
-        frameDescriptor.useSlotKinds(false);
-        frameDescriptor.addSlots(32);
+//        frameDescriptor.useSlotKinds(false);
+        frameDescriptor.addSlots(32, FrameSlotKind.Long);
         super(language, frameDescriptor.build());
 
         basicBlockNodes = new RivetBasicBlockNode[basicBlocks.size()];
@@ -40,40 +40,50 @@ public class RivetCallTargetNode extends RootNode {
         return pcOffsets;
     }
 
+    @ExplodeLoop
+    private void copyFromRegisterState(VirtualFrame frame, RegisterState state) {
+        for (int i = 1; i < 32; i++) {
+            frame.setLong(i, state.getRegister(i));
+        }
+    }
+
+    @ExplodeLoop
+    private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
+        for (int i = 1; i < 32; i++) {
+            state.setRegister(i, frame.getLong(i));
+        }
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
-        var registers = (MaterializedFrame) frame.getArguments()[0];
-        long pc = (Long) frame.getArguments()[1];
+        var registers = (RegisterState) frame.getArguments()[0];
+        long pc = registers.getPc();
 
-        // Copy registers into the new frame, except for the zero (temp) register
-        for (int i = 1; i < 32; i++) {
-            frame.setLongStatic(i, registers.getLongStatic(i));
-        }
+        copyFromRegisterState(frame, registers);
 
         while (true) {
             int bbIndex = Arrays.binarySearch(pcOffsets, pc);
             if (bbIndex < 0) {
                 // Not a basic block in this call target; return to the dispatch node to go to the next call target
-                // Since we can only return one thing, just put the program counter in the zero (temp) register
-                frame.setLongStatic(0, pc);
-                return frame.materialize();
+                copyToRegisterState(frame, registers);
+                registers.setPc(pc);
+                return registers;
             }
             try {
-                basicBlockNodes[bbIndex].executeVoid(frame);
-                CompilerDirectives.shouldNotReachHere("Basic block exited without updating pc");
-            } catch (RiscvJumpException jump) {
-                pc = jump.targetPc;
+                pc = basicBlockNodes[bbIndex].executeDivergent(frame);
                 ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[bbIndex].instructionsRetired);
             } catch (RiscvInstructionFenceException fence) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
+                CompilerDirectives.transferToInterpreter();
                 CompilerAsserts.neverPartOfCompilation("Instruction fences should always deoptimise");
-                fence.setFrame(frame.materialize());
+                copyToRegisterState(frame, registers);
+                fence.setState(registers);
                 throw fence;
             } catch (RiscvTrapException trap) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
+                CompilerDirectives.transferToInterpreter();
                 CompilerAsserts.neverPartOfCompilation("Traps should always deoptimise");
-                trap.setFrame(frame.materialize());
+                copyToRegisterState(frame, registers);
+                trap.setState(registers);
                 throw trap;
             }
         }

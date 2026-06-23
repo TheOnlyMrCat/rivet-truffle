@@ -1,14 +1,13 @@
 package au.mrcat.rivet.nodes.priv;
 
 import au.mrcat.rivet.RivetContext;
-import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.PrivilegeMode;
-import au.mrcat.rivet.runtime.RiscvJumpException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class MachineReturn extends RivetNode {
+public class MachineReturn extends RivetDivergentNode {
     private final int instruction;
     private final long pc;
     private final short instret;
@@ -20,12 +19,17 @@ public class MachineReturn extends RivetNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public long executeDivergent(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
         if (ctx.privilegedState.currentMode() != PrivilegeMode.Machine) {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc, instruction, instret);
         }
         ctx.privilegedState.stepPerformanceCounters(instret);
-        throw new RiscvJumpException(ctx.privilegedState.handleMret());
+        return ctx.privilegedState.handleMret();
+    }
+
+    @Override
+    public Long[] callTargetContinuations() {
+        return new Long[0];
     }
 }

@@ -1,26 +1,24 @@
 package au.mrcat.rivet.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.MaterializedFrame;
+import au.mrcat.rivet.riscv.RegisterState;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
 public class RiscvInstructionFenceException extends ControlFlowException {
-    private MaterializedFrame frame;
+    private RegisterState state;
     private final long nextPc;
     private final short instret;
 
-    @CompilerDirectives.TruffleBoundary
     public RiscvInstructionFenceException(long nextPc, short instret) {
         this.nextPc = nextPc;
         this.instret = instret;
     }
 
-    public MaterializedFrame getFrame() {
-        return frame;
+    public RegisterState getState() {
+        return state;
     }
 
-    public void setFrame(MaterializedFrame frame) {
-        this.frame = frame;
+    public void setState(RegisterState state) {
+        this.state = state;
     }
 
     public long getNextPc() {

@@ -1,41 +1,44 @@
 package au.mrcat.rivet.nodes;
 
-import au.mrcat.rivet.runtime.RiscvJumpException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.BlockNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import java.util.Arrays;
 
-public class RivetBasicBlockNode extends RivetNode implements BlockNode.ElementExecutor<RivetNode> {
-    @Child BlockNode<RivetNode> instructions = null;
+public class RivetBasicBlockNode extends RivetNode {
+    @Children RivetNode[] instructions;
+    @Child RivetDivergentNode divergentNode;
     private final long nextPc;
     public final short instructionsRetired;
 
-    public RivetBasicBlockNode(RivetNode[] instructions, long nextPc, short instructionsRetired) {
-        if (instructions.length != 0) {
-            this.instructions = BlockNode.create(instructions, this);
-        }
+    public RivetBasicBlockNode(RivetNode[] instructions, RivetDivergentNode divergentNode, long nextPc, short instructionsRetired) {
+        this.instructions = instructions;
+        this.divergentNode = divergentNode;
         this.nextPc = nextPc;
         this.instructionsRetired = instructionsRetired;
     }
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        if (instructions != null) {
-            instructions.executeVoid(frame, BlockNode.NO_ARGUMENT);
-        }
-        throw new RiscvJumpException(nextPc);
+        executeDivergent(frame);
     }
 
-    @Override
-    public void executeVoid(VirtualFrame frame, RivetNode node, int index, int argument) {
-        node.executeVoid(frame);
+    @ExplodeLoop
+    public long executeDivergent(VirtualFrame frame) {
+        if (instructions != null) {
+            for (RivetNode instruction : instructions) {
+                CompilerDirectives.transferToInterpreter();
+                instruction.executeVoid(frame);
+            }
+        }
+        return divergentNode.executeDivergent(frame);
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RivetBasicBlockNode{");
-        sb.append("instructions=").append(Arrays.toString(instructions.getElements()));
+        sb.append("instructions=").append(Arrays.toString(instructions));
         sb.append(", nextPc=").append(nextPc);
         sb.append(", instructionsRetired=").append(instructionsRetired);
         sb.append('}');

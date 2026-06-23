@@ -3,7 +3,6 @@ package au.mrcat.rivet.nodes.control;
 import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
-import au.mrcat.rivet.runtime.RiscvJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class JumpAndLinkNode extends RivetDivergentNode {
@@ -16,10 +15,10 @@ public class JumpAndLinkNode extends RivetDivergentNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public long executeDivergent(VirtualFrame frame) {
         long targetPc = this.targetPc.executeLong(frame);
         link.executeVoid(frame);
-        throw new RiscvJumpException(targetPc & ~0b1);
+        return targetPc & ~0b1;
     }
 
     @Override

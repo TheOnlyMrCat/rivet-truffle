@@ -1,10 +1,6 @@
 package au.mrcat.rivet.riscv;
 
-import com.oracle.truffle.api.interop.TruffleObject;
-
-import java.util.Arrays;
-
-public final class RegisterState implements TruffleObject {
+public final class RegisterState {
     public static final int ZERO = 0;
     public static final int RA = 1;
     public static final int SP = 2;
@@ -38,21 +34,22 @@ public final class RegisterState implements TruffleObject {
     public static final int T5 = 30;
     public static final int T6 = 31;
 
-    private final long[] registers;
-
-    public RegisterState() {
-        this.registers = new long[32];
-    }
+    private final long[] registers = new long[31];
+    private long pc;
 
     public long getRegister(int r) {
-        return registers[r];
+        return registers[r - 1];
     }
 
     public void setRegister(int r, long value) {
-        registers[r] = value;
+        registers[r - 1] = value;
     }
 
-    public void dumpRegisterState() {
-        System.err.println(Arrays.toString(registers));
+    public long getPc() {
+        return pc;
+    }
+
+    public void setPc(long pc) {
+        this.pc = pc;
     }
 }

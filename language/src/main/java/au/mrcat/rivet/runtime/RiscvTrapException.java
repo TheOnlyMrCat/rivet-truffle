@@ -1,12 +1,11 @@
 package au.mrcat.rivet.runtime;
 
+import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.riscv.ExceptionCause;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
 public class RiscvTrapException extends ControlFlowException {
-    private MaterializedFrame frame;
+    private RegisterState state;
     public final ExceptionCause cause;
     private long pc;
     private long tval = 0;
@@ -58,12 +57,12 @@ public class RiscvTrapException extends ControlFlowException {
         this.instret = instret;
     }
 
-    public MaterializedFrame getFrame() {
-        return frame;
+    public RegisterState getState() {
+        return state;
     }
 
-    public void setFrame(MaterializedFrame frame) {
-        this.frame = frame;
+    public void setState(RegisterState state) {
+        this.state = state;
     }
 
     @Override

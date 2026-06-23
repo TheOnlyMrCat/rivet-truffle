@@ -61,8 +61,11 @@ public final class RivetParser {
             long currentPc = basePc;
             short instret = 0;
             currentBlock.clear();
+            RivetDivergentNode finalNode;
             bb: while (true) {
                 if (instret < 0) {
+                    // FIXME: This state is reachable for long sequences of instructions with no control-flow instructions.
+                    //        We should limit the size of basic blocks and call targets.
                     throw new IllegalStateException("Instructions retired counter overflow during parse");
                 }
 
@@ -76,7 +79,7 @@ public final class RivetParser {
                     if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
                         throw new RiscvTrapException(ExceptionCause.InstructionAccessFault, currentPc, currentPc);
                     } else {
-                        currentBlock.add(new JumpNode(new ConstantNode(currentPc)));
+                        finalNode = new JumpNode(new ConstantNode(currentPc));
                         break;
                     }
                 }
@@ -93,11 +96,11 @@ public final class RivetParser {
                         instret += 1;
                     }
                     case RivetTrapNode trapNode -> {
-                        currentBlock.add(trapNode);
+                        finalNode = trapNode;
                         break bb;
                     }
                     case RivetDivergentNode divergentNode -> {
-                        currentBlock.add(divergentNode);
+                        finalNode = divergentNode;
                         instret += 1;
                         frontier.addAll(List.of(divergentNode.callTargetContinuations()));
                         break bb;
@@ -108,7 +111,7 @@ public final class RivetParser {
                     }
                 }
             }
-            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), currentPc, instret));
+            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), finalNode, currentPc, instret));
         }
 
         return new RivetCallTargetNode(language, basicBlocks);

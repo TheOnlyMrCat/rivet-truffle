@@ -3,11 +3,11 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
+import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
@@ -51,18 +51,19 @@ public class RivetRootNode extends RootNode {
         var ctx = RivetContext.get(this);
         while (true) {
             startupNode.executeVoid(frame);
-            long pc = startupNode.getStartingPc();
+            RegisterState cpuState = new RegisterState();
+            cpuState.setPc(startupNode.getStartingPc());
 
             try {
                 while (true) {
-                    Integer callTargetIndex = callTargetPcs.get(pc);
+                    Integer callTargetIndex = callTargetPcs.get(cpuState.getPc());
                     if (callTargetIndex == null) {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
                         try {
-                            root = RivetParser.extractCallTarget(language, RivetContext.get(this), pc);
+                            root = RivetParser.extractCallTarget(language, RivetContext.get(this), cpuState.getPc());
                         } catch (RiscvTrapException trap) {
-                            pc = ctx.privilegedState.handleTrap(trap);
+                            cpuState.setPc(ctx.privilegedState.handleTrap(trap));
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
@@ -72,22 +73,16 @@ public class RivetRootNode extends RootNode {
                     }
 
                     var callTarget = callTargets[callTargetIndex];
-                    MaterializedFrame returnFrame;
                     try {
-                        returnFrame = (MaterializedFrame) callTarget.call(frame.materialize(), pc);
-                        pc = returnFrame.getLongStatic(0);
+                        cpuState = (RegisterState) callTarget.call(cpuState);
                     } catch (RiscvInstructionFenceException fence) {
-                        returnFrame = fence.getFrame();
+                        cpuState = fence.getState();
                         ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
-                        pc = fence.getNextPc();
+                        cpuState.setPc(fence.getNextPc());
                     } catch (RiscvTrapException trap) {
-                        returnFrame = trap.getFrame();
+                        cpuState = trap.getState();
                         ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
-                        pc = ctx.privilegedState.handleTrap(trap);
-                    }
-
-                    for (int i = 1; i < 32; i++) {
-                        frame.setLongStatic(i, returnFrame.getLongStatic(i));
+                        cpuState.setPc(ctx.privilegedState.handleTrap(trap));
                     }
                 }
             } catch (RiscvExitException exit) {
