@@ -18,6 +18,9 @@
 !launcher/src/**/
 !launcher/src/**/*
 
+# Except for the resources folder, which is generated
+language/src/main/resources
+
 # Whitelist our fake build system shell script
 !build_resources.sh
 

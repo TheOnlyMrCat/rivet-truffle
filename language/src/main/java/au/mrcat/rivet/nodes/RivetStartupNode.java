@@ -55,11 +55,16 @@ public class RivetStartupNode extends Node {
         }
 
         // Load the device tree into memory
-        try (var deviceTree = getClass().getResourceAsStream("../rivet-truffle.dtb")) {
-            byte[] bytes = deviceTree.readAllBytes();
-            long baseAddr = 0xbffff000L;
-            for (int i = 0; i < bytes.length; i++) {
-                ctx.writeByte(baseAddr + i, bytes[i]);
+        try (var deviceTree = RivetContext.class.getResourceAsStream("rivet-truffle.dtb")) {
+            if (deviceTree != null) {
+                byte[] bytes = deviceTree.readAllBytes();
+                long baseAddr = 0xbffff000L;
+                for (int i = 0; i < bytes.length; i++) {
+                    ctx.writeByte(baseAddr + i, bytes[i]);
+                }
+            } else {
+                System.err.println("Warning: no device tree loaded. Running software may not be able to find devices.");
+                System.err.println("Build rivet-truffle.dtb and include it in the language module to resolve this.");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

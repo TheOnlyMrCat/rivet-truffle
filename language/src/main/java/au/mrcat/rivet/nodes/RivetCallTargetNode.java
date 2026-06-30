@@ -2,6 +2,9 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
+import au.mrcat.rivet.nodes.data.BareSetRegisterNode;
+import au.mrcat.rivet.nodes.data.GetRegisterNode;
+import au.mrcat.rivet.nodes.data.SetRegisterNode;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
@@ -20,10 +23,13 @@ public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] pcOffsets;
 
+    @Children BareSetRegisterNode[] copyFromState = new BareSetRegisterNode[31];
+    @Children GetRegisterNode[] copyToState = new GetRegisterNode[31];
+
     public RivetCallTargetNode(RivetLanguage language, SequencedMap<Long, RivetBasicBlockNode> basicBlocks) {
         var frameDescriptor = FrameDescriptor.newBuilder();
 //        frameDescriptor.useSlotKinds(false);
-        frameDescriptor.addSlots(32, FrameSlotKind.Long);
+        frameDescriptor.addSlots(32, FrameSlotKind.Static);
         super(language, frameDescriptor.build());
 
         basicBlockNodes = new RivetBasicBlockNode[basicBlocks.size()];
@@ -34,6 +40,11 @@ public class RivetCallTargetNode extends RootNode {
             basicBlockNodes[i] = entry.getValue();
             i++;
         }
+
+        for (i = 0; i < 31; i++) {
+            copyFromState[i] = new BareSetRegisterNode(i + 1);
+            copyToState[i] = (GetRegisterNode) GetRegisterNode.create(i + 1);
+        }
     }
 
     public long[] getPcOffsets() {
@@ -42,15 +53,15 @@ public class RivetCallTargetNode extends RootNode {
 
     @ExplodeLoop
     private void copyFromRegisterState(VirtualFrame frame, RegisterState state) {
-        for (int i = 1; i < 32; i++) {
-            frame.setLong(i, state.getRegister(i));
+        for (int i = 0; i < 31; i++) {
+            copyFromState[i].executeVoid(frame, state.getRegister(i + 1));
         }
     }
 
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
-        for (int i = 1; i < 32; i++) {
-            state.setRegister(i, frame.getLong(i));
+        for (int i = 0; i < 31; i++) {
+            state.setRegister(i+1, copyToState[i].executeLong(frame));
         }
     }
 

@@ -2,14 +2,15 @@
 
 set -euxo pipefail
 
-mkdir -p language/generated_resources/au/mrcat/rivet
+resources_dir=language/src/main/resources/au/mrcat/rivet
+mkdir -p $resources_dir
 
 # Device tree
-dtc -o language/generated_resources/au/mrcat/rivet/rivet-truffle.dtb language/src/main/devicetree/rivet-truffle.dts
+dtc -o $resources_dir/rivet-truffle.dtb language/src/main/devicetree/rivet-truffle.dts
 
 # OpenSBI firmware
 pushd vendor/opensbi
 make PLATFORM=generic
 popd
 
-cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin language/generated_resources/au/mrcat/rivet/fw_dynamic.bin
+cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin $resources_dir/fw_dynamic.bin

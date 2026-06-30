@@ -38,11 +38,6 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>generated_resources</directory>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
