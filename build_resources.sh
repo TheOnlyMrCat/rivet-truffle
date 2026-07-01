@@ -10,7 +10,7 @@ dtc -o $resources_dir/rivet-truffle.dtb language/src/main/devicetree/rivet-truff
 
 # OpenSBI firmware
 pushd vendor/opensbi
-make PLATFORM=generic
+make PLATFORM=generic LLVM=1
 popd
 
 cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin $resources_dir/fw_dynamic.bin

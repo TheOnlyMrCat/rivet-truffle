@@ -3,6 +3,10 @@
 
 !.gitignore
 
+# Whitelist nix source
+!flake.nix
+!flake.lock
+
 # Whitelist maven project source files
 !pom.xml
 
