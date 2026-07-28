@@ -65,9 +65,8 @@
 # MARCH: rv32i_zicsr_zifencei_zicbom
 ##### END_TEST_CONFIG #####
 
-#define TEST_FILE "sv32_zicbom_exceptions_Smode.S"
 #define SIGUPD_COUNT 85
-#define SKIP_MEPC
+
 
 #include "riscv_arch_test.h"
 
@@ -165,7 +164,7 @@ main:
 
   // Save area setup for code region
   csrr a0, mscratch
-  SAVE_AREA_SETUP(va_rvtest_code_begin, rvtest_code_begin, code)
+  SAVE_AREA_SETUP(va_rvtest_code_begin, rvtest_code_begin, code, LEVEL1)
 
 //---------------------------------------------------------------------------------------------------------------------------------
 //                                               Test Cases Start from here
@@ -175,7 +174,7 @@ main:
   sfence.vma                                                             // Flush TLB
 
   LI(t0, MENVCFG_CBCFE | MENVCFG_CBIE)
-  CSRS(menvcfg, t0)                                                      // Allow execution of Zicbom instructions in S-Mode
+  csrs menvcfg, t0                                                      // Allow execution of Zicbom instructions in S-Mode
 
 //---------------------------------------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -229,10 +228,10 @@ main:
   sfence.vma
 
   LI(t0, MSTATUS_SUM)
-  CSRS(mstatus, t0)                                               // Set mstatus.SUM
+  csrs mstatus, t0                                               // Set mstatus.SUM
   TEST_CASES_RUNNER Smode, va_data, LEVEL1, test5
   LI(t0, MSTATUS_SUM)
-  CSRC(mstatus, t0)                                               // Clear mstatus.SUM
+  csrc mstatus, t0                                               // Clear mstatus.SUM
 
 //---------------------------------------------------------------------------------------------------------------------------------
 //                    4MB PAGE    Region 1 under test at level 1 -- RWX permissions given to the region
@@ -352,10 +351,10 @@ main:
   sfence.vma
 
   LI(t0, MSTATUS_SUM)
-  CSRS(mstatus, t0)                                               // Set mstatus.SUM
+  csrs mstatus, t0                                               // Set mstatus.SUM
   TEST_CASES_RUNNER Smode, va_data, LEVEL0, test16
   LI(t0, MSTATUS_SUM)
-  CSRC(mstatus, t0)                                               // Clear mstatus.SUM
+  csrc mstatus, t0                                               // Clear mstatus.SUM
 
 //---------------------------------------------------------------------------------------------------------------------------------
 //                    4KB PAGE    Region 1 under test at level 0 -- RWX permissions given to the region
@@ -476,7 +475,7 @@ RVTEST_DATA_BEGIN
 //                                            PHYSICAL ADDRESS REGION FOR TESTING
 //---------------------------------------------------------------------------------------------------------------------------------
 // Physical Address region under testing for LEVEL 0 and 1
-.align 12
+.p2align 12
 rvtest_data_1:
   nop
   addi a4, a2, 4
@@ -490,7 +489,7 @@ rvtest_data_1:
 //---------------------------------------------------------------------------------------------------------------------------------
 
 // Page Table
-.align 12
+.p2align 12
 rvtest_slvl0_pg_tbl:
     .skip(4096)
 

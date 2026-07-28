@@ -2,6 +2,15 @@
 # Jordan Carlin jcarlin@hmc.edu April 2026
 # CI configuration for Sail reference model
 
-# SsstrictS & SsstrictU excluded as they are not supported by the old trap handler
 ci_enabled: true
-exclude_extensions: "SsstrictS,SsstrictU"
+exclude_extensions: "Zkr,SdtrigSm,SdtrigS,SdtrigU"
+shards: 1
+config_shards:
+  sail-RVA22S64-optional: 2
+  sail-RVA23S64: 2
+  sail-RVA23S64-optional: 2
+  sail-RVB23S64-optional: 2
+  sail-rv32-max: 3
+  sail-rv32-max-clang: 3
+  sail-rv64-max: 3
+  sail-rv64-max-clang: 3

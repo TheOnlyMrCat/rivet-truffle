@@ -18,6 +18,7 @@ from testgen.asm.interrupts import (
     set_stimecmp_zero,
 )
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 # ---------------------------------------------------------------------------
@@ -33,10 +34,10 @@ def _generate_machine_sti_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_machine_sti"
-    r_scratch, r_stce = test_data.int_regs.get_registers(2, exclude_regs=[])
+    r_scratch, r_stce = test_data.int_regs.get_registers(2)
 
     lines = [
-        comment_banner(f"{coverpoint}", "M-mode STI: mideleg x mie_stie (STCE=1, MIE=1 fixed)"),
+        comment_banner(coverpoint, "M-mode STI: mideleg x mie_stie (STCE=1, MIE=1 fixed)"),
         "",
     ]
 
@@ -71,28 +72,34 @@ def _generate_machine_tm_tests(test_data: TestData) -> list[str]:
     """cp_machine_tm: M-mode csrr stimecmp with mcounteren.TM={0,1}."""
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_machine_tm"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
-        comment_banner(f"{coverpoint}", "M-mode stimecmp read: mcounteren.TM={0,1}"),
+        comment_banner(coverpoint, "M-mode stimecmp read: mcounteren.TM={0,1}"),
         "",
     ]
     for tm_val in [0, 1]:
         lines += [
             "",
             f"# {coverpoint}: TM={tm_val}",
-            "RVTEST_GOTO_MMODE",
             # set or clear mcounteren.TM to control stimecmp visibility
         ]
         if tm_val:
-            lines += [f"LI(x{r_scratch}, 0x2)", f"CSRS(mcounteren, x{r_scratch})"]
+            lines += [f"LI(x{r_scratch}, 0x2)", f"csrs mcounteren, x{r_scratch}"]
         else:
-            lines += [f"LI(x{r_scratch}, 0x2)", f"CSRC(mcounteren, x{r_scratch})"]
+            lines += [f"LI(x{r_scratch}, 0x2)", f"csrc mcounteren, x{r_scratch}"]
 
         lines.append(test_data.add_testcase(f"tm{tm_val}", coverpoint, covergroup))
-        lines += [f"CSRR x{r_scratch}, stimecmp", "nop"]
+        lines += [f"CSRR x{r_scratch}, stimecmp"]
+        lines.extend(
+            [
+                "#if __riscv_xlen == 32",
+                f"CSRR x{r_scratch}, stimecmph",
+                "#endif",
+            ]
+        )
         # restore: clear mcounteren.TM
-        lines += [f"LI(x{r_scratch}, 0x2)", f"CSRC(mcounteren, x{r_scratch})"]
+        lines += [f"LI(x{r_scratch}, 0x2)", f"csrc mcounteren, x{r_scratch}"]
 
     test_data.int_regs.return_registers([r_scratch])
     return lines
@@ -102,7 +109,7 @@ def _generate_machine_stce_tests(test_data: TestData) -> list[str]:
     """cp_machine_stce: M-mode csrr stimecmp with menvcfg.STCE={0,1}."""
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_machine_stce"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
         comment_banner("cp_machine_stce", "M-mode stimecmp read: menvcfg.STCE={0,1}"),
@@ -117,7 +124,14 @@ def _generate_machine_stce_tests(test_data: TestData) -> list[str]:
             *set_menvcfg_stce(r_scratch, bool(stce_val)),
         ]
         lines.append(test_data.add_testcase(f"stce{stce_val}", coverpoint, covergroup))
-        lines += [f"CSRR x{r_scratch}, stimecmp", "nop"]
+        lines += [f"CSRR x{r_scratch}, stimecmp"]
+        lines.extend(
+            [
+                "#if __riscv_xlen == 32",
+                f"CSRR x{r_scratch}, stimecmph",
+                "#endif",
+            ]
+        )
         # restore STCE=1 for subsequent tests
         lines += set_menvcfg_stce(r_scratch, True)
 
@@ -144,7 +158,7 @@ def _generate_supervisor_sti_tests(test_data: TestData) -> list[str]:
 
     lines = [
         comment_banner(
-            f"{coverpoint}", "S-mode STI: menvcfg_stce × mstatus_mie × mstatus_sie × mideleg_sti × mie_stie (32 bins)"
+            coverpoint, "S-mode STI: menvcfg_stce × mstatus_mie × mstatus_sie × mideleg_sti × mie_stie (32 bins)"
         ),
         "",
     ]
@@ -160,25 +174,25 @@ def _generate_supervisor_sti_tests(test_data: TestData) -> list[str]:
                             "",
                             f"# {coverpoint}: STCE={stce} MIE={mie} SIE={sie} MIDELEG={mideleg_val} STIE={stie}",
                             "RVTEST_GOTO_MMODE",
-                            "CSRW(mie, zero)",
+                            "csrw mie, zero",
                             "csrci mstatus, 8",
                             "csrci mstatus, 2",
                             # load 0x20 once; reused for mip/mideleg/mie below
                             # (set_menvcfg_stce uses r_stce so r_scratch stays valid)
                             f"LI(x{r_scratch}, 0x20)",
-                            f"CSRC(mip, x{r_scratch})",
+                            f"csrc mip, x{r_scratch}",
                             "csrsi mcounteren, 2",
                         ]
 
                         lines += set_menvcfg_stce(r_stce, bool(stce))
 
                         if mideleg_val:
-                            lines.append(f"CSRW(mideleg, x{r_scratch})")
+                            lines.append(f"csrw mideleg, x{r_scratch}")
                         else:
-                            lines.append("CSRW(mideleg, zero)")
+                            lines.append("csrw mideleg, zero")
 
                         if stie:
-                            lines.append(f"CSRW(mie, x{r_scratch})")
+                            lines.append(f"csrw mie, x{r_scratch}")
 
                         # stimecmp setup last (clobbers r_scratch)
                         if stce:
@@ -221,10 +235,10 @@ def _generate_supervisor_tm_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_supervisor_tm"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
-        comment_banner(f"{coverpoint}", "S-mode stimecmp read: mcounteren.TM={0,1}"),
+        comment_banner(coverpoint, "S-mode stimecmp read: mcounteren.TM={0,1}"),
         "",
     ]
     for tm_val in [0, 1]:
@@ -237,19 +251,21 @@ def _generate_supervisor_tm_tests(test_data: TestData) -> list[str]:
             # set or clear mcounteren.TM
         ]
         if tm_val:
-            lines += [f"LI(x{r_scratch}, 0x2)", f"CSRS(mcounteren, x{r_scratch})"]
+            lines += [f"LI(x{r_scratch}, 0x2)", f"csrs mcounteren, x{r_scratch}"]
         else:
-            lines += [f"LI(x{r_scratch}, 0x2)", f"CSRC(mcounteren, x{r_scratch})"]
+            lines += [f"LI(x{r_scratch}, 0x2)", f"csrc mcounteren, x{r_scratch}"]
 
         lines += [
             "RVTEST_GOTO_LOWER_MODE Smode",
             f"    {test_data.add_testcase(f'tm{tm_val}', coverpoint, covergroup)}",
             f"    CSRR x{r_scratch}, stimecmp",
-            "    nop",
+            "#if __riscv_xlen == 32",
+            f"CSRR x{r_scratch}, stimecmph",
+            "#endif",
             # --- return to M-mode and restore ---
             "RVTEST_GOTO_MMODE",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRC(mcounteren, x{r_scratch})",
+            f"csrc mcounteren, x{r_scratch}",
             *set_menvcfg_stce(r_scratch, False),
         ]
 
@@ -264,10 +280,10 @@ def _generate_supervisor_stce_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_supervisor_stce"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
-        comment_banner(f"{coverpoint}", "S-mode stimecmp read: menvcfg.STCE={0,1}"),
+        comment_banner(coverpoint, "S-mode stimecmp read: menvcfg.STCE={0,1}"),
         "",
     ]
     for stce_val in [0, 1]:
@@ -280,7 +296,9 @@ def _generate_supervisor_stce_tests(test_data: TestData) -> list[str]:
             "RVTEST_GOTO_LOWER_MODE Smode",
             f"    {test_data.add_testcase(f'stce{stce_val}', coverpoint, covergroup)}",
             f"    CSRR x{r_scratch}, stimecmp",
-            "    nop",
+            "#if __riscv_xlen == 32",
+            f"CSRR x{r_scratch}, stimecmph",
+            "#endif",
             # --- return to M-mode and restore STCE=0 ---
             "RVTEST_GOTO_MMODE",
             *set_menvcfg_stce(r_scratch, False),
@@ -313,11 +331,11 @@ def _generate_user_sti_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_user_sti"
-    r_scratch, r_stce, r_hi = test_data.int_regs.get_registers(3, exclude_regs=[])
+    r_scratch, r_stce, r_hi = test_data.int_regs.get_registers(3)
 
     lines = [
         comment_banner(
-            f"{coverpoint}",
+            coverpoint,
             "U-mode STI cross (32 bins)\n"
             "menvcfg_stce x mstatus_mie x mstatus_sie x mideleg_sti x mie_stie\n"
             "STIMECMP=TIME+RVMODEL_TIMER_INT_SOON_DELAY: interrupt fires after sample nop.\n"
@@ -338,23 +356,23 @@ def _generate_user_sti_tests(test_data: TestData) -> list[str]:
                             "",
                             f"# ---- {coverpoint} bin: {binname} ----",
                             "RVTEST_GOTO_MMODE",
-                            "CSRW(mie, zero)",
+                            "csrw mie, zero",
                             "csrci mstatus, 8",
                             "csrci mstatus, 2",
                             # load 0x20 once; reused for mip/mideleg/mie below
                             # (set_menvcfg_stce uses r_stce so r_scratch stays valid)
                             f"LI(x{r_scratch}, 0x20)",
-                            f"CSRC(mip, x{r_scratch})",
+                            f"csrc mip, x{r_scratch}",
                             *set_menvcfg_stce(r_stce, bool(stce)),
                         ]
 
                         if deleg:
-                            lines.append(f"CSRW(mideleg, x{r_scratch})")
+                            lines.append(f"csrw mideleg, x{r_scratch}")
                         else:
-                            lines.append("CSRW(mideleg, zero)")
+                            lines.append("csrw mideleg, zero")
 
                         if stie:
-                            lines.append(f"CSRW(mie, x{r_scratch})")
+                            lines.append(f"csrw mie, x{r_scratch}")
 
                         # stimecmp setup last (clobbers r_scratch)
                         lines += set_stimecmp_max(r_scratch)
@@ -405,10 +423,10 @@ def _generate_user_tm_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_user_tm"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
-        comment_banner(f"{coverpoint}", "U-mode stimecmp read: mcounteren.TM={0,1}"),
+        comment_banner(coverpoint, "U-mode stimecmp read: mcounteren.TM={0,1}"),
         "",
     ]
     for tm_val in [0, 1]:
@@ -420,24 +438,26 @@ def _generate_user_tm_tests(test_data: TestData) -> list[str]:
             *set_menvcfg_stce(r_scratch, True),
             # scounteren.TM=1 always; only mcounteren.TM varies
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRS(scounteren, x{r_scratch})",
+            f"csrs scounteren, x{r_scratch}",
         ]
         if tm_val:
-            lines += [f"CSRS(mcounteren, x{r_scratch})"]
+            lines += [f"csrs mcounteren, x{r_scratch}"]
         else:
-            lines += [f"CSRC(mcounteren, x{r_scratch})"]
+            lines += [f"csrc mcounteren, x{r_scratch}"]
 
         lines += [
             "RVTEST_GOTO_LOWER_MODE Umode",
             f"    {test_data.add_testcase(f'tm{tm_val}', coverpoint, covergroup)}",
             f"    CSRR x{r_scratch}, stimecmp",
-            "    nop",
+            "#if __riscv_xlen == 32",
+            f"CSRR x{r_scratch}, stimecmph",
+            "#endif",
             # --- return to M-mode and restore ---
             "RVTEST_GOTO_MMODE",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRC(mcounteren, x{r_scratch})",
+            f"csrc mcounteren, x{r_scratch}",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRC(scounteren, x{r_scratch})",
+            f"csrc scounteren, x{r_scratch}",
             *set_menvcfg_stce(r_scratch, False),
         ]
 
@@ -453,10 +473,10 @@ def _generate_user_stce_tests(test_data: TestData) -> list[str]:
     """
     covergroup = "InterruptsSstc_cg"
     coverpoint = "cp_user_stce"
-    r_scratch = test_data.int_regs.get_register(exclude_regs=[])
+    r_scratch = test_data.int_regs.get_register()
 
     lines = [
-        comment_banner(f"{coverpoint}", "U-mode stimecmp read: menvcfg.STCE={0,1}"),
+        comment_banner(coverpoint, "U-mode stimecmp read: menvcfg.STCE={0,1}"),
         "",
     ]
     for stce_val in [0, 1]:
@@ -468,19 +488,21 @@ def _generate_user_stce_tests(test_data: TestData) -> list[str]:
             *set_menvcfg_stce(r_scratch, bool(stce_val)),
             # TM=1 in both counteren so stimecmp access depends only on STCE
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRS(mcounteren, x{r_scratch})",
+            f"csrs mcounteren, x{r_scratch}",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRS(scounteren, x{r_scratch})",
+            f"csrs scounteren, x{r_scratch}",
             "RVTEST_GOTO_LOWER_MODE Umode",
             f"    {test_data.add_testcase(f'stce{stce_val}', coverpoint, covergroup)}",
             f"    CSRR x{r_scratch}, stimecmp",
-            "    nop",
+            "#if __riscv_xlen == 32",
+            f"CSRR x{r_scratch}, stimecmph",
+            "#endif",
             # --- return to M-mode and restore ---
             "RVTEST_GOTO_MMODE",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRC(mcounteren, x{r_scratch})",
+            f"csrc mcounteren, x{r_scratch}",
             f"LI(x{r_scratch}, 0x2)",
-            f"CSRC(scounteren, x{r_scratch})",
+            f"csrc scounteren, x{r_scratch}",
             *set_menvcfg_stce(r_scratch, False),
         ]
 
@@ -494,11 +516,13 @@ def _generate_user_stce_tests(test_data: TestData) -> list[str]:
 
 
 @add_priv_test_generator("InterruptsSstc", required_extensions=["Sm", "S", "Sstc"])
-def make_interruptss_s(test_data: TestData) -> list[str]:
+def make_interruptss_s(test_data: TestData) -> list[TestChunk]:
     """Generate all Sstc interrupt tests (machine, supervisor, user modes)."""
-    r_temp, r_mtcmp = test_data.int_regs.get_registers(2, exclude_regs=[])
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
+    r_temp, r_mtcmp = test_data.int_regs.get_registers(2)
 
-    lines = [
+    tc.code = [
         comment_banner(
             "InterruptsSstc",
             "Supervisor timer (Sstc) interrupt tests\n"
@@ -511,21 +535,22 @@ def make_interruptss_s(test_data: TestData) -> list[str]:
         # initializes mtimecmp to a large default) only sees STIP, causing a mismatch.
         *clr_mtimer_int(r_temp, r_mtcmp),
         # global init: no delegation, clear TW so WFI doesn't trap in lower modes
-        "CSRW(mideleg, zero)",
+        "csrw mideleg, zero",
         f"LI(x{r_temp}, 0x200000)",
-        f"CSRC(mstatus, x{r_temp})",  # clear TW bit
+        f"csrc mstatus, x{r_temp}",  # clear TW bit
         "",
     ]
 
-    lines += _generate_machine_sti_tests(test_data)
-    lines += _generate_machine_tm_tests(test_data)
-    lines += _generate_machine_stce_tests(test_data)
-    lines += _generate_supervisor_sti_tests(test_data)
-    lines += _generate_supervisor_tm_tests(test_data)
-    lines += _generate_supervisor_stce_tests(test_data)
-    lines += _generate_user_sti_tests(test_data)
-    lines += _generate_user_tm_tests(test_data)
-    lines += _generate_user_stce_tests(test_data)
+    tc.code += _generate_machine_sti_tests(test_data)
+    tc.code += _generate_machine_tm_tests(test_data)
+    tc.code += _generate_machine_stce_tests(test_data)
+    tc.code += _generate_supervisor_sti_tests(test_data)
+    tc.code += _generate_supervisor_tm_tests(test_data)
+    tc.code += _generate_supervisor_stce_tests(test_data)
+    tc.code += _generate_user_sti_tests(test_data)
+    tc.code += _generate_user_tm_tests(test_data)
+    tc.code += _generate_user_stce_tests(test_data)
 
     test_data.int_regs.return_registers([r_temp, r_mtcmp])
-    return lines
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks

@@ -11,6 +11,7 @@
 
 from testgen.asm.helpers import comment_banner, load_int_reg, write_sigupd
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 
@@ -22,7 +23,7 @@ def _generate_ssu64xl_tests(test_data: TestData) -> list[str]:
 
     lines = [
         comment_banner(
-            f"{coverpoint}",
+            coverpoint,
             "sstatus.UXL=2 (UXLEN=64 for User mode)\nWrite 64-bit value to GPR in U-mode and read it back.",
         ),
     ]
@@ -30,15 +31,15 @@ def _generate_ssu64xl_tests(test_data: TestData) -> list[str]:
     lines.extend(
         [
             "RVTEST_GOTO_LOWER_MODE Smode",
-            f"CSRR(x{orig_reg}, sstatus)",
-            f"CSRR(x{uxl_reg}, sstatus)",
+            f"csrr x{orig_reg}, sstatus",
+            f"csrr x{uxl_reg}, sstatus",
             f"LI(x{val_reg}, {~(3 << 32) & 0xFFFFFFFFFFFFFFFF})",  # mask clears bits 33:32
             f"and x{uxl_reg}, x{uxl_reg}, x{val_reg}",
             f"LI(x{val_reg}, {2 << 32})",  # UXL=2 → bit 33 set
             f"or x{uxl_reg}, x{uxl_reg}, x{val_reg}",
-            f"CSRW(sstatus, x{uxl_reg})",
+            f"csrw sstatus, x{uxl_reg}",
             test_data.add_testcase("uxl_is_10", coverpoint, covergroup),
-            f"CSRR(x{uxl_reg}, sstatus)",
+            f"csrr x{uxl_reg}, sstatus",
             write_sigupd(uxl_reg, test_data),
         ]
     )
@@ -57,7 +58,7 @@ def _generate_ssu64xl_tests(test_data: TestData) -> list[str]:
         [
             "RVTEST_GOTO_MMODE",
             "RVTEST_GOTO_LOWER_MODE Smode",
-            f"CSRW(sstatus, x{orig_reg})",
+            f"csrw sstatus, x{orig_reg}",
             "RVTEST_GOTO_MMODE",
         ]
     )
@@ -71,7 +72,9 @@ def _generate_ssu64xl_tests(test_data: TestData) -> list[str]:
     required_extensions=["S", "Ssu64xl"],
     march_extensions=["S"],
 )
-def make_ssu64xl(test_data: TestData) -> list[str]:
-    lines: list[str] = []
-    lines.extend(_generate_ssu64xl_tests(test_data))
-    return lines
+def make_ssu64xl(test_data: TestData) -> list[TestChunk]:
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
+    tc.code.extend(_generate_ssu64xl_tests(test_data))
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks
