@@ -9,10 +9,24 @@ public final class PrivilegedState {
 
     private static final long MSTATUS_FIELDS_MASK =
             0b0100_0000_0000_0000_0000_0111_1110_0001_1001_1010_1010L;
+    private static final long SSTATUS_FIELDS_MASK =
+            0b0000_0000_0000_0000_0000_0000_1100_0000_0001_0010_0010L;
     private static final long MSTATUS_RESET_VALUE = 0b0100_0000_1010_0000_0000_0000_0000_0001_1000_1010_0000L;
     private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
     private static final long INTERRUPT_MASK = 0;
     private static final long COUNTER_MASK = 0b101;
+
+    private long sie;
+    private long stvec;
+    private long scounteren;
+
+    private long sscratch;
+    private long sepc;
+    private long scause;
+    private long stval;
+
+    private long senvcfg;
+    private long satp;
 
     private long mstatus = MSTATUS_RESET_VALUE;
     private long medeleg;
@@ -63,23 +77,38 @@ public final class PrivilegedState {
         switch (csr) {
             // User-level CSRs
             case Csr.CYCLE -> {
-                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 0)) == 0) {
+                if (mode != PrivilegeMode.Machine && (mcounteren & scounteren & (1 << 0)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 return mcycle;
             }
             case Csr.TIME -> {
-                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 1)) == 0) {
+                if (mode != PrivilegeMode.Machine && (mcounteren & scounteren & (1 << 1)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 return System.nanoTime();
             }
             case Csr.INSTRET -> {
-                if (mode != PrivilegeMode.Machine && (mcounteren & (1 << 2)) == 0) {
+                if (mode != PrivilegeMode.Machine && (mcounteren & scounteren & (1 << 2)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 return minstret;
             }
+
+            // Supervisor-level CSRs
+            case Csr.SSTATUS -> { return mstatus & SSTATUS_FIELDS_MASK; }
+            case Csr.SIE -> { return mie & mideleg; }
+            case Csr.STVEC -> { return stvec; }
+            case Csr.SCOUNTEREN -> { return scounteren; }
+
+            case Csr.SSCRATCH -> { return sscratch; }
+            case Csr.SEPC -> { return sepc; }
+            case Csr.SCAUSE -> { return scause; }
+            case Csr.STVAL -> { return stval; }
+            case Csr.SIP -> { return mip & mideleg; }
+
+            case Csr.SENVCFG -> { return senvcfg; }
+            case Csr.SATP -> { return satp; }
 
             // Machine-level CSRs
             case Csr.MVENDORID -> { return 0; }
@@ -133,6 +162,28 @@ public final class PrivilegedState {
         }
 
         switch (csr) {
+            // Supervisor-level CSRs
+            case Csr.SSTATUS -> {
+                // Mask out invalid fields
+                mstatus = value & SSTATUS_FIELDS_MASK;
+                // Set SXL and UXL to 64-bit
+                mstatus |= 0b1010L << 32L;
+            }
+            case Csr.SIE -> sie = value & mideleg;
+            case Csr.STVEC -> stvec = value;
+            case Csr.SCOUNTEREN -> scounteren = value;
+
+            case Csr.SSCRATCH -> sscratch = value;
+            case Csr.SEPC -> sepc = value;
+            case Csr.SCAUSE -> scause = value;
+            case Csr.STVAL -> stval = value;
+            case Csr.SIP -> mip = value & mideleg;
+
+            case Csr.SENVCFG -> senvcfg = value;
+            case Csr.SATP -> {
+                // Do nothing; SvBare is the only supported legal address translation mode at the moment
+            }
+
             // Machine-level CSRs
             case Csr.MSTATUS -> {
                 long prevMstatus = mstatus;
@@ -149,10 +200,17 @@ public final class PrivilegedState {
                 if ((prevMstatus & (1L << 42)) == 0 && (mstatus & (1L << 42)) != 0) {
                     mstatus &= ~(1 << 3);
                 }
+                // Only allow MIE to be explicitly set if MDT is 0
+                if ((prevMstatus & (1L << 3)) == 0 && (mstatus & (1L << 3)) != 0 && (mstatus & (1L << 42)) != 0) {
+                    mstatus &= ~(1 << 3);
+                }
             }
             case Csr.MISA -> { /* Do nothing */ }
             case Csr.MEDELEG -> medeleg = value & EXCEPTION_MASK;
-            case Csr.MIDELEG -> mideleg = value & INTERRUPT_MASK;
+            case Csr.MIDELEG -> {
+                mideleg = value & INTERRUPT_MASK;
+                sie &= mideleg;
+            }
             case Csr.MIE -> mie = value & INTERRUPT_MASK;
             case Csr.MTVEC -> mtvec = value;
             case Csr.MCOUNTEREN -> mcounteren = value & COUNTER_MASK;

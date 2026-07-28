@@ -130,7 +130,7 @@ public class RiscvArchTest {
         String tableRow = String.format("%%%ds: %%3d run; %%3d passed; %%3d failed", firstColWidth);
 
         IO.println(String.format(tableRow,
-                "",
+                "Totals",
                 results.totalRun(),
                 results.totalPassed(),
                 results.totalRun() - results.totalPassed()));

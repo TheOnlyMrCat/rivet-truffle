@@ -6,6 +6,25 @@ public class Csr {
     public static final int TIME = 0xC01;
     public static final int INSTRET = 0xC02;
 
+    // Supervisor Trap Setup
+    public static final int SSTATUS = 0x100;
+    public static final int SIE = 0x104;
+    public static final int STVEC = 0x105;
+    public static final int SCOUNTEREN = 0x106;
+
+    // Supervisor Configuration
+    public static final int SENVCFG = 0x10A;
+
+    // Supervisor Trap Handling
+    public static final int SSCRATCH = 0x140;
+    public static final int SEPC = 0x141;
+    public static final int SCAUSE = 0x142;
+    public static final int STVAL = 0x143;
+    public static final int SIP = 0x144;
+
+    // Supervisor Protection and Translation
+    public static final int SATP = 0x180;
+
     // Machine Information Registers
     public static final int MVENDORID = 0xF11;
     public static final int MARCHID = 0xF12;
