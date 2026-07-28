@@ -8,6 +8,7 @@
 from testgen.asm.csr import csr_walk_test
 from testgen.asm.helpers import comment_banner
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 
@@ -21,8 +22,8 @@ def _generate_stvec_mode_tests(test_data: TestData) -> list[str]:
             "Write stvec with MODE=Direct (0) and walking 1s through BASE field.\n"
             "Must execute in S-mode so that priv_mode_s is sampled in the cross.\n"
             "MODE bits[1:0] are kept 0 throughout to satisfy stvec_mode 'direct' bin.\n"
-            "Walking 1s use CSRS (CSRRS) — csrrc/walking 0s not needed per CTP.\n"
-            "stvec is cleared via CSRW zero before each CSRS so the OR result is\n"
+            "Walking 1s use csrs (csrrs) — csrrc/walking 0s not needed per CTP.\n"
+            "stvec is cleared via csrw zero before each csrs so the OR result is\n"
             "exactly the walking-1 pattern.",
         ),
         "RVTEST_GOTO_LOWER_MODE Smode  # switch to S-mode before walking stvec",
@@ -43,7 +44,9 @@ def _generate_stvec_mode_tests(test_data: TestData) -> list[str]:
 
 
 @add_priv_test_generator("Sstvecd", required_extensions=["S"])
-def make_sstvecd(test_data: TestData) -> list[str]:
-    lines: list[str] = []
-    lines.extend(_generate_stvec_mode_tests(test_data))
-    return lines
+def make_sstvecd(test_data: TestData) -> list[TestChunk]:
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
+    tc.code.extend(_generate_stvec_mode_tests(test_data))
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks

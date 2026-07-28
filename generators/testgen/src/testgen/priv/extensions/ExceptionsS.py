@@ -10,6 +10,7 @@
 
 from testgen.asm.helpers import comment_banner, write_sigupd
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.extensions.ExceptionsCommon import (
     generate_breakpoint_tests,
     generate_ecall_tests,
@@ -35,7 +36,7 @@ _CG = "ExceptionsS_cg"
 
 def _generate_illegal_instruction_csr_tests(test_data: TestData) -> list[str]:
     covergroup, coverpoint = _CG, "cp_illegal_instruction_csr"
-    dest_regs = test_data.int_regs.get_registers(2, exclude_regs=[0])
+    dest_regs = test_data.int_regs.get_registers(2)
 
     lines = [
         comment_banner(coverpoint, "Illegal Instruction"),
@@ -54,7 +55,6 @@ def _generate_illegal_instruction_csr_tests(test_data: TestData) -> list[str]:
                 f"LI(x{dest_regs[1]}, 0xB0BACAFE)",
                 test_data.add_testcase(test_name, coverpoint, covergroup),
                 f" {instr}",
-                " nop",
                 write_sigupd(dest_regs[1], test_data),
             ]
         )
@@ -79,7 +79,7 @@ def _add_jalr_misaligned_test_fault_addr(
     t_lines = [test_data.add_testcase(label, coverpoint, covergroup)]
 
     for off in offsets_for_lsb[rs1_lsb]:
-        t_lines.extend([f"jalr x1, {off}(x{addr_reg})", "nop"])
+        t_lines.append(f"jalr x1, {off}(x{addr_reg})")
 
     return t_lines
 
@@ -101,8 +101,7 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
     covergroup = _CG
     coverpoint = "cp_medeleg_msu"
 
-    # excluding x6, x7, x9 since RVTEST_GOTO_LOWER_MODE may clobber these registers
-    addr_reg, data_reg, check_reg, medeleg_reg = test_data.int_regs.get_registers(4, exclude_regs=[0, 1, 6, 7, 9])
+    addr_reg, data_reg, check_reg, medeleg_reg = test_data.int_regs.get_registers(4)
 
     lines = []
 
@@ -132,7 +131,6 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
             [
                 test_data.add_testcase(f"instrmisaligned_{tag}", coverpoint, covergroup),
                 f"LA(x{addr_reg}, RVMODEL_ACCESS_FAULT_ADDRESS)",
-                "LI(x4, 0xACCE)",
             ]
         )
         for rs1_lsb in range(4):
@@ -143,7 +141,6 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
                     rs1_lsb, addr_reg, test_data, coverpoint, covergroup, tag_prefix=tag
                 )
             )
-        lines.append("nop")
         lines.append("#endif")
 
         # Instruction access fault
@@ -152,9 +149,7 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
                 "#ifdef RVMODEL_ACCESS_FAULT_ADDRESS",
                 test_data.add_testcase(f"instraccessfault_{tag}", coverpoint, covergroup),
                 f"LA(x{addr_reg}, RVMODEL_ACCESS_FAULT_ADDRESS)",
-                "LI(x4, 0xACCE)",
                 f"jalr x1, 0(x{addr_reg})",
-                "nop",
                 "#endif",
             ]
         )
@@ -163,9 +158,8 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
         lines.extend(
             [
                 test_data.add_testcase(f"illegalinstr_zeros_{tag}", coverpoint, covergroup),
-                ".align 2",
+                ".p2align 2",
                 ".word 0x00000000",
-                "nop",
             ]
         )
 
@@ -173,9 +167,8 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
         lines.extend(
             [
                 test_data.add_testcase(f"illegalinstr_ones_{tag}", coverpoint, covergroup),
-                ".align 2",
+                ".p2align 2",
                 ".word 0xFFFFFFFF",
-                "nop",
             ]
         )
 
@@ -184,7 +177,6 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
             [
                 test_data.add_testcase(f"ebreak_{tag}", coverpoint, covergroup),
                 "ebreak",
-                "nop",
             ]
         )
 
@@ -194,18 +186,15 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
         )
         for offset in range(8):
             for op in ["lw", "lh", "lhu", "lb", "lbu"]:
-                lines.extend([f"{op} x{check_reg}, {offset}(x{addr_reg})", "nop"])
+                lines.append(f"{op} x{check_reg}, {offset}(x{addr_reg})")
             lines.extend(
                 [
                     "#if __riscv_xlen == 64",
                     f" ld x{check_reg}, {offset}(x{addr_reg})",
-                    " nop",
                     f" lwu x{check_reg}, {offset}(x{addr_reg})",
-                    " nop",
                     "#endif",
                 ]
             )
-        lines.append("nop")
 
         # Load access fault
         lines.append("#ifdef RVMODEL_ACCESS_FAULT_ADDRESS")
@@ -216,16 +205,13 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
             ]
         )
         for op in ["lw", "lh", "lhu", "lb", "lbu"]:
-            lines.extend([f"{op} x{check_reg}, 0(x{addr_reg})", "nop"])
+            lines.append(f"{op} x{check_reg}, 0(x{addr_reg})")
         lines.extend(
             [
                 "#if __riscv_xlen == 64",
                 f" ld x{check_reg}, 0(x{addr_reg})",
-                " nop",
                 f" lwu x{check_reg}, 0(x{addr_reg})",
-                " nop",
                 "#endif",
-                "nop",
                 "#endif",
             ]
         )
@@ -240,16 +226,14 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
         )
         for offset in range(8):
             for op in ["sw", "sh", "sb"]:
-                lines.extend([f"{op} x{data_reg}, {offset}(x{addr_reg})", "nop"])
+                lines.append(f"{op} x{data_reg}, {offset}(x{addr_reg})")
             lines.extend(
                 [
                     "#if __riscv_xlen == 64",
                     f" sd x{data_reg}, {offset}(x{addr_reg})",
-                    " nop",
                     "#endif",
                 ]
             )
-        lines.append("nop")
 
         # Store access fault
         lines.append("#ifdef RVMODEL_ACCESS_FAULT_ADDRESS")
@@ -261,25 +245,24 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
             ]
         )
         for op in ["sw", "sh", "sb"]:
-            lines.extend([f"{op} x{data_reg}, 0(x{addr_reg})", "nop"])
+            lines.append(f"{op} x{data_reg}, 0(x{addr_reg})")
         lines.extend(
             [
                 "#if __riscv_xlen == 64",
                 f" sd x{data_reg}, 0(x{addr_reg})",
-                " nop",
                 "#endif",
-                "nop",
                 "#endif",
             ]
         )
 
-        # Ecall
+        # Ecall (uses the T-SBI ECALL_TEST protocol: a bare ecall with a stale a0 would be
+        # misinterpreted by the trap handler as a T-SBI instruction-table request)
         lines.extend(
             [
                 test_data.add_testcase(f"ecall_{tag}", coverpoint, covergroup),
-                "ecall",
-                "nop",
-                "nop",
+                "RVTEST_TSBI_ECALL_TEST  # test ecall to execution environment that just returns",
+                "# ecall returns xepc in a0 (x10).  Store a0 in signature as proof ecall took place.",
+                write_sigupd(10, test_data),
             ]
         )
 
@@ -310,7 +293,7 @@ def _generate_medeleg_msu_tests(test_data: TestData, mode_tag: str, priv_mode: i
 
 def _generate_stvec_tests(test_data: TestData, mode_tag: str, priv_mode: int) -> list[str]:
     covergroup, coverpoint = _CG, "cp_stvec"
-    addr_reg = test_data.int_regs.get_register(exclude_regs=[0])
+    addr_reg = test_data.int_regs.get_register()
 
     lines = [
         "#ifdef RVMODEL_ACCESS_FAULT_ADDRESS",
@@ -332,7 +315,6 @@ def _generate_stvec_tests(test_data: TestData, mode_tag: str, priv_mode: int) ->
         [
             "# Instr access fault should trap through stvec",
             f"LA(x{addr_reg}, RVMODEL_ACCESS_FAULT_ADDRESS)",
-            "LI(x4, 0xACCE)",
             test_data.add_testcase(f"stvec_iaf_{mode_tag}", coverpoint, covergroup),
             f"jalr x1, 0(x{addr_reg})",
             "nop",
@@ -351,7 +333,7 @@ def _generate_stvec_tests(test_data: TestData, mode_tag: str, priv_mode: int) ->
 
 def _generate_xstatus_ie_tests(test_data: TestData, mode_tag: str, priv_mode: int) -> list[str]:
     covergroup, coverpoint = _CG, "cp_xstatus_ie"
-    save_reg, mask_mie, mask_sie, medeleg_reg = test_data.int_regs.get_registers(4, exclude_regs=[0, 6, 7, 9])
+    save_reg, mask_mie, mask_sie, medeleg_reg = test_data.int_regs.get_registers(4)
 
     lines = [
         comment_banner(coverpoint, "xstatus Interrupt Enable"),
@@ -398,8 +380,11 @@ def _generate_xstatus_ie_tests(test_data: TestData, mode_tag: str, priv_mode: in
                 lines.extend(
                     [
                         test_data.add_testcase(tag, coverpoint, covergroup),
-                        "ecall",
-                        "nop",
+                        # T-SBI ECALL_TEST protocol: a bare ecall with a stale a0 would be
+                        # misinterpreted by the trap handler as a T-SBI instruction-table request
+                        "RVTEST_TSBI_ECALL_TEST  # test ecall to execution environment that just returns",
+                        "# ecall returns xepc in a0 (x10).  Store a0 in signature as proof ecall took place.",
+                        write_sigupd(10, test_data),
                         "RVTEST_GOTO_MMODE",
                     ]
                 )
@@ -421,42 +406,48 @@ def _generate_xstatus_ie_tests(test_data: TestData, mode_tag: str, priv_mode: in
 @add_priv_test_generator(
     "ExceptionsS",
     required_extensions=["S"],
-    extra_defines=["#define SKIP_MEPC"],
+    extra_defines=[
+        "#define TRAP_SIGUPD_COUNT 50000",
+    ],
 )
-def make_exceptionss(test_data: TestData) -> list[str]:
+def make_exceptionss(test_data: TestData) -> list[TestChunk]:
     """Main entry point for S-mode exception test generation (refactored)."""
-    lines: list[str] = []
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
 
-    lines.extend(["RVTEST_GOTO_LOWER_MODE Smode  # use S-mode"])
-    lines.extend(generate_instr_adr_misaligned_jal_tests(test_data, _CG))
-    lines.extend(generate_instr_adr_misaligned_jalr_tests(test_data, _CG))
-    lines.extend(generate_instr_adr_misaligned_branch_tests(test_data, _CG))
-    lines.extend(generate_instr_adr_misaligned_branch_nottaken(test_data, _CG))
-    lines.extend(generate_instr_access_fault_tests(test_data, _CG))
-    lines.extend(generate_illegal_instruction_tests(test_data, _CG))
-    lines.extend(generate_illegal_instruction_seed_tests(test_data, _CG))
-    lines.extend(generate_breakpoint_tests(test_data, _CG))
-    lines.extend(generate_load_address_misaligned_tests(test_data, _CG, use_sentinel=True))
-    lines.extend(generate_load_access_fault_tests(test_data, _CG, use_sigupd=True))
-    lines.extend(generate_store_address_misaligned_tests(test_data, _CG))
-    lines.extend(generate_store_access_fault_tests(test_data, _CG))
-    lines.extend(generate_misaligned_priority_load_tests(test_data, _CG, "cp_misaligned_priority", name_infix="_load_"))
-    lines.extend(
+    tc.code.extend(["RVTEST_GOTO_LOWER_MODE Smode  # use S-mode"])
+    tc.code.extend(generate_instr_adr_misaligned_jal_tests(test_data, _CG))
+    tc.code.extend(generate_instr_adr_misaligned_jalr_tests(test_data, _CG))
+    tc.code.extend(generate_instr_adr_misaligned_branch_tests(test_data, _CG))
+    tc.code.extend(generate_instr_adr_misaligned_branch_nottaken(test_data, _CG))
+    tc.code.extend(generate_instr_access_fault_tests(test_data, _CG))
+    tc.code.extend(generate_illegal_instruction_tests(test_data, _CG))
+    tc.code.extend(generate_illegal_instruction_seed_tests(test_data, _CG))
+    tc.code.extend(generate_breakpoint_tests(test_data, _CG))
+    tc.code.extend(generate_load_address_misaligned_tests(test_data, _CG, use_sentinel=True))
+    tc.code.extend(generate_load_access_fault_tests(test_data, _CG, use_sigupd=True))
+    tc.code.extend(generate_store_address_misaligned_tests(test_data, _CG))
+    tc.code.extend(generate_store_access_fault_tests(test_data, _CG))
+    tc.code.extend(
+        generate_misaligned_priority_load_tests(test_data, _CG, "cp_misaligned_priority", name_infix="_load_")
+    )
+    tc.code.extend(
         generate_misaligned_priority_store_tests(test_data, _CG, "cp_misaligned_priority", name_infix="_store_")
     )
-    lines.extend(
+    tc.code.extend(
         generate_misaligned_priority_fetch_tests(
             test_data, _CG, "cp_misaligned_priority", name_prefix="fetch_", name_suffix="_priority"
         )
     )
-    lines.extend(generate_ecall_tests(test_data, _CG, "cp_ecall_s", "ecall_s", "Ecall"))
-    lines.extend(_generate_illegal_instruction_csr_tests(test_data))
-    lines.extend(_generate_medeleg_msu_tests(test_data, "mode_m", priv_mode=3))
-    lines.extend(_generate_medeleg_msu_tests(test_data, "mode_s", priv_mode=1))
-    lines.extend(_generate_medeleg_msu_tests(test_data, "mode_u", priv_mode=0))
-    lines.extend(_generate_stvec_tests(test_data, "mode_s", priv_mode=1))
-    lines.extend(_generate_stvec_tests(test_data, "mode_u", priv_mode=0))
-    lines.extend(_generate_xstatus_ie_tests(test_data, "mode_s", priv_mode=1))
-    lines.extend(_generate_xstatus_ie_tests(test_data, "mode_u", priv_mode=0))
+    tc.code.extend(generate_ecall_tests(test_data, _CG, "cp_ecall_s", "ecall_s", "Ecall"))
+    tc.code.extend(_generate_illegal_instruction_csr_tests(test_data))
+    tc.code.extend(_generate_medeleg_msu_tests(test_data, "mode_m", priv_mode=3))
+    tc.code.extend(_generate_medeleg_msu_tests(test_data, "mode_s", priv_mode=1))
+    tc.code.extend(_generate_medeleg_msu_tests(test_data, "mode_u", priv_mode=0))
+    tc.code.extend(_generate_stvec_tests(test_data, "mode_s", priv_mode=1))
+    tc.code.extend(_generate_stvec_tests(test_data, "mode_u", priv_mode=0))
+    tc.code.extend(_generate_xstatus_ie_tests(test_data, "mode_s", priv_mode=1))
+    tc.code.extend(_generate_xstatus_ie_tests(test_data, "mode_u", priv_mode=0))
 
-    return lines
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks

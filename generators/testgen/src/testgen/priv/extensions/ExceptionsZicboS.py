@@ -11,6 +11,7 @@
 from testgen.asm.helpers import comment_banner
 from testgen.constants import INDENT
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 
@@ -60,7 +61,6 @@ def _generate_cbie_tests(test_data: TestData) -> list[str]:
                             f"cbo.inval_mode{mode}_menvcfg.cbie{m_val}_senvcfg.cbie{s_val}", coverpoint, covergroup
                         ),
                         f"cbo.inval    0(x{addr_reg})",
-                        "nop",
                     ]
                 )
     lines.append("#endif")
@@ -114,13 +114,11 @@ def _generate_cbcfe_tests(test_data: TestData) -> list[str]:
                             f"cbo.clean_mode{mode}_menvcfg.cbcfe{m_val}_senvcfg.cbcfe{s_val}", coverpoint, covergroup
                         ),
                         f"cbo.clean    0(x{addr_reg})",
-                        "nop",
                         f"{INDENT}# attempting cbo.flush in {mode_names[mode]} mode with menvcfg.cbcfe = {m_val}, senvcfg.cbcfe = {s_val}",
                         test_data.add_testcase(
                             f"cbo.flush_mode{mode}_menvcfg.cbcfe{m_val}_senvcfg.cbcfe{s_val}", coverpoint, covergroup
                         ),
                         f"cbo.flush    0(x{addr_reg})",
-                        "nop",
                     ]
                 )
     lines.append("#endif")
@@ -172,7 +170,6 @@ def _generate_cbze_tests(test_data: TestData) -> list[str]:
                         f"{INDENT}# attempting cbo.zero in {mode_names[mode]} mode with menvcfg.cbze = {m_val}, senvcfg.cbze = {s_val}",
                         test_data.add_testcase(f"cbo.zero_mode{mode}_mval{m_val}_sval{s_val}", coverpoint, covergroup),
                         f"cbo.zero    0(x{addr_reg})",
-                        "nop",
                     ]
                 )
     lines.append("#endif")
@@ -224,11 +221,9 @@ def _generate_cbo_access_fault_tests(test_data: TestData) -> list[str]:
                     "nop",
                     test_data.add_testcase(f"cbo.{cbo}_mode{mode}_access_fault_0", coverpoint, covergroup),
                     f"cbo.{cbo}    0(x{addr_reg})",
-                    "nop",
                     f"addi x{addr_reg}, x{addr_reg}, 1  # attempt access again with misalignment, check misaligned address is reported in mtval if applicable",
                     test_data.add_testcase(f"cbo.{cbo}_mode{mode}_access_fault_1", coverpoint, covergroup),
                     f"cbo.{cbo}    0(x{addr_reg})",
-                    "nop",
                     "#endif",
                 ]
             )
@@ -255,11 +250,9 @@ def _generate_cbo_access_fault_tests(test_data: TestData) -> list[str]:
                     "# No need to gate prefetch instructions with ZICBOP_SUPPORTED because they are hints that fall back to defined behavior",
                     test_data.add_testcase(f"prefetch.{prefetch}_mode{mode}_access_fault_0", coverpoint, covergroup),
                     f"prefetch.{prefetch}    0(x{addr_reg})",
-                    "nop",
                     f"addi x{addr_reg}, x{addr_reg}, 1  # attempt access again with misalignment",
                     test_data.add_testcase(f"prefetch.{prefetch}_mode{mode}_access_fault_1", coverpoint, covergroup),
                     f"prefetch.{prefetch}    0(x{addr_reg})",
-                    "nop",
                 ]
             )
     lines.append("#endif")
@@ -311,7 +304,6 @@ def _generate_cbo_misaligned_tests(test_data: TestData) -> list[str]:
                     "nop",
                     test_data.add_testcase(f"cbo.{cbo}_mode{mode}_misaligned", coverpoint, covergroup),
                     f"cbo.{cbo}    0(x{addr_reg})",
-                    "nop",
                     "#endif",
                 ]
             )
@@ -339,7 +331,6 @@ def _generate_cbo_misaligned_tests(test_data: TestData) -> list[str]:
                     "# No need to gate prefetch instructions with ZICBOP_SUPPORTED because they are hints that fall back to defined behavior",
                     test_data.add_testcase(f"prefetch.{prefetch}_mode{mode}_misaligned", coverpoint, covergroup),
                     f"prefetch.{prefetch}    0(x{addr_reg})",
-                    "nop",
                 ]
             )
     test_data.int_regs.return_registers([addr_reg, envcfg_reg])
@@ -351,14 +342,16 @@ def _generate_cbo_misaligned_tests(test_data: TestData) -> list[str]:
     required_extensions=["S"],
     march_extensions=["Zicbom", "Zicboz", "Zicbop"],
 )
-def make_exceptionszicbos(test_data: TestData) -> list[str]:
+def make_exceptionszicbos(test_data: TestData) -> list[TestChunk]:
     """Generate tests for ExceptionsZicboS coverpoints"""
-    lines = []
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
 
-    lines.extend(_generate_cbie_tests(test_data))
-    lines.extend(_generate_cbcfe_tests(test_data))
-    lines.extend(_generate_cbze_tests(test_data))
-    lines.extend(_generate_cbo_access_fault_tests(test_data))
-    lines.extend(_generate_cbo_misaligned_tests(test_data))
+    tc.code.extend(_generate_cbie_tests(test_data))
+    tc.code.extend(_generate_cbcfe_tests(test_data))
+    tc.code.extend(_generate_cbze_tests(test_data))
+    tc.code.extend(_generate_cbo_access_fault_tests(test_data))
+    tc.code.extend(_generate_cbo_misaligned_tests(test_data))
 
-    return lines
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks

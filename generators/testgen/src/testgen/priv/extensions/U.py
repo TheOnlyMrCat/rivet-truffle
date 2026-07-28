@@ -8,8 +8,9 @@
 
 """U privileged extension test generator."""
 
-from testgen.asm.helpers import comment_banner
+from testgen.asm.helpers import comment_banner, write_sigupd
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 
@@ -26,17 +27,15 @@ def _generate_priv_inst_tests(test_data: TestData) -> list[str]:
             "Execute privileged instructions\nShould cause ecall, breakpoint, illegal instruction traps",
         ),
         test_data.add_testcase("ecall", coverpoint, covergroup),
-        "ecall                 # test ecall instruction",
-        "nop",
+        "RVTEST_TSBI_ECALL_TEST  # test ecall to execution environment that just returns",
+        "# ecall returns xepc in a0 (x10).  Store a0 in signature as proof ecall took place.",
+        write_sigupd(10, test_data),
         test_data.add_testcase("ebreak", coverpoint, covergroup),
         "ebreak                # test ebreak instruction",
-        "nop",
         test_data.add_testcase("mret", coverpoint, covergroup),
         "mret                  # test mret instruction",
-        "nop",
         test_data.add_testcase("sret", coverpoint, covergroup),
         "sret                  # test sret instruction",
-        "nop",
     ]
 
     return lines
@@ -63,7 +62,7 @@ def _generate_ucsr_tests(test_data: TestData) -> list[str]:
         lines.extend(
             [
                 test_data.add_testcase(f"{csr}", coverpoint, covergroup),
-                f"CSRR(x{temp_reg}, 0x{csr:03x})    # attempt to read CSR {csr:03x}; should get illegal instruction",
+                f"csrr x{temp_reg}, 0x{csr:03x}    # attempt to read CSR {csr:03x}; should get illegal instruction",
                 "",
             ]
         )
@@ -84,7 +83,7 @@ def _generate_ucsr_tests(test_data: TestData) -> list[str]:
         lines.extend(
             [
                 test_data.add_testcase(f"{csr}", coverpoint, covergroup),
-                f"CSRW(0x{csr:03x}, x{temp_reg})    # attempt to write read-only CSR {csr:03x}; should get illegal instruction",
+                f"csrw 0x{csr:03x}, x{temp_reg}    # attempt to write read-only CSR {csr:03x}; should get illegal instruction",
                 "",
             ]
         )
@@ -95,12 +94,14 @@ def _generate_ucsr_tests(test_data: TestData) -> list[str]:
 
 
 @add_priv_test_generator("U", required_extensions=["U", "Zicsr"])
-def make_u(test_data: TestData) -> list[str]:
+def make_u(test_data: TestData) -> list[TestChunk]:
     """Generate tests for U user-mode testsuite."""
-    lines: list[str] = []
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
 
-    lines.extend(["RVTEST_GOTO_LOWER_MODE Umode  # Run tests in user mode\n"])
-    lines.extend(_generate_priv_inst_tests(test_data))
-    lines.extend(_generate_ucsr_tests(test_data))
+    tc.code.extend(["RVTEST_GOTO_LOWER_MODE Umode  # Run tests in user mode\n"])
+    tc.code.extend(_generate_priv_inst_tests(test_data))
+    tc.code.extend(_generate_ucsr_tests(test_data))
 
-    return lines
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks

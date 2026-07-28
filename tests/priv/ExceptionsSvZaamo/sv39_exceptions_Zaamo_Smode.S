@@ -32,10 +32,9 @@
 # MARCH: rv64i_zicsr_zifencei_zaamo
 ##### END_TEST_CONFIG #####
 
-#define TEST_FILE "sv39_exceptions_Zaamo_Smode.S"
 #define SIGUPD_COUNT 45
 #define TRAP_SIGUPD_COUNT 110
-#define SKIP_MEPC
+
 
 #include "riscv_arch_test.h"
 
@@ -103,7 +102,7 @@ main:
 
   // Save area setup for code region
   csrr a0, mscratch
-  SAVE_AREA_SETUP(va_rvtest_code_begin, rvtest_code_begin, code)
+  SAVE_AREA_SETUP(va_rvtest_code_begin, rvtest_code_begin, code, LEVEL2)
 
 //---------------------------------------------------------------------------------------------------------------------------------
 //                                               Test Cases Start from here
@@ -174,7 +173,7 @@ main:
 
   // Test case 9-10: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[0] set | expected = 1 Store/AMO page fault
   li a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test9
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test10
@@ -182,7 +181,7 @@ main:
 
   // Test case 11-12: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[1] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test11
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test12
@@ -190,7 +189,7 @@ main:
 
   // Test case 13-14: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[2] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test13
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test14
@@ -198,7 +197,7 @@ main:
 
   // Test case 15-16: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[3] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test15
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test16
@@ -206,7 +205,7 @@ main:
 
   // Test case 17-18: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[4] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test17
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test18
@@ -214,7 +213,7 @@ main:
 
   // Test case 19-20: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[5] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test19
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test20
@@ -222,7 +221,7 @@ main:
 
   // Test case 21-22: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[6] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test21
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test22
@@ -230,7 +229,7 @@ main:
 
   // Test case 23-24: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[7] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test23
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test24
@@ -238,7 +237,7 @@ main:
 
   // Test case 25-26: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[8] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test25
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test26
@@ -246,7 +245,7 @@ main:
 
   // Test case 27-28: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[9] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test27, ECALL_DELEG=1
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test28, ECALL_DELEG=1
@@ -254,7 +253,7 @@ main:
 
   // Test case 29-30: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[12] set | expected = 1 Store/AMO page fault
   slli a1, a1, 3
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test29
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test30
@@ -262,7 +261,7 @@ main:
 
   // Test case 31-32: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[13] set | expected = 1 Store/AMO page fault
   slli a1, a1, 1
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test31
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test32
@@ -270,7 +269,7 @@ main:
 
   // Test case 33-34: Test in S-Mode | Valid & Invalid PTEs | RWX set | medeleg[15] set | expected = 1 Store/AMO page fault
   slli a1, a1, 2
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test33
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test34
@@ -278,7 +277,7 @@ main:
 
   // Test case 35-36: Test in S-Mode | Valid & Invalid PTEs | RWX set | set medeleg = 0xB1FF | expected = 1 Store/AMO page fault
   LI(a1, 0xB1FF)
-  CSRW(medeleg, a1)
+  csrw medeleg, a1
   TEST_CASES_RUNNER Smode, va_data, LEVEL2, test35
   sfence.vma
   TEST_CASES_RUNNER Smode, va_data_inv, LEVEL2, test36
@@ -293,7 +292,7 @@ RVTEST_DATA_BEGIN
 //                                            PHYSICAL ADDRESS REGION FOR TESTING
 //---------------------------------------------------------------------------------------------------------------------------------
 // Physical Address region under testing for LEVEL 0, 1 and 2
-.align 12
+.p2align 12
 rvtest_data_1:
   .word 0xbeef0000
   addi a4, a2, 4
@@ -307,7 +306,7 @@ rvtest_data_1:
 //---------------------------------------------------------------------------------------------------------------------------------
 
 // Page Tables
-.align 12
+.p2align 12
 rvtest_slvl0_pg_tbl:
     .skip(4096)
 rvtest_slvl1_pg_tbl:

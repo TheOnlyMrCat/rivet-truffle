@@ -32,12 +32,10 @@
 # MARCH: rv64i_zicsr_zifencei
 ##### END_TEST_CONFIG #####
 
-// Define the name of this test file for reporting and the size of the signature region
-#define TEST_FILE "pmp_csr_walk_4.S"
+// Define the size of the signature region
 #define SIGUPD_COUNT 500
 
 // Enable trap handler
-#define rvtest_mtrap_routine
 #define RVTEST_PRIV_TEST
 
 // Include framework macros
@@ -58,7 +56,7 @@ main:
     // label, so there are no name collisions and no branch instructions.
     //
     // The outer walking-ones loop from the original (slli / bnez) is replaced
-    // by 64 explicit li t2, (1<<N) blocks — one per bit — each containing a
+    // by 64 explicit LI(t2, 1<<N) blocks — one per bit — each containing a
     // .rept over all PMP registers.  No runtime branching is used.
     // -----------------------------------------------------------------------
 
@@ -66,7 +64,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 21)
+1:  LI(t2, 1 << 21)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_22_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -75,7 +73,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 22)
+1:  LI(t2, 1 << 22)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_23_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -84,7 +82,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 23)
+1:  LI(t2, 1 << 23)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_24_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -93,7 +91,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 24)
+1:  LI(t2, 1 << 24)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_25_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -102,7 +100,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 25)
+1:  LI(t2, 1 << 25)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_26_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -111,7 +109,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 26)
+1:  LI(t2, 1 << 26)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_27_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -120,7 +118,7 @@ main:
 
     .set pmpaddri, CSR_PMPADDR0
     .rept UDB_NUM_PMP_ENTRIES
-1:  li t2, (1 << 27)
+1:  LI(t2, 1 << 27)
     RVTEST_SIGUPD_CSR_WRITE(pmpaddri, t2, 1b, test_28_str)
     .set pmpaddri, pmpaddri+1
     .endr
@@ -139,10 +137,12 @@ test_26_str: .string "\"test: 26; cp: cp_csr_walk_test_26\""
 test_27_str: .string "\"test: 27; cp: cp_csr_walk_test_27\""
 test_28_str: .string "\"test: 28; cp: cp_csr_walk_test_28\""
 
-.align 12
-.align (UDB_PMP_GRANULARITY)
+.p2align 12
+.p2align (UDB_PMP_GRANULARITY)
 TEST_FOR_EXECUTION_0:
+    .rept (1 << (UDB_PMP_GRANULARITY - 2))              // one PMP granule of return-instruction fillers: places the region on the next granule boundary (= PMP_REGION_START at coverage grain 2), grain-aligned at larger grains
     jr ra
+    .endr
 
 TEST_FOR_EXECUTION:
     .rept (1<<(UDB_PMP_GRANULARITY))

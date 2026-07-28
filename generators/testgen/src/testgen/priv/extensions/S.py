@@ -12,6 +12,7 @@ from testgen.asm.csr import csr_access_test, csr_walk_test, gen_csr_read_sigupd,
 from testgen.asm.helpers import comment_banner, write_sigupd
 from testgen.constants import INDENT
 from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
 from testgen.priv.registry import add_priv_test_generator
 
 
@@ -28,7 +29,7 @@ def _generate_scause_tests(test_data: TestData) -> list[str]:
             coverpoint,
             "with interrupt = 0: test writing each exception cause",
         ),
-        f"CSRR(x{save_reg}, scause)     # save CSR before testing it",
+        f"csrr x{save_reg}, scause     # save CSR before testing it",
     ]
 
     gated_exceptions = [
@@ -92,7 +93,7 @@ def _generate_scause_tests(test_data: TestData) -> list[str]:
             ]
         )
 
-    lines.append(f"\nCSRW(scause, x{save_reg})       # restore CSR")
+    lines.append(f"\ncsrw scause, x{save_reg}       # restore CSR")
 
     test_data.int_regs.return_registers([save_reg, check_reg, temp_reg])
     return lines
@@ -115,7 +116,7 @@ def _generate_sstatus_sd_tests(test_data: TestData) -> list[str]:
         "",
         "# Setup",
         f"SET_MSB(x{reg1}) # put a 1 in the msb of x{reg1} (XLEN-1)",
-        f"CSRR(x{save_reg}, sstatus)        # read and save sstatus",
+        f"csrr x{save_reg}, sstatus        # read and save sstatus",
         f"{INDENT}# set up x{reg3} with sstatus except SD, FS, XS, VS cleared",
         f"not x{reg2}, x{reg1}              # x{reg2} has all but msb set",
         f"and x{reg3}, x{save_reg}, x{reg2} # clear SD bit",
@@ -147,7 +148,7 @@ def _generate_sstatus_sd_tests(test_data: TestData) -> list[str]:
                         ]
                     )
 
-    lines.append(f"\nCSRW(sstatus, x{save_reg})    # restore CSR")
+    lines.append(f"\ncsrw sstatus, x{save_reg}    # restore CSR")
 
     coverpoint = "cp_sxlen_ge_uxlen"  # For SS1P13 extension.
     lines.extend(
@@ -156,11 +157,11 @@ def _generate_sstatus_sd_tests(test_data: TestData) -> list[str]:
             "#ifdef S1P13P0_SUPPORTED",
             "#if __riscv_xlen == 64",
             comment_banner(
-                f"{coverpoint}",
+                coverpoint,
                 "Ss1p13: from S-mode attempt to set sstatus.UXL = 1 and UXL = 2.\n"
                 "UXL=2 must be silently rejected when SXLEN=32 (UXLEN <= SXLEN).",
             ),
-            f"CSRR(x{save_reg}, sstatus)",
+            f"csrr x{save_reg}, sstatus",
             "",
         ]
     )
@@ -170,7 +171,7 @@ def _generate_sstatus_sd_tests(test_data: TestData) -> list[str]:
             [
                 "",
                 f"# Testcase: Ss1p13 attempt to set sstatus.UXL = {uxl} ({label})",
-                f"CSRR(x{check_reg}, sstatus)                     # read current sstatus into GPR",
+                f"csrr x{check_reg}, sstatus                     # read current sstatus into GPR",
                 f"LI(x{reg2}, {~(3 << 32) & 0xFFFFFFFFFFFFFFFF})  # mask to clear UXL bits [33:32]",
                 f"and x{check_reg}, x{check_reg}, x{reg2}         # clear UXL bits [33:32]",
                 f"LI(x{reg2}, {uxl << 32})                        # UXL={uxl} shifted into position [33:32]",
@@ -183,7 +184,7 @@ def _generate_sstatus_sd_tests(test_data: TestData) -> list[str]:
     lines.extend(
         [
             "",
-            f"CSRW(sstatus, x{save_reg})        # restore sstatus after Ss1p13 UXL tests",
+            f"csrw sstatus, x{save_reg}        # restore sstatus after Ss1p13 UXL tests",
             "#endif // UDB_MXLEN_64",
             "#endif // S1P13P0_SUPPORTED",
         ]
@@ -209,26 +210,24 @@ def _generate_priv_inst_tests(test_data: TestData) -> list[str]:
         # ecall test
         "# Testcase: ecall instruction",
         test_data.add_testcase("ecall", coverpoint, covergroup),
-        "ecall               # test ecall instruction",
-        "nop                 # trap handler skips following instruction so this should not be executed",
+        "RVTEST_TSBI_ECALL_TEST  # test ecall to execution environment that just returns",
+        "# ecall returns xepc in a0 (x10).  Store a0 in signature as proof ecall took place.",
+        write_sigupd(10, test_data),
         "",
         # ebreak test
         "# Testcase: ebreak instruction",
         test_data.add_testcase("ebreak", coverpoint, covergroup),
         "ebreak              # test ebreak instruction",
-        "nop                 # trap handler skips following instruction so this should not be executed",
         "",
         # mret test
         "# Testcase: mret instruction",
         test_data.add_testcase("mret", coverpoint, covergroup),
         "mret                # test mret instruction",
-        "nop                 # trap handler skips following instruction so this should not be executed",
         "",
         # sfence.vma test
         "# Testcase: sfence.vma instruction",
         test_data.add_testcase("sfence_vma", coverpoint, covergroup),
         "sfence.vma          # test sfence.vma instruction",
-        "nop                 # might be skipped",
     ]
 
     return lines
@@ -249,7 +248,7 @@ def _generate_mretm_tests(test_data: TestData) -> list[str]:
         ),
         "",
         "# Setup",
-        f"CSRR(x{save_reg}, mstatus)        # read and save mstatus",
+        f"csrr x{save_reg}, mstatus        # read and save mstatus",
         f"{INDENT}# set up x{reg1} with mstatus except MPP, MPRV, MPIE, MIE cleared",
         f"LI(x{reg2}, 0x21888)          # x{reg2} has all MPP, MPRV, MPIE, MIE bits set (bits [12:11], [17], [7], [3], respectively)",
         f"not x{reg2}, x{reg2}              # x{reg2} has all but MPP, MPRV, MPIE, MIE bits set",
@@ -271,8 +270,8 @@ def _generate_mretm_tests(test_data: TestData) -> list[str]:
                             f"LI(x{check_reg}, 0x{fields:08x})  # mpp = {mpp:02b} mprv = {mprv} mpie = {mpie} mie = {mie}",
                             f"or x{check_reg}, x{check_reg}, x{reg1}          # value to write to mstatus with MPP/MPRV/MPIE/MIE bits set/clear",
                             f"LA(x{reg3}, 1f)             # return address after mret",
-                            f"CSRW(mepc, x{reg3})          # set mepc to return address",
-                            f"CSRW(mstatus, x{check_reg})       # write mstatus with MPP/MPRV/MPIE/MIE bits set/clear",
+                            f"csrw mepc, x{reg3}          # set mepc to return address",
+                            f"csrw mstatus, x{check_reg}       # write mstatus with MPP/MPRV/MPIE/MIE bits set/clear",
                             test_data.add_testcase(f"{binname}_wval", coverpoint, covergroup),
                             "mret                   # test mret instruction",
                             f"addi x{check_reg}, zero, -1              # should not be executed",
@@ -284,7 +283,7 @@ def _generate_mretm_tests(test_data: TestData) -> list[str]:
                         ]
                     )
 
-    lines.append(f"\nCSRW(mstatus, x{save_reg})    # restore CSR")
+    lines.append(f"\ncsrw mstatus, x{save_reg}    # restore CSR")
     test_data.int_regs.return_registers([save_reg, check_reg, reg1, reg2, reg3])
     return lines
 
@@ -306,9 +305,9 @@ def _generate_sretm_tests(test_data: TestData) -> list[str]:
         ),
         "",
         "# Setup",
-        f"CSRR(x{save_reg}, mstatus)        # read and save mstatus",
+        f"csrr x{save_reg}, mstatus        # read and save mstatus",
         f"LI(x{reg1}, 1 << 2)",
-        f"CSRC(medeleg, x{reg1})          # turn off delegating illegal instruction exceptions so TSR won't cause a trap loop on sret",
+        f"csrc medeleg, x{reg1}          # turn off delegating illegal instruction exceptions so TSR won't cause a trap loop on sret",
         f"{INDENT}# set up x{reg1} with mstatus except MPRV, SPP, SPIE, SIE, TSR cleared",
         f"LI(x{reg2}, 0x420122)          # x{reg2} has all MPRV, SPP, SPIE, SIE, TSR bits set (bits [17], [8], [5], [1], [22] respectively)",
         f"not x{reg2}, x{reg2}              # x{reg2} has all but MPRV, SPP, SPIE, SIE, TSR bits set",
@@ -331,8 +330,8 @@ def _generate_sretm_tests(test_data: TestData) -> list[str]:
                                 f"LI(x{check_reg}, 0x{fields:08x}) # mprv = {mprv} spp = {spp} spie = {spie} sie = {sie} tsr = {tsr}",
                                 f"or x{check_reg}, x{check_reg}, x{reg1}          # value to write to mstatus with MPRV/SPP/SPIE/SIE/TSR bits set/clear",
                                 f"LA(x{reg3}, 1f)             # return address after sret",
-                                f"CSRW(sepc, x{reg3})          # set sepc to return address (if S mode exists).",
-                                f"CSRW(mstatus, x{check_reg})       # write mstatus with MPRV/SPP/SPIE/SIE/TSR bits set/clear",
+                                f"csrw sepc, x{reg3}          # set sepc to return address (if S mode exists).",
+                                f"csrw mstatus, x{check_reg}       # write mstatus with MPRV/SPP/SPIE/SIE/TSR bits set/clear",
                                 test_data.add_testcase(f"{binname}_wval", coverpoint, covergroup),
                                 "sret                   # test sret instruction, expect illegal instruction if S mode is not supported",
                                 f"addi x{check_reg}, zero, -1              # should not be executed",
@@ -347,7 +346,7 @@ def _generate_sretm_tests(test_data: TestData) -> list[str]:
     lines.extend(
         [
             "# leave medeleg of illegal instruction off because it will be needed in the upcoming srets tests",
-            f"\nCSRW(mstatus, x{save_reg})    # restore CSR",
+            f"\ncsrw mstatus, x{save_reg}    # restore CSR",
         ]
     )
     test_data.int_regs.return_registers([save_reg, check_reg, reg1, reg2, reg3])
@@ -371,7 +370,7 @@ def _generate_srets_tests(test_data: TestData) -> list[str]:
         ),
         "",
         "# Setup",
-        f"CSRR(x{save_reg}, sstatus)        # read and save sstatus",
+        f"csrr x{save_reg}, sstatus        # read and save sstatus",
         f"{INDENT}# set up x{reg1} with sstatus except SPP, SPIE, SIE cleared",
         f"LI(x{reg2}, 0x122)          # x{reg2} has all SPP, SPIE, SIE bits set (bits [8], [5], [1] respectively)",
         f"not x{reg2}, x{reg2}              # x{reg2} has all but SPP, SPIE, SIE bits set",
@@ -390,9 +389,9 @@ def _generate_srets_tests(test_data: TestData) -> list[str]:
         )
 
         if tsr == 1:
-            lines.append(f"CSRS(mstatus, x{check_reg})          # set TSR bit")
+            lines.append(f"csrs mstatus, x{check_reg}          # set TSR bit")
         else:
-            lines.append(f"CSRC(mstatus, x{check_reg})          # clear TSR bit")
+            lines.append(f"csrc mstatus, x{check_reg}          # clear TSR bit")
         lines.append("RVTEST_GOTO_LOWER_MODE Smode # return to supervisor mode to execute sret tests")
 
         for spp in (0, 1):
@@ -409,8 +408,8 @@ def _generate_srets_tests(test_data: TestData) -> list[str]:
                             f"LI(x{check_reg}, 0x{fields:08x}) # spp = {spp} spie = {spie} sie = {sie}",
                             f"or x{check_reg}, x{check_reg}, x{reg1}          # value to write to sstatus with SPP/SPIE/SIE bits set/clear",
                             f"LA(x{reg3}, 1f)             # return address after sret",
-                            f"CSRW(sepc, x{reg3})          # set sepc to return address.",
-                            f"CSRW(sstatus, x{check_reg})       # write sstatus with SPP/SPIE/SIE bits set/clear",
+                            f"csrw sepc, x{reg3}          # set sepc to return address.",
+                            f"csrw sstatus, x{check_reg}       # write sstatus with SPP/SPIE/SIE bits set/clear",
                             test_data.add_testcase(f"{binname}_wval", coverpoint, covergroup),
                             "sret                   # test sret instruction",
                             f"addi x{check_reg}, zero, -1              # should not be executed",  # should not be executed
@@ -425,10 +424,10 @@ def _generate_srets_tests(test_data: TestData) -> list[str]:
 
     lines.extend(
         [
-            f"\nCSRW(sstatus, x{save_reg})    # restore CSR",
+            f"\ncsrw sstatus, x{save_reg}    # restore CSR",
             "RVTEST_GOTO_MMODE      # back to M-mode to touch medeleg",
             f"LI(x{reg1}, 1 << 2)",
-            f"CSRS(medeleg, x{reg1})           # restore delegating illegal instructions",
+            f"csrs medeleg, x{reg1}           # restore delegating illegal instructions",
         ]
     )
     test_data.int_regs.return_registers([save_reg, check_reg, reg1, reg2, reg3])
@@ -452,8 +451,8 @@ def _generate_scsr_tests(test_data: TestData) -> list[str]:
         # stvec.MODE[1] must be 0. Legal values for BASE are hard to describe with a reference model
         ("stvec", 0b10),
         ("scounteren", None),
-        # Mask off CBIE field because reserved 10 value can become unpredictable, fails on cvw.  TODO: give a better way to map 10 to a legal value in Sail
-        ("senvcfg", 0xFFFFFFFFFFFFFFCF),
+        # senvcfg CBIE/PMM reserved values are handled with warl_fields in the walk test below
+        ("senvcfg", None),
         ("sscratch", None),
         ("sepc", None),
         ("stval", None),
@@ -516,7 +515,15 @@ def _generate_scsr_tests(test_data: TestData) -> list[str]:
     )
 
     for csr in csrs:
-        lines.extend(csr_walk_test(test_data, csr, covergroup, coverpoint))
+        if csr[0] == "senvcfg":
+            # senvcfg.CBIE (bits 5:4) and senvcfg.PMM (bits 33:32) are WARL fields with reserved
+            # values 0b10 and 0b01 respectively. Walk iterations that write a reserved value may
+            # legalize to any legal value, so those iterations check that the field is legal
+            # instead of exact-matching the reference model.
+            warl_fields = [("cbie", 4, 2, 0b10), ("pmm", 32, 2, 0b01)]
+            lines.extend(csr_walk_test(test_data, csr, covergroup, coverpoint, warl_fields=warl_fields))
+        else:
+            lines.extend(csr_walk_test(test_data, csr, covergroup, coverpoint))
 
     # cp_csr_satp waived because behavior of other fields is UNSPECIFIED when satp.MODE = Bare
     # ######################################
@@ -582,7 +589,7 @@ def _generate_scsr_tests(test_data: TestData) -> list[str]:
                 "",
                 f"# Testcase: attempt to access CSR 0x{csr:03x}",
                 test_data.add_testcase(f"{csr}", coverpoint, covergroup),
-                f"CSRR(t0, 0x{csr:03x})    # attempt to read higher-privilege CSR {csr:03x}; should get illegal instruction",
+                f"csrr t0, 0x{csr:03x}    # attempt to read higher-privilege CSR {csr:03x}; should get illegal instruction",
             ]
         )
 
@@ -605,7 +612,7 @@ def _generate_scsr_tests(test_data: TestData) -> list[str]:
                 "",
                 f"# Testcase: attempt to access CSR 0x{csr:03x}",
                 test_data.add_testcase(f"{csr}", coverpoint, covergroup),
-                f"CSRW(0x{csr:03x}, x{r1})    # attempt to write read-only CSR {csr:03x}; should get illegal instruction",
+                f"csrw 0x{csr:03x}, x{r1}    # attempt to write read-only CSR {csr:03x}; should get illegal instruction",
             ]
         )
     test_data.int_regs.return_register(r1)
@@ -683,15 +690,16 @@ def _add_shadow(
 
 
 @add_priv_test_generator("S", required_extensions=["S"])
-def make_s(test_data: TestData) -> list[str]:
+def make_s(test_data: TestData) -> list[TestChunk]:
     """Generate tests for S supervisor-mode testsuite."""
-    lines: list[str] = []
+    test_chunks: list[TestChunk] = []
+    tc = test_data.begin_test_chunk()
 
-    lines.append("### Run some tests in machine mode")
-    lines.extend(_generate_mretm_tests(test_data))
-    lines.extend(_generate_sretm_tests(test_data))
-    lines.extend(_generate_srets_tests(test_data))
-    lines.extend(
+    tc.code.append("### Run some tests in machine mode")
+    tc.code.extend(_generate_mretm_tests(test_data))
+    tc.code.extend(_generate_sretm_tests(test_data))
+    tc.code.extend(_generate_srets_tests(test_data))
+    tc.code.extend(
         [
             "",
             "",
@@ -699,9 +707,13 @@ def make_s(test_data: TestData) -> list[str]:
             "RVTEST_GOTO_LOWER_MODE Smode  # Run remaining tests in supervisor mode",
         ]
     )
-    lines.extend(_generate_scause_tests(test_data))
-    lines.extend(_generate_sstatus_sd_tests(test_data))
-    lines.extend(_generate_priv_inst_tests(test_data))
-    lines.extend(_generate_scsr_tests(test_data))
+    tc.code.extend(_generate_scause_tests(test_data))
+    tc.code.extend(_generate_sstatus_sd_tests(test_data))
+    tc.code.extend(_generate_priv_inst_tests(test_data))
+    test_chunks.append(test_data.end_test_chunk())
 
-    return lines
+    tc = test_data.begin_test_chunk("scsr")
+    tc.code.append("RVTEST_GOTO_LOWER_MODE Smode  # Run tests in supervisor mode")
+    tc.code.extend(_generate_scsr_tests(test_data))
+    test_chunks.append(test_data.end_test_chunk())
+    return test_chunks
