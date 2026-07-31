@@ -1,5 +1,6 @@
 package au.mrcat.rivet.nodes.priv;
 
+import au.mrcat.rivet.nodes.RivetInstretNode;
 import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.Csr;
@@ -8,7 +9,7 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public class CsrRmwNode extends RivetNode {
+public class CsrRmwNode extends RivetInstretNode {
     @Node.Child RivetOpNode op;
     private final int csr;
     private final int rd;

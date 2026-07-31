@@ -105,6 +105,10 @@ public final class RivetParser {
                         frontier.addAll(List.of(divergentNode.callTargetContinuations()));
                         break bb;
                     }
+                    case RivetInstretNode ignored -> {
+                        instret = 0;
+                        currentBlock.add(node);
+                    }
                     default -> {
                         instret += 1;
                         currentBlock.add(node);
@@ -1045,6 +1049,7 @@ public final class RivetParser {
                     case Opcode.Priv.EBREAK -> new BreakpointNode(pc, instret);
                     case Opcode.Priv.ECALL -> new EnvironmentCallNode(pc, instret);
                     case Opcode.Priv.MRET -> new MachineReturn(instruction, pc, instret);
+                    case Opcode.Priv.SRET -> new SupervisorReturn(instruction, pc, instret);
                     // Not technically a hint, but we don't have a mechanism for waiting on interrupts yet.
                     case Opcode.Priv.WFI -> new HintNode(instruction);
                     default -> new IllegalInstructionNode(instruction, pc, instret);

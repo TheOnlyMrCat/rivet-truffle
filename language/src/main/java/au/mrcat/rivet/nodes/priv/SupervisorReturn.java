@@ -7,12 +7,12 @@ import au.mrcat.rivet.riscv.PrivilegeMode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class MachineReturn extends RivetDivergentNode {
+public class SupervisorReturn extends RivetDivergentNode {
     private final int instruction;
     private final long pc;
     private final short instret;
 
-    public MachineReturn(int instruction, long pc, short instret) {
+    public SupervisorReturn(int instruction, long pc, short instret) {
         this.instruction = instruction;
         this.pc = pc;
         this.instret = instret;
@@ -21,10 +21,10 @@ public class MachineReturn extends RivetDivergentNode {
     @Override
     public long executeDivergent(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
-        if (ctx.privilegedState.currentMode() != PrivilegeMode.Machine) {
+        if (ctx.privilegedState.shouldTrapSret()) {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction, pc, instruction, instret);
         }
-        return ctx.privilegedState.handleMret();
+        return ctx.privilegedState.handleSret();
     }
 
     @Override

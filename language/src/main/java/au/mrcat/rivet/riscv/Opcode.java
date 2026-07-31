@@ -127,6 +127,7 @@ public class Opcode {
     public static class Priv {
         public static final int ECALL = 0b000000000000;
         public static final int EBREAK = 0b000000000001;
+        public static final int SRET = 0b000100000010;
         public static final int MRET = 0b001100000010;
         public static final int WFI = 0b000100000101;
     }
