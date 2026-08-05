@@ -60,7 +60,29 @@ public class RivetCallTargetNode extends RootNode {
                 return false;
             }
 
-            frame.setLongStatic(0, basicBlockNodes[bbIndex].executeDivergent(frame));
+            try {
+                frame.setLongStatic(0, basicBlockNodes[bbIndex].executeDivergent(frame));
+            } catch (RiscvInstructionFenceException fence) {
+                CompilerDirectives.transferToInterpreter();
+                CompilerAsserts.neverPartOfCompilation("Instruction fences should always deoptimise");
+
+                var newRegisters = new RegisterState();
+                for (int i = 0; i < 31; i++) {
+                    newRegisters.setRegister(i+1, frame.getLongStatic(i+1));
+                }
+                fence.setState(newRegisters);
+                throw fence;
+            } catch (RiscvTrapException trap) {
+                CompilerDirectives.transferToInterpreter();
+                CompilerAsserts.neverPartOfCompilation("Traps should always deoptimise");
+
+                var newRegisters = new RegisterState();
+                for (int i = 0; i < 31; i++) {
+                    newRegisters.setRegister(i+1, frame.getLongStatic(i+1));
+                }
+                trap.setState(newRegisters);
+                throw trap;
+            }
             ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[bbIndex].instructionsRetired);
             return true;
         }
@@ -107,25 +129,7 @@ public class RivetCallTargetNode extends RootNode {
         frame.setLongStatic(0, pc);
         copyFromRegisterState(frame, registers);
 
-        try {
-            loop.execute(frame);
-        } catch (RiscvInstructionFenceException fence) {
-            CompilerDirectives.transferToInterpreter();
-            CompilerAsserts.neverPartOfCompilation("Instruction fences should always deoptimise");
-
-            var newRegisters = new RegisterState();
-            copyToRegisterState(frame, newRegisters);
-            fence.setState(newRegisters);
-            throw fence;
-        } catch (RiscvTrapException trap) {
-            CompilerDirectives.transferToInterpreter();
-            CompilerAsserts.neverPartOfCompilation("Traps should always deoptimise");
-
-            var newRegisters = new RegisterState();
-            copyToRegisterState(frame, newRegisters);
-            trap.setState(newRegisters);
-            throw trap;
-        }
+        loop.execute(frame);
 
         var newRegisters = new RegisterState();
         copyToRegisterState(frame, newRegisters);

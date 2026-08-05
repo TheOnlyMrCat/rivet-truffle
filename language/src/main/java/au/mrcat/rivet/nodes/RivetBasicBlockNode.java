@@ -24,11 +24,9 @@ public class RivetBasicBlockNode extends RivetNode {
         executeDivergent(frame);
     }
 
-    @ExplodeLoop
     public long executeDivergent(VirtualFrame frame) {
         if (instructions != null) {
             for (RivetNode instruction : instructions) {
-                CompilerDirectives.transferToInterpreter();
                 instruction.executeVoid(frame);
             }
         }
