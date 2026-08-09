@@ -118,7 +118,7 @@ public final class RivetParser {
             basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), finalNode, currentPc, instret));
         }
 
-        return new RivetCallTargetNode(language, basicBlocks);
+        return new RivetCallTargetNode(language, initialPc, basicBlocks);
     }
 
     public static RivetNode parseInstruction(int instruction, long pc, short instret) {
