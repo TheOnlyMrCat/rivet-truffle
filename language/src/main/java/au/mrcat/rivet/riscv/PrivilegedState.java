@@ -27,6 +27,7 @@ public final class PrivilegedState {
 
     private long senvcfg;
     private long satp;
+    private AddressSpace addressSpace;
 
     private long mstatus = MSTATUS_RESET_VALUE;
     private long medeleg;
@@ -52,8 +53,18 @@ public final class PrivilegedState {
         return mode;
     }
 
+    public AddressSpace currentAddressSpace() { return addressSpace; }
+
     public boolean shouldTrapSret() {
         return mode == PrivilegeMode.User || (mode == PrivilegeMode.Supervisor && (mstatus & (1 << 22)) != 0);
+    }
+
+    public boolean allowUserMemoryAccessFromSMode() {
+        return (mstatus & (1 << 18)) != 0;
+    }
+
+    public boolean shouldUpdatePteAccessDirtyBits() {
+        return (menvcfg & (1 << 61)) != 0;
     }
 
     public long tryRead(int csr) {
@@ -113,7 +124,13 @@ public final class PrivilegedState {
             case Csr.SIP -> { return mip & mideleg; }
 
             case Csr.SENVCFG -> { return senvcfg; }
-            case Csr.SATP -> { return satp; }
+            case Csr.SATP -> {
+                if ((mstatus & (1 << 20)) != 0) {
+                    // TVM bit, for hypervisor emulation
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return satp;
+            }
 
             // Machine-level CSRs
             case Csr.MVENDORID -> { return 0; }
@@ -187,7 +204,19 @@ public final class PrivilegedState {
 
             case Csr.SENVCFG -> senvcfg = value;
             case Csr.SATP -> {
-                // Do nothing; SvBare is the only supported legal address translation mode at the moment
+                if ((mstatus & (1 << 20)) != 0) {
+                    // TVM bit, for hypervisor emulation
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+
+                // If MODE is set to an unsupported mode, the write has no effect
+                long mode = ((value >> 60) & 0b1111);
+                if (mode == 0) {
+                    satp = 0;
+                    addressSpace = BareAddressSpace.SINGLETON;
+                } else if (mode == 8) {
+                    satp = value;
+                }
             }
 
             // Machine-level CSRs
