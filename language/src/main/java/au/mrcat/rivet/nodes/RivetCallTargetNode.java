@@ -51,6 +51,7 @@ public class RivetCallTargetNode extends RootNode {
 
             for (i = 0; i < continuations.length; i++) {
                 block.successorIndices[i] = Arrays.binarySearch(pcOffsets, continuations[i]);
+                assert block.successorIndices[i] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
                 block.successorFirstPcs[i] = continuations[i];
             }
         }
@@ -103,35 +104,37 @@ public class RivetCallTargetNode extends RootNode {
 
         copyFromRegisterState(frame, registers);
 
-        int block = firstBlockIndex;
 
-        CompilerAsserts.partialEvaluationConstant(block);
         CompilerAsserts.partialEvaluationConstant(basicBlockNodes);
 
         try {
+            int block = firstBlockIndex;
+
             CompilerAsserts.partialEvaluationConstant(basicBlockNodes[0]);
             while (true) {
-                CompilerAsserts.partialEvaluationConstant(block);
-                var successorIndex = basicBlockNodes[block].executeDivergent(frame);
-                ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
-
-                block = basicBlockNodes[block].successorIndices[successorIndex];
-                if (block == -1) {
-                    // Not a basic block in this call target; return to the dispatch node to go to the next call target
+//                CompilerAsserts.partialEvaluationConstant(block);
+                int successorIndex;
+                try {
+                    successorIndex = basicBlockNodes[block].executeDivergent(frame);
+                } catch (RiscvIndirectJumpException jump) {
+                    // IndirectJumpExceptions should only be thrown in divergent nodes at the end of basic blocks, and only when
+                    // they retire normally, so the block's instret counter is correct.
+                    ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
                     copyToRegisterState(frame, registers);
-                    registers.setPc(pc);
+
+                    // Handling an indirect jump is the root's "normal" case, so return normally here instead of rethrowing.
+                    registers.setPc(jump.getTargetPc());
                     return registers;
                 }
-            }
-        } catch (RiscvIndirectJumpException jump) {
-            // IndirectJumpExceptions should only be thrown in divergent nodes at the end of basic blocks, and only when
-            // they retire normally, so the block's instret counter is correct.
-            ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
-            copyToRegisterState(frame, registers);
+                ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
 
-            // Handling an indirect jump is the root's "normal" case, so return normally here instead of rethrowing.
-            registers.setPc(jump.getTargetPc());
-            return registers;
+                for (int i = 0; i < basicBlockNodes[block].successorIndices.length; i++) {
+                    if (successorIndex == i) {
+                        block = basicBlockNodes[block].successorIndices[i];
+                    }
+                }
+//                block = basicBlockNodes[block].successorIndices[successorIndex];
+            }
         } catch (RiscvInstructionFenceException fence) {
             CompilerDirectives.transferToInterpreter();
             copyToRegisterState(frame, registers);
@@ -157,5 +160,9 @@ public class RivetCallTargetNode extends RootNode {
         sb.append(", pcOffsets=").append(Arrays.toString(pcOffsets));
         sb.append('}');
         return sb.toString();
+    }
+
+    public long getEntryPc() {
+        return entryPc;
     }
 }

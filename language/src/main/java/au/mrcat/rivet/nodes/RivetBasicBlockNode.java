@@ -31,6 +31,7 @@ public class RivetBasicBlockNode extends RivetNode {
 
     @ExplodeLoop
     public int executeDivergent(VirtualFrame frame) {
+        CompilerAsserts.partialEvaluationConstant(this);
         if (instructions != null) {
             for (RivetNode instruction : instructions) {
                 instruction.executeVoid(frame);

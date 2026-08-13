@@ -67,9 +67,10 @@ public class RivetRootNode extends RootNode {
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
-                        for (long entryPc : root.getPcOffsets()) {
-                            callTargetPcs.put(entryPc, callTargetIndex);
-                        }
+                        callTargetPcs.put(root.getEntryPc(), callTargetIndex);
+//                        for (long entryPc : root.getPcOffsets()) {
+//                            callTargetPcs.put(entryPc, callTargetIndex);
+//                        }
                     }
 
                     var callTarget = callTargets[callTargetIndex];
