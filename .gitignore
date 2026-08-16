@@ -4,9 +4,10 @@
 !.gitignore
 !README.md
 
-# Whitelist nix source
+# Whitelist dev environment
 !flake.nix
 !flake.lock
+!Justfile
 
 # Whitelist maven project source files
 !pom.xml
@@ -25,9 +26,6 @@
 
 # Except for the resources folder, which is generated
 language/src/main/resources
-
-# Whitelist our fake build system shell script
-!build_resources.sh
 
 # Whitelist our tiny profiling programs
 !perftests/

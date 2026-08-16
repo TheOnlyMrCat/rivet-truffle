@@ -30,11 +30,14 @@
       default = pkgs.mkShell {
         packages = [
           # Java toolchain
-          # pkgs.graalvmPackages.graalvm-oracle_25
-          # pkgs.maven
+          pkgs.graalvmPackages.graalvm-oracle_25
+          pkgs.maven
+          pkgs.just
 
           # RISC-V toolchains
-          pkgs.llvm
+          pkgs.llvmPackages_22.clang-unwrapped
+          pkgs.llvmPackages_22.lld
+          pkgs.llvmPackages_22.libllvm
           rv64-binutils
 
           # Other toolchains
