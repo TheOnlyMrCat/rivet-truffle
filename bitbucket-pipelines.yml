@@ -1,0 +1,18 @@
+
+image: harrywagstaff/simbench
+
+pipelines:
+  default:
+    - step:
+        script: # Modify the commands below to build your repository.
+          - \cp ./docker/arm-config ./arch/arm/Make.config 
+          - export SIMBENCH_FAST=1
+          - ./test-builds.sh
+          - ARCH=arm PLATFORM=versatile make
+          - timeout 10 sh -c "qemu-system-arm -machine versatileab -kernel out/arm/versatile/simbench -nographic -m 512 -display none -serial stdio -semihosting | host/host"
+          
+          - ARCH=armv8 PLATFORM=virt make
+          - timeout 10 sh -c "qemu-system-aarch64 -machine virt -kernel out/armv8/virt/simbench -nographic -m 512 -display none -serial stdio -semihosting -cpu cortex-a53 | host/host"
+          
+          - ARCH=x86_64 PLATFORM=native make
+          - timeout 10 sh -c "qemu-system-x86_64 -kernel out/x86_64/native/simbench -nographic | host/host"

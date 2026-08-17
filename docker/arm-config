@@ -1,0 +1,8 @@
+export CCPREFIX := arm-none-eabi-
+export AS := $(CCPREFIX)as
+export LD := $(CCPREFIX)ld
+export CC := $(CCPREFIX)gcc
+export AR := $(CCPREFIX)ar
+
+export CFLAGS  := -nostdlib -I$(INCDIR) -O3 -D__ARM -fno-builtin-printf -fno-builtin-fprintf
+export LDFLAGS := --whole-archive

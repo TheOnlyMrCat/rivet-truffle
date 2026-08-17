@@ -1,0 +1,1 @@
+OBJ := harness.o
