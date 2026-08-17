@@ -87,6 +87,7 @@ libsbi-objs-y += sbi_init.o
 libsbi-objs-y += sbi_ipi.o
 libsbi-objs-y += sbi_irqchip.o
 libsbi-objs-y += sbi_platform.o
+libsbi-objs-y += sbi_pmp.o
 libsbi-objs-y += sbi_pmu.o
 libsbi-objs-y += sbi_dbtr.o
 libsbi-objs-y += sbi_mpxy.o
@@ -99,6 +100,11 @@ libsbi-objs-y += sbi_tlb.o
 libsbi-objs-y += sbi_trap.o
 libsbi-objs-y += sbi_trap_ldst.o
 libsbi-objs-y += sbi_trap_v_ldst.o
+ifeq ($(UBSAN), y)
+libsbi-objs-y += sbi_ubsan.o
+endif
 libsbi-objs-y += sbi_unpriv.o
 libsbi-objs-y += sbi_expected_trap.o
 libsbi-objs-y += sbi_cppc.o
+libsbi-objs-$(CC_SUPPORT_VECTOR) += sbi_vector.o
+libsbi-objs-y += sbi_fp.o
