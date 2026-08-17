@@ -21,6 +21,12 @@ build-resources:
     make -C vendor/opensbi PLATFORM=generic LLVM=1
     cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin {{resources_path / "fw_dynamic.bin"}}
 
+clean-coremark:
+    make -C vendor/coremark clean PORT_DIR=rivet
+
+build-coremark:
+    make -C vendor/coremark link PORT_DIR=rivet
+
 build:
     mvn compile
     mvn dependency:build-classpath -pl launcher -Dmdep.outputFile={{classpath_path}}
@@ -29,6 +35,9 @@ build:
 test: build
     java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.RiscvArchTest
 
+bench: build build-coremark
+    java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
+    
 
 
 # Most of this file is designed to be executed within the `nix develop` shell, but nixpkgs doesn't
