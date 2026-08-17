@@ -1,0 +1,8 @@
+syntax:regexp
+\.a$
+\.o$
+\.d$
+^out/
+host/host
+nbproject
+images/

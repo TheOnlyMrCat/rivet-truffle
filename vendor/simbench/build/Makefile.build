@@ -1,0 +1,33 @@
+RDIR := $(patsubst %/,%,$(DIR))
+
+EXTRA_TARGETS :=
+
+-include $(RDIR)/Makefile
+
+
+REAL_BUILTIN := $(RDIR)/.build/${ARCH}/${PLATFORM}/built-in.o
+REAL_OBJ := $(patsubst %,$(RDIR)/.build/${ARCH}/${PLATFORM}/%,$(OBJ))
+
+__build: $(REAL_BUILTIN) $(EXTRA_TARGETS) .FORCE
+	@echo -n
+
+-include $(REAL_OBJ:.o=.d)
+
+$(REAL_BUILTIN): $(DIR)/Makefile $(REAL_OBJ)
+	@echo "  LD      $(patsubst $(BASEDIR)/%,%,$@)"
+	@mkdir -p $(dir $(REAL_BUILTIN))
+	$(Q)$(LD) -r -o $@ $(BUILTIN_LDFLAGS) $(REAL_OBJ)
+
+$(RDIR)/.build/${ARCH}/${PLATFORM}/%.o: $(RDIR)/%.S
+	@echo "  AS      $(patsubst $(BASEDIR)/%,%,$@)"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) -c -o $@ $(CFLAGS) $<
+	$(Q)$(CC) -MM -MT "$@" $< $(CFLAGS) > $(@:.o=.d)
+
+$(RDIR)/.build/${ARCH}/${PLATFORM}/%.o: $(RDIR)/%.c
+	@echo "  CC      $(patsubst $(BASEDIR)/%,%,$@)"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) -c -o $@ $(CFLAGS) $<
+	$(Q)$(CC) -MM -MT "$@" $< $(CFLAGS) > $(@:.o=.d)
+
+.PHONY: .FORCE
