@@ -1,5 +1,6 @@
 package au.mrcat.rivet;
 
+import au.mrcat.rivet.riscv.AccessType;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.PhysicalMemory;
 import au.mrcat.rivet.riscv.PrivilegedState;
@@ -25,59 +26,69 @@ public class RivetContext {
     }
 
     public byte readByte(long address) {
-        return physicalMemory.readByte(address);
+        return physicalMemory.readByte(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public short readShort(long address) {
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
-        return physicalMemory.readShort(address);
+        return physicalMemory.readShort(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public short readShortMisaligned(long address) {
-        return physicalMemory.readShortMisaligned(address);
+        return physicalMemory.readShortMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public int readInt(long address) {
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
-        return physicalMemory.readInt(address);
+        return physicalMemory.readInt(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public int readIntMisaligned(long address) {
-        return physicalMemory.readIntMisaligned(address);
+        return physicalMemory.readIntMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory), privilegedState.readAccessType());
+    }
+
+    public int readInstructionIntMisaligned(long address) {
+        return physicalMemory.readIntMisaligned(privilegedState.currentAddressSpace(AccessType.EXECUTE).toPhysicalAddress(address, AccessType.EXECUTE, privilegedState, physicalMemory), AccessType.EXECUTE);
     }
 
     public long readLong(long address) {
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
-        return physicalMemory.readLong(address);
+        return physicalMemory.readLong(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public long readLongMisaligned(long address) {
-        return physicalMemory.readLongMisaligned(address);
+        return physicalMemory.readLongMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public void reserveIntAddress(long address) {
-        physicalMemory.reserveIntAddress(address);
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        physicalMemory.reserveIntAddress(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public void reserveLongAddress(long address) {
-        physicalMemory.reserveLongAddress(address);
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        }
+        physicalMemory.reserveLongAddress(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
     }
 
     public void writeByte(long address, byte value) {
-        physicalMemory.writeByte(address, value);
+        physicalMemory.writeByte(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public void writeShort(long address, short value) {
         if ((address & 0b1) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
-        physicalMemory.writeShort(address, value);
+        physicalMemory.writeShort(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public void writeShortMisaligned(long address, short value) {
@@ -88,29 +99,35 @@ public class RivetContext {
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
-        physicalMemory.writeInt(address, value);
+        physicalMemory.writeInt(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public void writeIntMisaligned(long address, int value) {
-        physicalMemory.writeIntMisaligned(address, value);
+        physicalMemory.writeIntMisaligned(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public void writeLong(long address, long value) {
         if ((address & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
         }
-        physicalMemory.writeLong(address, value);
+        physicalMemory.writeLong(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public void writeLongMisaligned(long address, long value) {
-        physicalMemory.writeLongMisaligned(address, value);
+        physicalMemory.writeLongMisaligned(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public boolean writeIntConditional(long address, int value) {
-        return physicalMemory.writeIntConditional(address, value);
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+        }
+        return physicalMemory.writeIntConditional(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 
     public boolean writeLongConditional(long address, long value) {
-        return physicalMemory.writeLongConditional(address, value);
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+        }
+        return physicalMemory.writeLongConditional(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
     }
 }

@@ -130,5 +130,6 @@ public class Opcode {
         public static final int SRET = 0b000100000010;
         public static final int MRET = 0b001100000010;
         public static final int WFI = 0b000100000101;
+        public static final int SFENCE_VMA = 0b0001001;
     }
 }

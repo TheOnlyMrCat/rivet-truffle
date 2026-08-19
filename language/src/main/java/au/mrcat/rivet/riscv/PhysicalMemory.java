@@ -24,7 +24,7 @@ public class PhysicalMemory {
 
     public byte readByte(long physicalAddress) {
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length) {
-            return (byte) readMmio(physicalAddress, MemoryWidth.Byte);
+            return (byte) readMmio(physicalAddress, MemoryWidth.Byte, AccessType.READ);
         }
         return byteArray.getByte(memory, physicalAddress - 0x8000_0000L);
     }
@@ -34,14 +34,14 @@ public class PhysicalMemory {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord);
+            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, AccessType.READ);
         }
         return byteArray.getShort(memory, physicalAddress - 0x8000_0000L);
     }
 
     public short readShortMisaligned(long physicalAddress) {
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord);
+            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, AccessType.READ);
         }
         if ((physicalAddress & 0b1) != 0) {
             return byteArray.getShortUnaligned(memory, physicalAddress - 0x8000_0000L);
@@ -54,14 +54,14 @@ public class PhysicalMemory {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (int) readMmio(physicalAddress, MemoryWidth.Word);
+            return (int) readMmio(physicalAddress, MemoryWidth.Word, AccessType.READ);
         }
         return byteArray.getInt(memory, physicalAddress - 0x8000_0000L);
     }
 
-    public int readIntMisaligned(long physicalAddress) {
+    public int readIntMisaligned(long physicalAddress, AccessType accessType) {
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (int) readMmio(physicalAddress, MemoryWidth.Word);
+            return (int) readMmio(physicalAddress, MemoryWidth.Word, accessType);
         }
         if ((physicalAddress & 0b11) != 0) {
             return byteArray.getIntUnaligned(memory, physicalAddress - 0x8000_0000L);
@@ -74,14 +74,14 @@ public class PhysicalMemory {
             throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
         }
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return readMmio(physicalAddress, MemoryWidth.DoubleWord);
+            return readMmio(physicalAddress, MemoryWidth.DoubleWord, AccessType.READ);
         }
         return byteArray.getLong(memory, physicalAddress - 0x8000_0000L);
     }
 
     public long readLongMisaligned(long physicalAddress) {
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return readMmio(physicalAddress, MemoryWidth.DoubleWord);
+            return readMmio(physicalAddress, MemoryWidth.DoubleWord, AccessType.READ);
         }
         if ((physicalAddress & 0b111) != 0) {
             return byteArray.getLongUnaligned(memory, physicalAddress - 0x8000_0000L);
@@ -109,7 +109,7 @@ public class PhysicalMemory {
         reservedDoubleWord = physicalAddress & ~0b111L;
     }
 
-    public long readMmio(long physicalAddress, MemoryWidth width) {
+    public long readMmio(long physicalAddress, MemoryWidth width, AccessType accessType) {
         // Syscon
         if (0x10_0000L <= physicalAddress && physicalAddress + width.bytes < 0x10_1000) {
             if (!width.isNaturallyAligned(physicalAddress)) {
@@ -132,7 +132,7 @@ public class PhysicalMemory {
             return uart.readMmio(reg, width);
         }
 
-        throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
+        throw new RiscvTrapException(accessType.accessFaultCause);
     }
 
     public void writeByte(long physicalAddress, byte value) {

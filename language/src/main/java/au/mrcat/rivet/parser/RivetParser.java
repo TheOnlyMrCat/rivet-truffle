@@ -11,7 +11,6 @@ import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives;
-import net.fornwall.jelf.ElfException;
 import net.fornwall.jelf.ElfFile;
 import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -71,13 +70,15 @@ public final class RivetParser {
 
                 int instruction;
                 try {
-                    instruction = context.readIntMisaligned(currentPc);
+                    instruction = context.readInstructionIntMisaligned(currentPc);
                 } catch (RiscvTrapException trap) {
                     // Convert this into an instruction-access fault. Only actually do so if this is the first
                     // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
                     // to and re-parse
                     if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
-                        throw new RiscvTrapException(ExceptionCause.InstructionAccessFault, currentPc, currentPc);
+                        trap.setPc(currentPc);
+                        trap.setTval(currentPc);
+                        throw trap;
                     } else {
                         finalNode = new JumpNode(new ConstantNode(currentPc));
                         break;
@@ -1037,12 +1038,17 @@ public final class RivetParser {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
+        int funct7 = instruction >>> 25;
         int funct12 = instruction >>> 20;
 
         switch (funct3) {
             case Opcode.System.PRIV -> {
                 if (rd != 0 || rs1 != 0) {
                     return new IllegalInstructionNode(instruction, pc, instret);
+                }
+
+                if (funct7 == Opcode.Priv.SFENCE_VMA) {
+                    return new VirtualMemoryFence(instruction, pc, instret);
                 }
 
                 return switch (funct12) {

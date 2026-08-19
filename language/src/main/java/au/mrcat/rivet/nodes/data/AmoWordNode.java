@@ -34,6 +34,9 @@ public class AmoWordNode extends RivetOpNode {
             ctx.writeInt(address, (int) opResult);
             return originalValue;
         } catch (RiscvTrapException trap) {
+            if (trap.cause == ExceptionCause.LoadPageFault || trap.cause == ExceptionCause.StoreAmoPageFault) {
+                throw new RiscvTrapException(ExceptionCause.StoreAmoPageFault, pc, address, instret);
+            }
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
         }
     }

@@ -7,7 +7,7 @@ public class Sv39AddressSpace extends AddressSpace {
     private final long rootPageTableAddr;
 
     public Sv39AddressSpace(long rootPageTablePpn) {
-        this.rootPageTableAddr = rootPageTablePpn;
+        this.rootPageTableAddr = rootPageTablePpn << 12;
     }
 
     @Override
@@ -23,8 +23,8 @@ public class Sv39AddressSpace extends AddressSpace {
         long pte = 0;
         int pageLevel = 3;
         while ((pte & 0b1010) == 0) {
-            if (pageLevel == 0) {
-                throw new RiscvTrapException(ExceptionCause.InstructionPageFault);
+            if (pageLevel == 0 || (pte & 0b11010000) != 0) {
+                throw new RiscvTrapException(accessType.pageFaultCause);
             }
             pageLevel -= 1;
             pteAddr = currentAddr + ((vte & 0b111111111L << pageLevel * 9) >> pageLevel * 9) * Long.BYTES;
@@ -34,14 +34,14 @@ public class Sv39AddressSpace extends AddressSpace {
                 assert e.cause != ExceptionCause.LoadAddressMisaligned;
                 throw new RiscvTrapException(accessType.pageFaultCause);
             }
-            if ((pte & 0b1) != 1 || (pte & 0b110) == 0b100 || ((pte >> 54) & 0b1111111) != 0) {
+            if ((pte & 0b1) != 1 || (pte & 0b110) == 0b100 || ((pte >> 54) & 0b1_11_1111111) != 0) {
                 throw new RiscvTrapException(accessType.pageFaultCause);
             }
             currentAddr = (pte & ((1L << 44) - 1) << 10) << 2;
         }
 
         // Check access permissions
-        switch (privilegedState.currentMode()) {
+        switch (privilegedState.currentEffectiveModeFor(accessType)) {
             case User -> {
                 if ((pte & (1 << 4)) == 0) {
                     throw new RiscvTrapException(accessType.pageFaultCause);

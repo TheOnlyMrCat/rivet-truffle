@@ -46,6 +46,11 @@ public class RivetRootNode extends RootNode {
         return callTargetsLength++;
     }
 
+    private void clearCallTargets() {
+        callTargets = new DirectCallNode[callTargetsLength];
+        callTargetPcs.clear();
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
@@ -80,6 +85,7 @@ public class RivetRootNode extends RootNode {
                         cpuState = fence.getState();
                         ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
                         cpuState.setPc(fence.getNextPc());
+                        clearCallTargets();
                     } catch (RiscvTrapException trap) {
                         cpuState = trap.getState();
                         ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
@@ -89,6 +95,7 @@ public class RivetRootNode extends RootNode {
             } catch (RiscvExitException exit) {
                 return exit.exitCode;
             } catch (RiscvRebootException _) {
+                clearCallTargets();
                 // Loop back to beginning
             }
         }

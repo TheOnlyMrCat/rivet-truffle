@@ -112,7 +112,7 @@ public class RivetCallTargetNode extends RootNode {
 
             CompilerAsserts.partialEvaluationConstant(basicBlockNodes[0]);
             while (true) {
-//                CompilerAsserts.partialEvaluationConstant(block);
+                CompilerAsserts.partialEvaluationConstant(block);
                 int successorIndex;
                 try {
                     successorIndex = basicBlockNodes[block].executeDivergent(frame);
@@ -128,12 +128,13 @@ public class RivetCallTargetNode extends RootNode {
                 }
                 ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
 
+                // This for loop is equivalent to the array lookup `block = basicBlockNodes[block].successorIndices[successorIndex]`,
+                // but introduces branching points for Truffle to unroll different paths through the loop.
                 for (int i = 0; i < basicBlockNodes[block].successorIndices.length; i++) {
                     if (successorIndex == i) {
                         block = basicBlockNodes[block].successorIndices[i];
                     }
                 }
-//                block = basicBlockNodes[block].successorIndices[successorIndex];
             }
         } catch (RiscvInstructionFenceException fence) {
             CompilerDirectives.transferToInterpreter();

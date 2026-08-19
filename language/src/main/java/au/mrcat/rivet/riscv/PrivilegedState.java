@@ -7,11 +7,13 @@ public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
 
     private static final long MSTATUS_WRITABLE_MASK =
-            0b00000000_00000000_00000100_00000000_00000000_01111010_00011001_10101010L;
+            0b00000000_00000000_00000100_00000000_00000000_01111110_00011001_10101010L;
     private static final long SSTATUS_VISIBLE_MASK =
             0b10000000_00000000_00000000_00000011_00000001_10001101_11100111_01100010L;
     private static final long MSTATUS_RESET_VALUE =
             0b00000000_00000000_00000100_00001010_00000000_00000000_00011000_10100000L;
+    private static final long MENVCFG_WRITABLE_MASK =
+            0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
     private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
     private static final long INTERRUPT_MASK = 0;
     private static final long COUNTER_MASK = 0b111;
@@ -53,18 +55,48 @@ public final class PrivilegedState {
         return mode;
     }
 
-    public AddressSpace currentAddressSpace() { return addressSpace; }
+    public PrivilegeMode currentEffectiveMode() {
+        if (mode == PrivilegeMode.Machine && (mstatus & (1L << 17)) != 0) {
+            return PrivilegeMode.fromValue((int) ((mstatus >> 11) & 0b11));
+        }
+        return currentMode();
+    }
+
+    public PrivilegeMode currentEffectiveModeFor(AccessType accessType) {
+        if (accessType == AccessType.EXECUTE) {
+            return currentMode();
+        }
+        return currentEffectiveMode();
+    }
+
+    public AddressSpace currentAddressSpace(AccessType accessType) {
+        if (currentEffectiveModeFor(accessType) == PrivilegeMode.Machine) {
+            return BareAddressSpace.SINGLETON;
+        }
+        return addressSpace;
+    }
 
     public boolean shouldTrapSret() {
-        return mode == PrivilegeMode.User || (mode == PrivilegeMode.Supervisor && (mstatus & (1 << 22)) != 0);
+        return mode == PrivilegeMode.User || (mode == PrivilegeMode.Supervisor && (mstatus & (1L << 22)) != 0);
+    }
+
+    public boolean shouldTrapSatpAccess() {
+        return mode != PrivilegeMode.Machine && (mstatus & (1L << 20)) != 0;
+    }
+
+    public AccessType readAccessType() {
+        if ((mstatus & (1 << 19)) != 0) {
+            return AccessType.MXR_READ;
+        }
+        return AccessType.READ;
     }
 
     public boolean allowUserMemoryAccessFromSMode() {
-        return (mstatus & (1 << 18)) != 0;
+        return (mstatus & (1L << 18)) != 0;
     }
 
     public boolean shouldUpdatePteAccessDirtyBits() {
-        return (menvcfg & (1 << 61)) != 0;
+        return (menvcfg & (1L << 61)) == 0;
     }
 
     public long tryRead(int csr) {
@@ -125,8 +157,7 @@ public final class PrivilegedState {
 
             case Csr.SENVCFG -> { return senvcfg; }
             case Csr.SATP -> {
-                if ((mstatus & (1 << 20)) != 0) {
-                    // TVM bit, for hypervisor emulation
+                if (shouldTrapSatpAccess()) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 return satp;
@@ -204,7 +235,7 @@ public final class PrivilegedState {
 
             case Csr.SENVCFG -> senvcfg = value;
             case Csr.SATP -> {
-                if ((mstatus & (1 << 20)) != 0) {
+                if (shouldTrapSatpAccess()) {
                     // TVM bit, for hypervisor emulation
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
@@ -212,10 +243,11 @@ public final class PrivilegedState {
                 // If MODE is set to an unsupported mode, the write has no effect
                 long mode = ((value >> 60) & 0b1111);
                 if (mode == 0) {
-                    satp = 0;
+                    satp = value;
                     addressSpace = BareAddressSpace.SINGLETON;
                 } else if (mode == 8) {
                     satp = value;
+                    addressSpace = new Sv39AddressSpace(satp & 0xfffffffffffL);
                 }
             }
 
@@ -256,7 +288,7 @@ public final class PrivilegedState {
             case Csr.MTVAL -> mtval = value;
             case Csr.MIP -> mip = value;
 
-            case Csr.MENVCFG -> menvcfg = value & 0;
+            case Csr.MENVCFG -> menvcfg = value & MENVCFG_WRITABLE_MASK;
 
             case Csr.MCYCLE -> mcycle = value;
             case Csr.MINSTRET -> minstret = value;
@@ -378,6 +410,10 @@ public final class PrivilegedState {
         return mepc;
     }
 
+    public void fenceVirtualMemory() {
+        // Nothing to do yet
+    }
+
     public void stepPerformanceCounters(short instructionsRetired) {
         mcycle += instructionsRetired;
         minstret += instructionsRetired;
@@ -392,5 +428,7 @@ public final class PrivilegedState {
         mstatus = MSTATUS_RESET_VALUE;
         mode = PrivilegeMode.Machine;
         mcause = 0;
+        satp = 0;
+        addressSpace = BareAddressSpace.SINGLETON;
     }
 }
