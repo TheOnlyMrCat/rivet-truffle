@@ -221,7 +221,7 @@
         // raises an alignment fault).  Use `None` here so the misalignment
         // decision is deferred to the per-region PMA below, matching hardware.
         "amo": {
-          "None": null
+          "Some": "AccessFault"
         },
         // A misaligned LR/SC currently always faults, and this field can specify
         // whether it generates an access fault (use `"AccessFault"`)
@@ -774,10 +774,10 @@
       "supported": false
     },
     "Svade": {
-      "supported": false
+      "supported": true
     },
     "Svadu": {
-      "supported": false
+      "supported": true
     },
     "Svinval": {
       "supported": false
@@ -808,13 +808,13 @@
     },
     "Svbare": {
       "supported": true,
-      "sfence_vma_illegal_if_svbare_only": true
+      "sfence_vma_illegal_if_svbare_only": false
     },
     "Sv32": {
       "supported": false
     },
     "Sv39": {
-      "supported": false
+      "supported": true
     },
     "Sv48": {
       "supported": false

@@ -24,6 +24,9 @@ implemented_extensions:
   - { name: U, version: "= 1.0.0" }
   - { name: S, version: "= 1.12.0" }
   - { name: Svbare, version: "= 1.0.0" }
+  - { name: Sv39, version: "= 1.0.0" }
+  - { name: Svade, version: "= 1.0.0" }
+  - { name: Svadu, version: "= 1.0.0" }
   - { name: Ssstrict, version: "= 1.0.0" }
   - { name: Smdbltrp, version: "= 1.0.0" }
   - { name: Sm, version: "= 1.12.0" }
@@ -109,7 +112,6 @@ params:
   SATP_MODE_BARE: true
   TRAP_ON_ECALL_FROM_S: true
   MSTATUS_VS_LEGAL_VALUES: [0]
-  TRAP_ON_SFENCE_VMA_WHEN_SATP_MODE_IS_READ_ONLY: true
   # Sm params
   MXLEN: 64
   PRECISE_SYNCHRONOUS_EXCEPTIONS: true
