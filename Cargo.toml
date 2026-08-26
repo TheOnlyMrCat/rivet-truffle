@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: © 2025 Max Guppy <theonly@mrcat.au>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+[package]
+name = "rivet"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[dependencies]
+bytemuck = { version = "1.24.0", features = ["extern_crate_alloc"] }
+crossbeam-channel = "0.5.15"
+elf = "0.8.0"
+lexopt = "0.3.1"
+libc = "0.2.177"
+libslirp = { version = "4.3.2", default-features = false }
+libslirp-sys = { version = "4.2.1" }
+memmap = "0.7.0"
+quanta = "0.12.6"
+rangemap = "1.7.0"
+shared_slab = "0.1.0"
+
+[dev-dependencies]
+proptest = "1.7.0"

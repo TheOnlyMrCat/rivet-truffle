@@ -1,0 +1,12 @@
+image: nixos/latest
+secrets:
+- 8ecf8282-cfaf-426b-ac92-21127485510b
+sources:
+- git@git.sr.ht:~theonlymrcat/rivet
+environment:
+  NIX_CONFIG: |
+    experimental-features = nix-command flakes
+tasks:
+- check: |
+    cd rivet
+    nix flake check

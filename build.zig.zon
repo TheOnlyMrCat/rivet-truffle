@@ -1,0 +1,16 @@
+// SPDX-FileCopyrightText: © 2024 Max Guppy <theonly@mrcat.au>
+// SPDX-License-Identifier: MPL-2.0
+
+.{
+    .name = .rivet,
+    .fingerprint = 0x1c80c21ecdc15765,
+    .version = "0.0.0",
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        //"LICENSE",
+        "README.md",
+    },
+}

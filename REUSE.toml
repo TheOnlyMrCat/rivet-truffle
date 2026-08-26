@@ -1,0 +1,31 @@
+version = 1
+
+[[annotations]]
+path = "Cargo.lock"
+SPDX-FileCopyrightText = "© 2024 Max Guppy <theonly@mrcat.au>"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = "flake.lock"
+SPDX-FileCopyrightText = "© 2024 Max Guppy <theonly@mrcat.au>"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = "include/unistd.h"
+SPDX-FileCopyrightText = "Copyright (c) Linux Kernel Contributors"
+SPDX-License-Identifier = "GPL-2.0-only WITH Linux-syscall-note"
+precedence = "override"
+
+[[annotations]]
+path = "riscof/**/*"
+SPDX-License-Identifier = "BSD-3-Clause"
+SPDX-FileCopyrightText = [
+  "Copyright (c) 2019, incoresemi",
+  "Copyright (c) 2019, IIT Madras",
+  "© 2024 Max Guppy <theonly@mrcat.au>",
+]
+
+[[annotations]]
+path = "softfp/*"
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "Copyright (c) 2016 Fabrice Bellard"

@@ -1,0 +1,35 @@
+From 70a7fc47ac8341198aa4d5e75adb5fee5b260b4e Mon Sep 17 00:00:00 2001
+From: Max Guppy <theonly@mrcat.au>
+Date: Sun, 15 Jun 2025 13:46:38 +1000
+Subject: [PATCH] Add json report output
+
+---
+ riscof/cli.py | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/riscof/cli.py b/riscof/cli.py
+index c1a9d11..f0e9614 100644
+--- a/riscof/cli.py
++++ b/riscof/cli.py
+@@ -5,6 +5,7 @@ import importlib
+ from datetime import datetime
+ import os
+ import sys
++import json
+ import pytz
+ import shutil
+ import configparser
+@@ -340,6 +341,10 @@ def run(ctx,config,work_dir,suite,env,no_browser,dbfile,testfile,no_ref_run,no_d
+     with open(reportfile, "w") as report:
+         report.write(output)
+ 
++    reportjson = os.path.join(work_dir, "report.json")
++    with open(reportjson, "w") as report:
++        json.dump(report_objects, report)
++
+     shutil.copyfile(constants.css,
+                     os.path.join(work_dir, "style.css"))
+ 
+-- 
+2.49.0
+

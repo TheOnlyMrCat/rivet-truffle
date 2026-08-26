@@ -1,0 +1,260 @@
+hart_ids: [0]
+hart0:
+  ISA: RV64IMAFDCSUZicsr_Zifencei
+  physical_addr_sz: 56
+  User_Spec_Version: '2.3'
+  supported_xlen: [64]
+  Privilege_Spec_Version: '1.11'
+  hw_data_misaligned_support: true  # This is a lie, but the tests pass?
+  pte_ad_hw_update: true
+  mtval_update: 0b1011000011111111
+  misa:
+   reset-val: 0x8014112D
+   rv64:
+     accessible: true
+     mxl:
+       implemented: true
+       type:
+           warl:
+              dependency_fields: []
+              legal:
+                - mxl[1:0] in [0x2]
+              wr_illegal:
+                - Unchanged
+     extensions:
+       implemented: true
+       type:
+           warl:
+              dependency_fields: []
+              legal:
+                - extensions[25:0] bitmask [0x014112D]
+              wr_illegal:
+                - Unchanged
+  pmpcfg0:
+    rv64:
+      accessible: true
+  pmpcfg2:
+    rv64:
+      accessible: true
+  pmpcfg4:
+    rv64:
+      accessible: true
+  pmpcfg6:
+    rv64:
+      accessible: true
+  pmpcfg8:
+    rv64:
+      accessible: true
+  pmpcfg10:
+    rv64:
+      accessible: true
+  pmpcfg12:
+    rv64:
+      accessible: true
+  pmpcfg14:
+    rv64:
+      accessible: true
+  pmpaddr0:
+    rv64:
+      accessible: true
+  pmpaddr1:
+    rv64:
+      accessible: true
+  pmpaddr2:
+    rv64:
+      accessible: true
+  pmpaddr3:
+    rv64:
+      accessible: true
+  pmpaddr4:
+    rv64:
+      accessible: true
+  pmpaddr5:
+    rv64:
+      accessible: true
+  pmpaddr6:
+    rv64:
+      accessible: true
+  pmpaddr7:
+    rv64:
+      accessible: true
+  pmpaddr8:
+    rv64:
+      accessible: true
+  pmpaddr9:
+    rv64:
+      accessible: true
+  pmpaddr10:
+    rv64:
+      accessible: true
+  pmpaddr11:
+    rv64:
+      accessible: true
+  pmpaddr12:
+    rv64:
+      accessible: true
+  pmpaddr13:
+    rv64:
+      accessible: true
+  pmpaddr14:
+    rv64:
+      accessible: true
+  pmpaddr15:
+    rv64:
+      accessible: true
+  pmpaddr16:
+    rv64:
+      accessible: true
+  pmpaddr17:
+    rv64:
+      accessible: true
+  pmpaddr18:
+    rv64:
+      accessible: true
+  pmpaddr19:
+    rv64:
+      accessible: true
+  pmpaddr20:
+    rv64:
+      accessible: true
+  pmpaddr21:
+    rv64:
+      accessible: true
+  pmpaddr22:
+    rv64:
+      accessible: true
+  pmpaddr23:
+    rv64:
+      accessible: true
+  pmpaddr24:
+    rv64:
+      accessible: true
+  pmpaddr25:
+    rv64:
+      accessible: true
+  pmpaddr26:
+    rv64:
+      accessible: true
+  pmpaddr27:
+    rv64:
+      accessible: true
+  pmpaddr28:
+    rv64:
+      accessible: true
+  pmpaddr29:
+    rv64:
+      accessible: true
+  pmpaddr30:
+    rv64:
+      accessible: true
+  pmpaddr31:
+    rv64:
+      accessible: true
+  pmpaddr32:
+    rv64:
+      accessible: true
+  pmpaddr33:
+    rv64:
+      accessible: true
+  pmpaddr34:
+    rv64:
+      accessible: true
+  pmpaddr35:
+    rv64:
+      accessible: true
+  pmpaddr36:
+    rv64:
+      accessible: true
+  pmpaddr37:
+    rv64:
+      accessible: true
+  pmpaddr38:
+    rv64:
+      accessible: true
+  pmpaddr39:
+    rv64:
+      accessible: true
+  pmpaddr40:
+    rv64:
+      accessible: true
+  pmpaddr41:
+    rv64:
+      accessible: true
+  pmpaddr42:
+    rv64:
+      accessible: true
+  pmpaddr43:
+    rv64:
+      accessible: true
+  pmpaddr44:
+    rv64:
+      accessible: true
+  pmpaddr45:
+    rv64:
+      accessible: true
+  pmpaddr46:
+    rv64:
+      accessible: true
+  pmpaddr47:
+    rv64:
+      accessible: true
+  pmpaddr48:
+    rv64:
+      accessible: true
+  pmpaddr49:
+    rv64:
+      accessible: true
+  pmpaddr50:
+    rv64:
+      accessible: true
+  pmpaddr51:
+    rv64:
+      accessible: true
+  pmpaddr52:
+    rv64:
+      accessible: true
+  pmpaddr53:
+    rv64:
+      accessible: true
+  pmpaddr54:
+    rv64:
+      accessible: true
+  pmpaddr55:
+    rv64:
+      accessible: true
+  pmpaddr56:
+    rv64:
+      accessible: true
+  pmpaddr57:
+    rv64:
+      accessible: true
+  pmpaddr58:
+    rv64:
+      accessible: true
+  pmpaddr59:
+    rv64:
+      accessible: true
+  pmpaddr60:
+    rv64:
+      accessible: true
+  pmpaddr61:
+    rv64:
+      accessible: true
+  pmpaddr62:
+    rv64:
+      accessible: true
+  pmpaddr63:
+    rv64:
+      accessible: true
+  satp:
+    rv64:
+      accessible: true
+      mode:
+        implemented: true
+        type:
+          warl:
+            dependency_fields: []
+            legal:
+              - mode[3:0] in [0, 8]
+            wr_illegal:
+              - Unchanged
