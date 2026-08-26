@@ -18,11 +18,13 @@ public class RivetContext {
     public final TruffleLanguage.Env env;
     public final PrivilegedState privilegedState;
     public final PhysicalMemory physicalMemory;
+    public final RivetFfi ffi;
 
     public RivetContext(TruffleLanguage.Env env) {
         this.env = env;
         privilegedState = new PrivilegedState();
         physicalMemory = new PhysicalMemory(this);
+        ffi = new RivetFfi(this);
     }
 
     public byte readByte(long address) {

@@ -22,6 +22,10 @@ public class PhysicalMemory {
         uart = new SifiveUart(context);
     }
 
+    public boolean isInPhysicalMemory(long physicalAddress, long accessWidth) {
+        return 0x8000_0000L <= physicalAddress && physicalAddress - 0x8000_0000L + accessWidth <= memory.length;
+    }
+
     public byte readByte(long physicalAddress) {
         if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length) {
             return (byte) readMmio(physicalAddress, MemoryWidth.Byte, AccessType.READ);

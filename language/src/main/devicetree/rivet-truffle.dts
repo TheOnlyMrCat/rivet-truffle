@@ -37,11 +37,11 @@
 			device_type = "cpu";
 			reg = <0>;
 			compatible = "riscv";
-			mmu-type = "riscv,svbare";
+			mmu-type = "riscv,sv39";
 
-			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa = "rv64imac_zicsr_zifencei_svadu";
 			riscv,isa-base = "rv64i";
-			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei", "svadu";
 
 			hart0_int: interrupt-controller {
 				#interrupt-cells = <1>;
@@ -71,6 +71,77 @@
 		test: test@100000 {
 			reg = <0x00 0x100000 0x00 0x1000>;
 			compatible = "sifive,test1\0sifive,test0\0syscon";
+		};
+
+		mtimer@100007000 {
+			compatible = "riscv,aclint-mtimer";
+			reg =
+				<1 0x7000 0x00 0x1000>, // MTIME
+				<1 0x8000 0x00 0x8000> // MTIMECMP
+				;
+			interrupts-extended =
+				<&hart0_int 0x05>, // Supervisor timer interrupt
+				<&hart0_int 0x07>; // Machine timer interrupt
+		};
+
+		rtc@101000 {
+			reg = <0x00 0x101000 0x00 0x1000>;
+			compatible = "google,goldfish-rtc";
+			interrupts = <0x07>; // This interrupt never actually fires, but it exists nonetheless
+			interrupt-parent = <&plic_int>;
+		};
+
+		plic_int: plic@c000000 {
+ 			riscv,ndev = <0x07>; // We have 7 interrupt sources
+			reg = <0x00 0xc000000 0x00 0x4000000>;
+			interrupts-extended =
+				<&hart0_int 0x0b>, // Context 0 --- Machine external interrupt
+				<&hart0_int 0x09> // Context 1 --- Supervisor external interrupt
+				;
+			interrupt-controller;
+			compatible = "sifive,plic-1.0.0", "riscv,plic0";
+			#address-cells = <0x00>;
+			#interrupt-cells = <0x01>;
+		};
+
+		test: test@1000 {
+			reg = <0x00 0x1000 0x00 0x1000>;
+			compatible = "sifive,test1\0sifive,test0\0syscon";
+		};
+
+		virtio_mmio@10001000 {
+			reg = <0x00 0x10001000 0x00 0x1000>;
+			compatible = "virtio,mmio";
+			interrupts = <0x02>;
+			interrupt-parent = <&plic_int>;
+		};
+
+		virtio_mmio@10002000 {
+			reg = <0x00 0x10002000 0x00 0x1000>;
+			compatible = "virtio,mmio";
+			interrupts = <0x03>;
+			interrupt-parent = <&plic_int>;
+		};
+
+		virtio_mmio@10003000 {
+			reg = <0x00 0x10003000 0x00 0x1000>;
+			compatible = "virtio,mmio";
+			interrupts = <0x04>;
+			interrupt-parent = <&plic_int>;
+		};
+
+		virtio_mmio@10004000 {
+			reg = <0x00 0x10004000 0x00 0x1000>;
+			compatible = "virtio,mmio";
+			interrupts = <0x05>;
+			interrupt-parent = <&plic_int>;
+		};
+
+		virtio_mmio@10005000 {
+			reg = <0x00 0x10005000 0x00 0x1000>;
+			compatible = "virtio,mmio";
+			interrupts = <0x06>;
+			interrupt-parent = <&plic_int>;
 		};
 	};
 };
