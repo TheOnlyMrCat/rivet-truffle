@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: © 2024 Max Guppy <theonly@mrcat.au>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+.zig-cache/
+zig-out/
+
+riscof/riscof_work/
+riscof/**/__pycache__/
+riscof/riscv-arch-test/
+
+alpine/
+dqib/
+riscv-isa/
+
+/target

@@ -1,0 +1,8 @@
+rivet-specific changes:
+
+- Update to version 2.2 of the RISC-V F/D extension spec
+
+2018-09-15:
+
+- fixed potential undefined behavior in integer to floating point
+  conversion
