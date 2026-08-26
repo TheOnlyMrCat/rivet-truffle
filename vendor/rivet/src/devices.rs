@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use std::sync::{Arc, atomic};
-
-use crate::emulator::EmulatorControl;
 use crate::ffi::AmoKind;
 
 pub mod virtio;
@@ -13,8 +10,6 @@ mod aclint;
 pub use aclint::Aclint;
 mod goldfish;
 pub use goldfish::Rtc;
-mod ns16550a;
-pub use ns16550a::Ns16550a;
 mod plic;
 pub use plic::Plic;
 
@@ -83,54 +78,5 @@ impl MmioDevice for Rom {
 
     fn amo(&self, _reg: u64, _value: u64, _operation: AmoKind, _width: IoWidth) -> Option<u64> {
         None
-    }
-}
-
-pub struct Syscon {
-    control: Arc<EmulatorControl>,
-}
-
-impl Syscon {
-    const FAIL: u16 = 0x3333;
-    const PASS: u16 = 0x5555;
-    const REBOOT: u16 = 0x7777;
-
-    pub fn new(control: Arc<EmulatorControl>) -> Self {
-        Self { control }
-    }
-}
-
-impl MmioDevice for Syscon {
-    fn get(&self, _reg: u64, _width: IoWidth) -> Option<u64> {
-        Some(0)
-    }
-
-    fn put(&self, reg: u64, value: u64, width: IoWidth) -> bool {
-        if reg != 0 || width == IoWidth::One {
-            return false;
-        }
-
-        match value as u16 {
-            Self::FAIL => {
-                self.control.stop_all_harts();
-                self.control
-                    .exit_code
-                    .store((value >> 16) as u16, atomic::Ordering::Relaxed)
-            }
-            Self::PASS | Self::REBOOT => {
-                self.control.stop_all_harts();
-            }
-            _ => {}
-        }
-
-        true
-    }
-
-    fn amo(&self, addr: u64, value: u64, operation: AmoKind, width: IoWidth) -> Option<u64> {
-        match operation {
-            AmoKind::Swap | AmoKind::Xor | AmoKind::Or => self.put(addr, value, width).then_some(0),
-            AmoKind::And => self.put(addr, 0, width).then_some(0),
-            AmoKind::Add | AmoKind::Min | AmoKind::Max | AmoKind::Minu | AmoKind::Maxu => None,
-        }
     }
 }

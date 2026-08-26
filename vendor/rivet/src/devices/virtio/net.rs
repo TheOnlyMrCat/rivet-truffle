@@ -14,7 +14,6 @@ use libslirp::Handler;
 use quanta::Clock;
 use shared_slab::Slab;
 
-use crate::ForwardedPort;
 use crate::devices::IoWidth;
 use crate::emulator::{EmulatorControl, Interrupt, InterruptDestination};
 use crate::timer::Timer;
@@ -58,6 +57,12 @@ impl<T> EventFdSender<T> {
 enum SlirpMessage {
     TimerDone(usize),
     GuestTransmit(Box<[u8]>),
+}
+
+#[derive(Clone, Copy)]
+pub struct ForwardedPort {
+    host_port: u16,
+    guest_port: u16,
 }
 
 struct InterruptStatus {
