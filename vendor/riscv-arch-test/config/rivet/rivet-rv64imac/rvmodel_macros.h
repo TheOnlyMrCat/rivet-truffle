@@ -82,9 +82,9 @@
 
 #define RVMODEL_TIMER_INT_SOON_DELAY 100
 
-// #define RVMODEL_MTIME_ADDRESS  0x0200BFF8  /* Address of mtime CSR */
+#define RVMODEL_MTIME_ADDRESS  0x200000  /* Address of mtime CSR */
 
-// #define RVMODEL_MTIMECMP_ADDRESS 0x02004000 /* Address of mtimecmp CSR */
+#define RVMODEL_MTIMECMP_ADDRESS 0x201000 /* Address of mtimecmp CSR */
 
 ##### Machine Interrupts #####
 
