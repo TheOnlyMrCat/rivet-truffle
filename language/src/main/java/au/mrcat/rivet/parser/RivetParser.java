@@ -7,7 +7,6 @@ import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.*;
-import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.Opcode;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -70,7 +69,7 @@ public final class RivetParser {
 
                 int instruction;
                 try {
-                    instruction = context.readInstructionIntMisaligned(currentPc);
+                    instruction = context.readInstructionInt(currentPc);
                 } catch (RiscvTrapException trap) {
                     // Convert this into an instruction-access fault. Only actually do so if this is the first
                     // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
@@ -116,7 +115,7 @@ public final class RivetParser {
                     }
                 }
             }
-            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), finalNode, currentPc, instret));
+            basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetNode[0]), finalNode, basePc, instret));
         }
 
         return new RivetCallTargetNode(language, initialPc, basicBlocks);

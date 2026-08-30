@@ -1,9 +1,6 @@
 package au.mrcat.rivet;
 
-import au.mrcat.rivet.riscv.AccessType;
-import au.mrcat.rivet.riscv.ExceptionCause;
-import au.mrcat.rivet.riscv.PhysicalMemory;
-import au.mrcat.rivet.riscv.PrivilegedState;
+import au.mrcat.rivet.riscv.*;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
@@ -27,109 +24,131 @@ public class RivetContext {
         ffi = new RivetFfi(this);
     }
 
-    public byte readByte(long address) {
-        return physicalMemory.readByte(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+    private long translateReadAddress(long virtualAddress) {
+        return privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(virtualAddress, privilegedState.readAccessType(), privilegedState, physicalMemory);
     }
 
-    public short readShort(long address) {
-        if ((address & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+    public byte readByte(long virtualAddress) {
+        return physicalMemory.readByte(translateReadAddress(virtualAddress));
+    }
+
+    public short readShort(long virtualAddress) {
+        if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.HalfWord)) {
+            int lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
+            int msb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
+            return (short) (lsb | (msb << 8));
         }
-        return physicalMemory.readShort(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+        return physicalMemory.readShort(translateReadAddress(virtualAddress), privilegedState.readAccessType());
     }
 
-    public short readShortMisaligned(long address) {
-        return physicalMemory.readShortMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
-    }
-
-    public int readInt(long address) {
-        if ((address & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+    public int readInt(long virtualAddress) {
+        if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+            int lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
+            int sb1 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
+            int sb2 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 2)));
+            int msb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 3)));
+            return lsb | (sb1 << 8) | (sb2 << 16) | (msb << 24);
         }
-        return physicalMemory.readInt(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+        return physicalMemory.readInt(translateReadAddress(virtualAddress), privilegedState.readAccessType());
     }
 
-    public int readIntMisaligned(long address) {
-        return physicalMemory.readIntMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory), privilegedState.readAccessType());
-    }
-
-    public int readInstructionIntMisaligned(long address) {
-        return physicalMemory.readIntMisaligned(privilegedState.currentAddressSpace(AccessType.EXECUTE).toPhysicalAddress(address, AccessType.EXECUTE, privilegedState, physicalMemory), AccessType.EXECUTE);
-    }
-
-    public long readLong(long address) {
-        if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
+    public int readInstructionInt(long virtualAddress) {
+        if ((virtualAddress & 0b1) != 0) {
+            throw new IllegalArgumentException("Instruction virtual address not aligned to 16 bits: " + virtualAddress);
         }
-        return physicalMemory.readLong(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+        AddressSpace addressSpace = privilegedState.currentAddressSpace(AccessType.EXECUTE);
+        if (!addressSpace.isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+            int lsh = Short.toUnsignedInt(physicalMemory.readShort(addressSpace.toPhysicalAddress(virtualAddress, AccessType.EXECUTE, privilegedState, physicalMemory), AccessType.EXECUTE));
+            if ((lsh & 0b11) != 0b11) {
+                // Compressed instruction; don't bother reading the most significant half since it'll be discarded anyway
+                return lsh;
+            }
+            int msh = physicalMemory.readShort(addressSpace.toPhysicalAddress(virtualAddress + 2, AccessType.EXECUTE, privilegedState, physicalMemory), AccessType.EXECUTE);
+            return lsh | (msh << 16);
+        }
+        return physicalMemory.readInt(addressSpace.toPhysicalAddress(virtualAddress, AccessType.EXECUTE, privilegedState, physicalMemory), AccessType.EXECUTE);
     }
 
-    public long readLongMisaligned(long address) {
-        return physicalMemory.readLongMisaligned(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+    public long readLong(long virtualAddress) {
+        if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.DoubleWord)) {
+            long lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
+            long sb1 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
+            long sb2 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 2)));
+            long sb3 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 3)));
+            long sb4 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 4)));
+            long sb5 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 5)));
+            long sb6 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 6)));
+            long msb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 7)));
+            return lsb | (sb1 << 8) | (sb2 << 16) | (sb3 << 24) | (sb4 << 32) | (sb5 << 40) | (sb6 << 48) | (msb << 56);
+        }
+        return physicalMemory.readLong(translateReadAddress(virtualAddress));
     }
 
-    public void reserveIntAddress(long address) {
-        if ((address & 0b11) != 0) {
+    public void reserveIntAddress(long virtualAddress) {
+        if ((virtualAddress & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
-        physicalMemory.reserveIntAddress(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+        physicalMemory.reserveIntAddress(translateReadAddress(virtualAddress));
     }
 
-    public void reserveLongAddress(long address) {
-        if ((address & 0b111) != 0) {
+    public void reserveLongAddress(long virtualAddress) {
+        if ((virtualAddress & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
-        physicalMemory.reserveLongAddress(privilegedState.currentAddressSpace(privilegedState.readAccessType()).toPhysicalAddress(address, privilegedState.readAccessType(), privilegedState, physicalMemory));
+        physicalMemory.reserveLongAddress(translateReadAddress(virtualAddress));
     }
 
-    public void writeByte(long address, byte value) {
-        physicalMemory.writeByte(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+    private long translateWriteAddress(long virtualAddress) {
+        return privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(virtualAddress, AccessType.WRITE, privilegedState, physicalMemory);
     }
 
-    public void writeShort(long address, short value) {
-        if ((address & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+    public void writeByte(long virtualAddress, byte value) {
+        physicalMemory.writeByte(translateWriteAddress(virtualAddress), value);
+    }
+
+    public void writeShort(long virtualAddress, short value) {
+        if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.HalfWord)) {
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
         }
-        physicalMemory.writeShort(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+        physicalMemory.writeShort(translateWriteAddress(virtualAddress), value);
     }
 
-    public void writeShortMisaligned(long address, short value) {
-        physicalMemory.writeShortMisaligned(address, value);
-    }
-
-    public void writeInt(long address, int value) {
-        if ((address & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+    public void writeInt(long virtualAddress, int value) {
+        if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 2), (byte) (value >> 16));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 3), (byte) (value >> 24));
         }
-        physicalMemory.writeInt(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+        physicalMemory.writeInt(translateWriteAddress(virtualAddress), value);
     }
 
-    public void writeIntMisaligned(long address, int value) {
-        physicalMemory.writeIntMisaligned(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
-    }
-
-    public void writeLong(long address, long value) {
-        if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
+    public void writeLong(long virtualAddress, long value) {
+        if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.DoubleWord)) {
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 2), (byte) (value >> 16));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 3), (byte) (value >> 24));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 4), (byte) (value >> 32));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 5), (byte) (value >> 40));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 6), (byte) (value >> 48));
+            physicalMemory.writeByte(translateWriteAddress(virtualAddress + 7), (byte) (value >> 56));
         }
-        physicalMemory.writeLong(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+        physicalMemory.writeLong(translateWriteAddress(virtualAddress), value);
     }
 
-    public void writeLongMisaligned(long address, long value) {
-        physicalMemory.writeLongMisaligned(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
-    }
-
-    public boolean writeIntConditional(long address, int value) {
-        if ((address & 0b11) != 0) {
+    public boolean writeIntConditional(long virtualAddress, int value) {
+        if ((virtualAddress & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
-        return physicalMemory.writeIntConditional(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+        return physicalMemory.writeIntConditional(translateWriteAddress(virtualAddress), value);
     }
 
-    public boolean writeLongConditional(long address, long value) {
-        if ((address & 0b111) != 0) {
+    public boolean writeLongConditional(long virtualAddress, long value) {
+        if ((virtualAddress & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
-        return physicalMemory.writeLongConditional(privilegedState.currentAddressSpace(AccessType.WRITE).toPhysicalAddress(address, AccessType.WRITE, privilegedState, physicalMemory), value);
+        return physicalMemory.writeLongConditional(translateWriteAddress(virtualAddress), value);
     }
 }

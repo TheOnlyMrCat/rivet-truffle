@@ -30,25 +30,15 @@ public class PhysicalMemory {
     }
 
     public byte readByte(long physicalAddress) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length) {
+        if (!isInPhysicalMemory(physicalAddress, 1)) {
             return (byte) readMmio(physicalAddress, MemoryWidth.Byte, AccessType.READ);
         }
         return byteArray.getByte(memory, physicalAddress - 0x8000_0000L);
     }
 
-    public short readShort(long physicalAddress) {
-        if ((physicalAddress & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, AccessType.READ);
-        }
-        return byteArray.getShort(memory, physicalAddress - 0x8000_0000L);
-    }
-
-    public short readShortMisaligned(long physicalAddress) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, AccessType.READ);
+    public short readShort(long physicalAddress, AccessType accessType) {
+        if (!isInPhysicalMemory(physicalAddress, 2)) {
+            return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, accessType);
         }
         if ((physicalAddress & 0b1) != 0) {
             return byteArray.getShortUnaligned(memory, physicalAddress - 0x8000_0000L);
@@ -56,18 +46,8 @@ public class PhysicalMemory {
         return byteArray.getShort(memory, physicalAddress - 0x8000_0000L);
     }
 
-    public int readInt(long physicalAddress) {
-        if ((physicalAddress & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return (int) readMmio(physicalAddress, MemoryWidth.Word, AccessType.READ);
-        }
-        return byteArray.getInt(memory, physicalAddress - 0x8000_0000L);
-    }
-
-    public int readIntMisaligned(long physicalAddress, AccessType accessType) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+    public int readInt(long physicalAddress, AccessType accessType) {
+        if (!isInPhysicalMemory(physicalAddress, 4)) {
             return (int) readMmio(physicalAddress, MemoryWidth.Word, accessType);
         }
         if ((physicalAddress & 0b11) != 0) {
@@ -75,19 +55,8 @@ public class PhysicalMemory {
         }
         return byteArray.getInt(memory, physicalAddress - 0x8000_0000L);
     }
-
     public long readLong(long physicalAddress) {
-        if ((physicalAddress & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.LoadAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            return readMmio(physicalAddress, MemoryWidth.DoubleWord, AccessType.READ);
-        }
-        return byteArray.getLong(memory, physicalAddress - 0x8000_0000L);
-    }
-
-    public long readLongMisaligned(long physicalAddress) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 8)) {
             return readMmio(physicalAddress, MemoryWidth.DoubleWord, AccessType.READ);
         }
         if ((physicalAddress & 0b111) != 0) {
@@ -100,7 +69,7 @@ public class PhysicalMemory {
         if ((physicalAddress & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 4)) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
         reservedDoubleWord = physicalAddress & ~0b111L;
@@ -110,7 +79,7 @@ public class PhysicalMemory {
         if ((physicalAddress & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 8)) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
         reservedDoubleWord = physicalAddress & ~0b111L;
@@ -143,7 +112,7 @@ public class PhysicalMemory {
     }
 
     public void writeByte(long physicalAddress, byte value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length) {
+        if (!isInPhysicalMemory(physicalAddress, 1)) {
             writeMmio(physicalAddress, value, MemoryWidth.Byte);
             return;
         }
@@ -151,18 +120,7 @@ public class PhysicalMemory {
     }
 
     public void writeShort(long physicalAddress, short value) {
-        if ((physicalAddress & 0b1) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            writeMmio(physicalAddress, value, MemoryWidth.HalfWord);
-            return;
-        }
-        byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
-    }
-
-    public void writeShortMisaligned(long physicalAddress, short value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 2)) {
             writeMmio(physicalAddress, value, MemoryWidth.HalfWord);
             return;
         }
@@ -170,18 +128,7 @@ public class PhysicalMemory {
     }
 
     public void writeInt(long physicalAddress, int value) {
-        if ((physicalAddress & 0b11) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            writeMmio(physicalAddress, value, MemoryWidth.Word);
-            return;
-        }
-        byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
-    }
-
-    public void writeIntMisaligned(long physicalAddress, int value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 4)) {
             writeMmio(physicalAddress, value, MemoryWidth.Word);
             return;
         }
@@ -189,18 +136,7 @@ public class PhysicalMemory {
     }
 
     public void writeLong(long physicalAddress, long value) {
-        if ((physicalAddress & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAddressMisaligned);
-        }
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
-            writeMmio(physicalAddress, value, MemoryWidth.DoubleWord);
-            return;
-        }
-        byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
-    }
-
-    public void writeLongMisaligned(long physicalAddress, long value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 8)) {
             writeMmio(physicalAddress, value, MemoryWidth.DoubleWord);
             return;
         }
@@ -208,7 +144,7 @@ public class PhysicalMemory {
     }
 
     public boolean writeIntConditional(long physicalAddress, int value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 4)) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((physicalAddress & 0b11) != 0) {
@@ -224,7 +160,7 @@ public class PhysicalMemory {
     }
 
     public boolean writeLongConditional(long physicalAddress, long value) {
-        if (physicalAddress < 0x8000_0000L || physicalAddress - 0x8000_0000L > memory.length - 1) {
+        if (!isInPhysicalMemory(physicalAddress, 8)) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
         if ((physicalAddress & 0b111) != 0) {

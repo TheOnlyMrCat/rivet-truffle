@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
+import au.mrcat.rivet.riscv.PrivilegeMode;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.*;
 import com.oracle.truffle.api.CallTarget;
@@ -17,12 +18,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RivetRootNode extends RootNode {
+    private record CallTargetKey(long pc, PrivilegeMode mode) {
+    }
+
     private final RivetLanguage language;
     @Child private RivetStartupNode startupNode;
 
     @Children private DirectCallNode[] callTargets;
     private int callTargetsLength;
-    private final Map<Long, Integer> callTargetPcs;
+    private final Map<CallTargetKey, Integer> callTargetPcs;
 
     public RivetRootNode(RivetLanguage language, RivetStartupNode startupNode) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -60,7 +64,7 @@ public class RivetRootNode extends RootNode {
 
             try {
                 while (true) {
-                    Integer callTargetIndex = callTargetPcs.get(cpuState.getPc());
+                    Integer callTargetIndex = callTargetPcs.get(new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentMode()));
                     if (callTargetIndex == null) {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
@@ -71,7 +75,7 @@ public class RivetRootNode extends RootNode {
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
-                        callTargetPcs.put(root.getEntryPc(), callTargetIndex);
+                        callTargetPcs.put(new CallTargetKey(root.getEntryPc(), ctx.privilegedState.currentMode()), callTargetIndex);
 //                        for (long entryPc : root.getPcOffsets()) {
 //                            callTargetPcs.put(entryPc, callTargetIndex);
 //                        }

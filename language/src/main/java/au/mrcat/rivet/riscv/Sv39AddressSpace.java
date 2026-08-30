@@ -31,7 +31,6 @@ public class Sv39AddressSpace extends AddressSpace {
             try {
                 pte = memory.readLong(pteAddr);
             } catch (RiscvTrapException e) {
-                assert e.cause != ExceptionCause.LoadAddressMisaligned;
                 throw new RiscvTrapException(accessType.pageFaultCause);
             }
             if ((pte & 0b1) != 1 || (pte & 0b110) == 0b100 || ((pte >> 54) & 0b1_11_1111111) != 0) {
@@ -84,5 +83,10 @@ public class Sv39AddressSpace extends AddressSpace {
         currentAddr |= (vte & superpageMask) << 12;
         currentAddr |= virtualAddress & (1 << 12) - 1;
         return currentAddr;
+    }
+
+    @Override
+    public boolean isAccessContiguous(long virtualAddress, MemoryWidth width) {
+        return (virtualAddress & ~(0xfff)) == ((virtualAddress + width.bytes) & ~(0xfff));
     }
 }

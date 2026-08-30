@@ -34,33 +34,22 @@ public class RivetCallTargetNode extends RootNode {
         frameDescriptor.addSlots(32, FrameSlotKind.Static);
         super(language, frameDescriptor.build());
 
-        basicBlockNodes = new RivetBasicBlockNode[basicBlocks.size()];
-        long[] pcOffsets = new long[basicBlocks.size()];
-        int i = 0;
-        int firstBlockIndex = -1;
-        for (var entry : basicBlocks.sequencedEntrySet()) {
-            if (entry.getKey() == entryPc) {
-                assert firstBlockIndex == -1;
-                firstBlockIndex = i;
-            }
-            pcOffsets[i] = entry.getKey();
-            basicBlockNodes[i] = entry.getValue();
-            i++;
-        }
-        assert firstBlockIndex != -1;
-        this.firstBlockIndex = firstBlockIndex;
+        basicBlockNodes = basicBlocks.sequencedValues().toArray(new RivetBasicBlockNode[0]);
+        long[] pcOffsets = basicBlocks.sequencedKeySet().stream().mapToLong(x -> x).toArray();
+        firstBlockIndex = Arrays.binarySearch(pcOffsets, entryPc);
+        assert firstBlockIndex >= 0;
 
         for (var block : basicBlockNodes) {
-            var continuations = block.divergentNode.callTargetContinuations();
+            var continuations = block.callTargetContinuations();
             block.successorIndices = new int[continuations.length];
 
-            for (i = 0; i < continuations.length; i++) {
+            for (int i = 0; i < continuations.length; i++) {
                 block.successorIndices[i] = Arrays.binarySearch(pcOffsets, continuations[i]);
                 assert block.successorIndices[i] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
             }
         }
 
-        for (i = 0; i < 31; i++) {
+        for (int i = 0; i < 31; i++) {
             copyFromState[i] = new BareSetRegisterNode(i + 1);
             copyToState[i] = (GetRegisterNode) GetRegisterNode.create(i + 1);
         }

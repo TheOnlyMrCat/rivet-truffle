@@ -25,7 +25,7 @@ public class StoreDoubleNode extends RivetNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            ctx.writeLongMisaligned(virtualAddress, value.executeLong(frame));
+            ctx.writeLong(virtualAddress, value.executeLong(frame));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);

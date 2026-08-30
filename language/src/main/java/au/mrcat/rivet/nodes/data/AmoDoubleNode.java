@@ -23,6 +23,9 @@ public class AmoDoubleNode extends RivetOpNode {
         var ctx = currentLanguageContext();
 
         long address = this.address.executeLong(frame);
+        if ((address & 0b111) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
+        }
         try {
             long originalValue = ctx.readLong(address);
 

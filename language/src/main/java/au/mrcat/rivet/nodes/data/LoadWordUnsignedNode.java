@@ -22,7 +22,7 @@ public class LoadWordUnsignedNode extends RivetOpNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return Integer.toUnsignedLong(ctx.readIntMisaligned(virtualAddress));
+            return Integer.toUnsignedLong(ctx.readInt(virtualAddress));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);

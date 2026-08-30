@@ -24,6 +24,9 @@ public class AmoWordNode extends RivetOpNode {
         var ctx = currentLanguageContext();
 
         long address = this.address.executeLong(frame);
+        if ((address & 0b11) != 0) {
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
+        }
         try {
             int originalValue = ctx.readInt(address);
 

@@ -22,7 +22,7 @@ public class LoadWordNode extends RivetOpNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return ctx.readIntMisaligned(virtualAddress);
+            return ctx.readInt(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);

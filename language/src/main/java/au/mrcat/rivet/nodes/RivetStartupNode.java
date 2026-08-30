@@ -22,7 +22,7 @@ public class RivetStartupNode extends Node {
 
     public void loadOpensbi() {
         long baseAddress = 0xbff00000L;
-        try (var opensbi = getClass().getResourceAsStream("../fw_dynamic.bin")) {
+        try (var opensbi = RivetContext.class.getResourceAsStream("fw_dynamic.bin")) {
             byte[] bytes = opensbi.readAllBytes();
             initialMemory.put(baseAddress, ByteSequence.create(bytes));
         } catch (IOException e) {

@@ -22,7 +22,7 @@ public class LoadHalfUnsignedNode extends RivetOpNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return Short.toUnsignedLong(ctx.readShortMisaligned(virtualAddress));
+            return Short.toUnsignedLong(ctx.readShort(virtualAddress));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);

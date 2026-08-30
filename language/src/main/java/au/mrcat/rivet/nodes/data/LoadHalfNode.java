@@ -22,7 +22,7 @@ public class LoadHalfNode extends RivetOpNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            return ctx.readShortMisaligned(virtualAddress);
+            return ctx.readShort(virtualAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);

@@ -25,7 +25,7 @@ public class StoreWordNode extends RivetNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame) + offset;
         try {
-            ctx.writeIntMisaligned(virtualAddress, (int) value.executeLong(frame));
+            ctx.writeInt(virtualAddress, (int) value.executeLong(frame));
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);
             trap.setTval(virtualAddress);
