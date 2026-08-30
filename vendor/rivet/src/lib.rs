@@ -48,13 +48,13 @@ unsafe extern "C" fn rust_create_devices(
 
     let plic = Arc::new(Plic::new(
         Interrupt::from(HartInterrupt {
-            hart: 0,
+            memory,
             interrupt: 0b10_11,
             hart_trigger,
             hart_untrigger,
         }),
         Interrupt::from(HartInterrupt {
-            hart: 0,
+            memory,
             interrupt: 0b10_01,
             hart_trigger,
             hart_untrigger,
@@ -104,20 +104,20 @@ unsafe extern "C" fn rust_create_devices(
 
     let aclint = Arc::new(Aclint::new(
         Interrupt::from(HartInterrupt {
-            hart: 0,
+            memory,
             interrupt: 0b1_11,
             hart_trigger,
             hart_untrigger,
         }),
         Interrupt::from(HartInterrupt {
-            hart: 0,
+            memory,
             interrupt: 0b1_01,
             hart_trigger,
             hart_untrigger,
         }),
     ));
     devices.insert(
-        0x1_0000_7000..0x1_0001_0000,
+        0x20_0000..0x21_0000,
         (aclint.clone() as Arc<dyn MmioDevice>).into(),
     );
 

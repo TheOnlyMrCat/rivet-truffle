@@ -87,7 +87,7 @@ unsafe extern "C" fn rust_load(
             true
         }
         None => {
-            eprintln!("load: bad read: {bits} bits @ 0x{addr:x}");
+            // eprintln!("load: bad read: {bits} bits @ 0x{addr:x}");
             false
         }
     }
@@ -110,7 +110,7 @@ unsafe extern "C" fn rust_store(
     };
 
     if !run.store(addr, value, width) {
-        eprintln!("store: bad write: {bits} bits @ 0x{addr:x}");
+        // eprintln!("store: bad write: {bits} bits @ 0x{addr:x}");
         false
     } else {
         true
@@ -151,7 +151,7 @@ unsafe extern "C" fn rust_amo(
             true
         }
         None => {
-            eprintln!("amo: bad operation: {bits} bits @ 0x{addr:x}");
+            // eprintln!("amo: bad operation: {bits} bits @ 0x{addr:x}");
             false
         }
     }

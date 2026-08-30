@@ -10,7 +10,7 @@ use bytemuck::{AnyBitPattern, NoUninit};
 use rangemap::RangeMap;
 
 use crate::devices::{Aclint, IoWidth, MmioDevice};
-use crate::ffi::{AmoKind, Hart, Memory};
+use crate::ffi::{AmoKind, Memory};
 
 pub struct DeviceMap {
     pub aclint: Arc<Aclint>,
@@ -181,10 +181,10 @@ pub trait InterruptDestination: Send + Sync {
 }
 
 pub struct HartInterrupt {
-    pub hart: Hart,
+    pub memory: Memory,
     pub interrupt: u32,
-    pub hart_trigger: unsafe extern "C" fn(hart: Hart, interrupt: u32),
-    pub hart_untrigger: unsafe extern "C" fn(hart: Hart, interrupt: u32),
+    pub hart_trigger: unsafe extern "C" fn(memory: Memory, interrupt: u32),
+    pub hart_untrigger: unsafe extern "C" fn(memory: Memory, interrupt: u32),
 }
 
 // SAFETY: The Zig type Hart is equipped to handle concurrency
@@ -194,13 +194,13 @@ unsafe impl Sync for HartInterrupt {}
 impl InterruptDestination for HartInterrupt {
     fn trigger(&self) {
         unsafe {
-            (self.hart_trigger)(self.hart, self.interrupt);
+            (self.hart_trigger)(self.memory, self.interrupt);
         }
     }
 
     fn untrigger(&self) {
         unsafe {
-            (self.hart_untrigger)(self.hart, self.interrupt);
+            (self.hart_untrigger)(self.memory, self.interrupt);
         }
     }
 }
