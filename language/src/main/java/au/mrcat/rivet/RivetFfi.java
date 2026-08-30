@@ -3,6 +3,7 @@ package au.mrcat.rivet;
 import au.mrcat.rivet.riscv.AccessType;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
@@ -182,6 +183,7 @@ public final class RivetFfi {
         }
     }
 
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
     public long rustLoad(long addr, byte bits, AccessType accessType) {
         try (Arena a = Arena.ofConfined()) {
             MemorySegment value = a.allocate(8, 8);
@@ -194,6 +196,7 @@ public final class RivetFfi {
         throw new RiscvTrapException(accessType.accessFaultCause);
     }
 
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
     public void rustStore(long addr, long value, byte bits) {
         try {
             if ((boolean) rust_store.invoke(devices, addr, value, bits)) {
@@ -205,6 +208,7 @@ public final class RivetFfi {
         throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
     }
 
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
     public long rustGetTime() {
         try {
             return (long) rust_get_time.invoke(devices);
@@ -213,6 +217,7 @@ public final class RivetFfi {
         }
     }
 
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
     public boolean memoryRead(long addr, long len, MemorySegment buffer) {
         if (!ctx.physicalMemory.isInPhysicalMemory(addr, len)) {
             return false;
