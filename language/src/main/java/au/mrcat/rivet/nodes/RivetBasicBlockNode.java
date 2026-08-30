@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import java.util.Arrays;
 
-public class RivetBasicBlockNode extends RivetNode {
+public class RivetBasicBlockNode extends RivetDivergentNode {
     @Children RivetNode[] instructions;
     @Child RivetDivergentNode divergentNode;
 
@@ -15,7 +15,6 @@ public class RivetBasicBlockNode extends RivetNode {
     public final short instructionsRetired;
 
     @CompilerDirectives.CompilationFinal(dimensions = 1) int[] successorIndices;
-    @CompilerDirectives.CompilationFinal(dimensions = 1) long[] successorFirstPcs;
 
     public RivetBasicBlockNode(RivetNode[] instructions, RivetDivergentNode divergentNode, long firstPc, short instructionsRetired) {
         this.instructions = instructions;
@@ -25,10 +24,6 @@ public class RivetBasicBlockNode extends RivetNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        executeDivergent(frame);
-    }
-
     @ExplodeLoop
     public int executeDivergent(VirtualFrame frame) {
         CompilerAsserts.partialEvaluationConstant(this);
@@ -40,16 +35,10 @@ public class RivetBasicBlockNode extends RivetNode {
         return divergentNode.executeDivergent(frame);
     }
 
-//    @ExplodeLoop(kind = ExplodeLoop.LoopExplosionKind.FULL_EXPLODE_UNTIL_RETURN)
-//    public int getSuccessor(long pc) {
-//        CompilerAsserts.compilationConstant(successorIndices.length);
-//        for (int i = 0; i < successorIndices.length; i++) {
-//            if (successorFirstPcs[i] == pc) {
-//                return successorIndices[i];
-//            }
-//        }
-//        return -1;
-//    }
+    @Override
+    public Long[] callTargetContinuations() {
+        return divergentNode.callTargetContinuations();
+    }
 
     public long getFirstPc() {
         return firstPc;

@@ -17,6 +17,9 @@ build-resources:
     # Device tree
     dtc -o {{resources_path / "rivet-truffle.dtb"}} language/src/main/devicetree/rivet-truffle.dts
 
+    # Devices implementation
+    cd vendor/rivet && cargo build
+
     # OpenSBI firmware
     make -C vendor/opensbi PLATFORM=generic LLVM=1
     cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin {{resources_path / "fw_dynamic.bin"}}

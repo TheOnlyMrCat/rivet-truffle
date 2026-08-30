@@ -8,7 +8,6 @@ import au.mrcat.rivet.runtime.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -68,7 +67,7 @@ public class RivetRootNode extends RootNode {
                         try {
                             root = RivetParser.extractCallTarget(language, RivetContext.get(this), cpuState.getPc());
                         } catch (RiscvTrapException trap) {
-                            cpuState.setPc(ctx.privilegedState.handleTrap(trap));
+                            cpuState.setPc(ctx.privilegedState.handleException(trap));
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
@@ -89,7 +88,7 @@ public class RivetRootNode extends RootNode {
                     } catch (RiscvTrapException trap) {
                         cpuState = trap.getState();
                         ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
-                        cpuState.setPc(ctx.privilegedState.handleTrap(trap));
+                        cpuState.setPc(ctx.privilegedState.handleException(trap));
                     }
                 }
             } catch (RiscvExitException exit) {

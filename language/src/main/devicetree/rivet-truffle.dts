@@ -73,11 +73,11 @@
 			compatible = "sifive,test1\0sifive,test0\0syscon";
 		};
 
-		mtimer@100007000 {
+		mtimer@200000 {
 			compatible = "riscv,aclint-mtimer";
 			reg =
-				<1 0x7000 0x00 0x1000>, // MTIME
-				<1 0x8000 0x00 0x8000> // MTIMECMP
+				<0 0x200000 0x00 0x1000>, // MTIME
+				<0 0x201000 0x00 0x8000> // MTIMECMP
 				;
 			interrupts-extended =
 				<&hart0_int 0x05>, // Supervisor timer interrupt
@@ -102,11 +102,6 @@
 			compatible = "sifive,plic-1.0.0", "riscv,plic0";
 			#address-cells = <0x00>;
 			#interrupt-cells = <0x01>;
-		};
-
-		test: test@1000 {
-			reg = <0x00 0x1000 0x00 0x1000>;
-			compatible = "sifive,test1\0sifive,test0\0syscon";
 		};
 
 		virtio_mmio@10001000 {

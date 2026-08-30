@@ -1,5 +1,6 @@
 package au.mrcat.rivet.riscv;
 
+import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.runtime.RiscvDoubleTrapException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 
@@ -15,10 +16,12 @@ public final class PrivilegedState {
     private static final long MENVCFG_WRITABLE_MASK =
             0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
     private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
-    private static final long INTERRUPT_MASK = 0;
+    private static final long INTERRUPT_WRITABLE_MASK = 0b1000100010;
+    private static final long INTERRUPT_VALID_MASK = 0b101010101010;
     private static final long COUNTER_MASK = 0b111;
 
-    private long sie;
+    private final RivetContext ctx;
+
     private long stvec;
     private long scounteren;
 
@@ -42,6 +45,7 @@ public final class PrivilegedState {
     private long mepc;
     private long mcause;
     private long mtval;
+    private boolean hardwareSeip;
     private long mip;
 
     private long menvcfg;
@@ -50,6 +54,10 @@ public final class PrivilegedState {
     private long minstret;
 
     private long mcountinhibit;
+
+    public PrivilegedState(RivetContext ctx) {
+        this.ctx = ctx;
+    }
 
     public PrivilegeMode currentMode() {
         return mode;
@@ -99,6 +107,21 @@ public final class PrivilegedState {
         return (menvcfg & (1L << 61)) == 0;
     }
 
+    public long reconstituteHardwareSeip(int csr, long value) {
+        // SEIP is a special bit in MIP (and SIP) in that it has a hardware-set value and a software-set value;
+        // getting OR'd together on read, but only the software-set value participates in RMW operations.
+        if (!hardwareSeip) {
+            return value;
+        }
+        if (csr == Csr.MIP && (mideleg & (1 << 9)) == 0) {
+            return value | (1 << 9);
+        }
+        if (csr == Csr.SIP && (mideleg & (1 << 9)) != 0) {
+            return value | (1 << 9);
+        }
+        return value;
+    }
+
     public long tryRead(int csr) {
         // Do an initial rough check based on the privilege mode/CSR pair
         int minimumMode = (csr >> 8) & 0b11;
@@ -134,7 +157,7 @@ public final class PrivilegedState {
                 if ((counterenMask & (1 << 1)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
-                return System.nanoTime();
+                return ctx.ffi.rustGetTime();
             }
             case Csr.INSTRET -> {
                 if ((counterenMask & (1 << 2)) == 0) {
@@ -223,7 +246,7 @@ public final class PrivilegedState {
                 // Preserve non-writeable fields
                 mstatus |= prevMstatus & ~(SSTATUS_VISIBLE_MASK & MSTATUS_WRITABLE_MASK);
             }
-            case Csr.SIE -> sie = value & mideleg;
+            case Csr.SIE -> mie = value & INTERRUPT_VALID_MASK & mideleg;
             case Csr.STVEC -> stvec = value;
             case Csr.SCOUNTEREN -> scounteren = value;
 
@@ -274,11 +297,8 @@ public final class PrivilegedState {
             }
             case Csr.MISA -> { /* Do nothing */ }
             case Csr.MEDELEG -> medeleg = value & EXCEPTION_MASK;
-            case Csr.MIDELEG -> {
-                mideleg = value & INTERRUPT_MASK;
-                sie &= mideleg;
-            }
-            case Csr.MIE -> mie = value & INTERRUPT_MASK;
+            case Csr.MIDELEG -> mideleg = value & INTERRUPT_VALID_MASK;
+            case Csr.MIE -> mie = value & INTERRUPT_VALID_MASK;
             case Csr.MTVEC -> mtvec = value;
             case Csr.MCOUNTEREN -> mcounteren = value & COUNTER_MASK;
 
@@ -286,7 +306,7 @@ public final class PrivilegedState {
             case Csr.MEPC -> mepc = value & ~0b1;
             case Csr.MCAUSE -> mcause = value;
             case Csr.MTVAL -> mtval = value;
-            case Csr.MIP -> mip = value;
+            case Csr.MIP -> mip = value & INTERRUPT_WRITABLE_MASK;
 
             case Csr.MENVCFG -> menvcfg = value & MENVCFG_WRITABLE_MASK;
 
@@ -306,12 +326,37 @@ public final class PrivilegedState {
         }
     }
 
-    public long handleTrap(RiscvTrapException trap) {
-        long cause = trap.cause.value;
-        if (mode != PrivilegeMode.Machine && (medeleg & (1L << cause)) != 0) {
-            return handleSupervisorException(cause, trap.getPc(), trap.getTval());
+    public void trigger(int interrupt) {
+        if (interrupt == 9) {
+            hardwareSeip = true;
+        } else {
+            mip |= (1L << interrupt);
         }
-        return handleMachineException(cause, trap.getPc(), trap.getTval());
+    }
+
+    public void untrigger(int interrupt) {
+        if (interrupt == 9) {
+            hardwareSeip = false;
+        } else {
+            mip &= ~(1L << interrupt);
+        }
+    }
+
+    public long handleException(RiscvTrapException trap) {
+        long cause = trap.cause.value;
+        if (cause < 0) {
+            // Exception is an interrupt
+            if (mode != PrivilegeMode.Machine && (mideleg & (1L << cause - Long.MIN_VALUE)) != 0) {
+                return handleSupervisorException(cause, trap.getPc(), trap.getTval());
+            }
+            return handleMachineException(cause, trap.getPc(), trap.getTval());
+        } else {
+            // Exception is a trap
+            if (mode != PrivilegeMode.Machine && (medeleg & (1L << cause)) != 0) {
+                return handleSupervisorException(cause, trap.getPc(), trap.getTval());
+            }
+            return handleMachineException(cause, trap.getPc(), trap.getTval());
+        }
     }
 
     private long handleSupervisorException(long exception, long epc, long tval) {
@@ -326,7 +371,10 @@ public final class PrivilegedState {
         // Store the exception information in the relevant registers
         scause = exception;
         sepc = epc;
-        stval = tval;
+        if (exception >= 0) {
+            // Only set tval for traps
+            stval = tval;
+        }
 
         // Return the program counter to jump to
         long stvec_mode = stvec & 0b11;
@@ -358,7 +406,10 @@ public final class PrivilegedState {
         // Store the exception information in the relevant registers
         mcause = exception;
         mepc = epc;
-        mtval = tval;
+        if (exception >= 0) {
+            // Only set tval for traps
+            mtval = tval;
+        }
 
         // Return the program counter to jump to
         long mtvec_mode = mtvec & 0b11;
@@ -412,6 +463,38 @@ public final class PrivilegedState {
 
     public void fenceVirtualMemory() {
         // Nothing to do yet
+    }
+
+    private long currentPendingSupervisorInterrupts() {
+        if (mode == PrivilegeMode.Machine || mode == PrivilegeMode.Supervisor && (mstatus & (1 << 1)) == 0) {
+            return 0;
+        }
+        if (hardwareSeip) {
+            return (mip | (1 << 9)) & mie & mideleg;
+        }
+        return mip & mie & mideleg;
+    }
+
+    private long currentPendingMachineInterrupts() {
+        if (mode == PrivilegeMode.Machine && (mstatus & (1 << 3)) == 0) {
+            return 0;
+        }
+        if (hardwareSeip) {
+            return (mip | (1 << 9)) & mie & ~mideleg;
+        }
+        return mip & mie & ~mideleg;
+    }
+
+    public void checkForInterrupts(long pc) {
+        long pending = currentPendingMachineInterrupts();
+        if (pending != 0) {
+            throw new RiscvTrapException(ExceptionCause.fromInterruptIndex(Long.numberOfTrailingZeros(pending)), pc);
+        }
+        
+        pending = currentPendingSupervisorInterrupts();
+        if (pending != 0) {
+            throw new RiscvTrapException(ExceptionCause.fromInterruptIndex(Long.numberOfTrailingZeros(pending)), pc);
+        }
     }
 
     public void stepPerformanceCounters(short instructionsRetired) {

@@ -22,7 +22,7 @@ public class RivetContext {
 
     public RivetContext(TruffleLanguage.Env env) {
         this.env = env;
-        privilegedState = new PrivilegedState();
+        privilegedState = new PrivilegedState(this);
         physicalMemory = new PhysicalMemory(this);
         ffi = new RivetFfi(this);
     }

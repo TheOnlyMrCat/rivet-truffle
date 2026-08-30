@@ -29,8 +29,19 @@ public enum ExceptionCause {
 
     public final long value;
 
-
     ExceptionCause(long value) {
         this.value = value;
+    }
+
+    public static ExceptionCause fromInterruptIndex(int index) {
+        return switch (index) {
+            case 1 -> SupervisorSoftwareInterrupt;
+            case 3 -> MachineSoftwareInterrupt;
+            case 5 -> SupervisorTimerInterrupt;
+            case 7 -> MachineTimerInterrupt;
+            case 9 -> SupervisorExternalInterrupt;
+            case 11 -> MachineExternalInterrupt;
+            default -> throw new IllegalArgumentException("Invalid interrupt index " + index);
+        };
     }
 }

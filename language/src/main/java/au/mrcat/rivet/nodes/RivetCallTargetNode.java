@@ -21,7 +21,6 @@ import java.util.SortedMap;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
-    @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] pcOffsets;
 
     @Children BareSetRegisterNode[] copyFromState = new BareSetRegisterNode[31];
     @Children GetRegisterNode[] copyToState = new GetRegisterNode[31];
@@ -36,23 +35,28 @@ public class RivetCallTargetNode extends RootNode {
         super(language, frameDescriptor.build());
 
         basicBlockNodes = new RivetBasicBlockNode[basicBlocks.size()];
-        pcOffsets = new long[basicBlocks.size()];
+        long[] pcOffsets = new long[basicBlocks.size()];
         int i = 0;
+        int firstBlockIndex = -1;
         for (var entry : basicBlocks.sequencedEntrySet()) {
+            if (entry.getKey() == entryPc) {
+                assert firstBlockIndex == -1;
+                firstBlockIndex = i;
+            }
             pcOffsets[i] = entry.getKey();
             basicBlockNodes[i] = entry.getValue();
             i++;
         }
+        assert firstBlockIndex != -1;
+        this.firstBlockIndex = firstBlockIndex;
 
         for (var block : basicBlockNodes) {
             var continuations = block.divergentNode.callTargetContinuations();
             block.successorIndices = new int[continuations.length];
-            block.successorFirstPcs = new long[continuations.length];
 
             for (i = 0; i < continuations.length; i++) {
                 block.successorIndices[i] = Arrays.binarySearch(pcOffsets, continuations[i]);
                 assert block.successorIndices[i] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
-                block.successorFirstPcs[i] = continuations[i];
             }
         }
 
@@ -62,19 +66,6 @@ public class RivetCallTargetNode extends RootNode {
         }
 
         this.entryPc = entryPc;
-        this.firstBlockIndex = lookupBlock(entryPc);
-    }
-
-    public long[] getPcOffsets() {
-        return pcOffsets;
-    }
-
-    private int lookupBlock(long pc) {
-        int bbIndex = Arrays.binarySearch(pcOffsets, pc);
-        if (bbIndex < 0) {
-            return -1;
-        }
-        return bbIndex;
     }
 
     @ExplodeLoop
@@ -96,23 +87,18 @@ public class RivetCallTargetNode extends RootNode {
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
         var registers = (RegisterState) frame.getArguments()[0];
-        long pc = registers.getPc();
-
-        assert pc == entryPc;
-        pc = entryPc;
-        CompilerAsserts.partialEvaluationConstant(pc);
+        assert registers.getPc() == entryPc;
 
         copyFromRegisterState(frame, registers);
-
 
         CompilerAsserts.partialEvaluationConstant(basicBlockNodes);
 
         try {
             int block = firstBlockIndex;
-
-            CompilerAsserts.partialEvaluationConstant(basicBlockNodes[0]);
             while (true) {
                 CompilerAsserts.partialEvaluationConstant(block);
+                ctx.privilegedState.checkForInterrupts(basicBlockNodes[block].getFirstPc());
+
                 int successorIndex;
                 try {
                     successorIndex = basicBlockNodes[block].executeDivergent(frame);
@@ -127,7 +113,6 @@ public class RivetCallTargetNode extends RootNode {
                     return registers;
                 }
                 ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
-
                 // This for loop is equivalent to the array lookup `block = basicBlockNodes[block].successorIndices[successorIndex]`,
                 // but introduces branching points for Truffle to unroll different paths through the loop.
                 for (int i = 0; i < basicBlockNodes[block].successorIndices.length; i++) {
@@ -158,7 +143,6 @@ public class RivetCallTargetNode extends RootNode {
     public String toString() {
         final StringBuilder sb = new StringBuilder("RivetCallTargetNode{");
         sb.append("basicBlockNodes=").append(Arrays.toString(basicBlockNodes));
-        sb.append(", pcOffsets=").append(Arrays.toString(pcOffsets));
         sb.append('}');
         return sb.toString();
     }

@@ -29,6 +29,7 @@ public class GetCsrNode extends RivetOpNode {
             if (csr == Csr.MCYCLE || csr == Csr.MINSTRET || csr == Csr.CYCLE || csr == Csr.INSTRET) {
                 result += instret;
             }
+            result = ctx.privilegedState.reconstituteHardwareSeip(csr, result);
             return result;
         } catch (RiscvTrapException trap) {
             trap.setPc(pc);

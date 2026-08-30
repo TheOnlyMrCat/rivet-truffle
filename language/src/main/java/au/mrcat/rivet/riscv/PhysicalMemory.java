@@ -1,6 +1,7 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.RivetContext;
+import au.mrcat.rivet.RivetFfi;
 import au.mrcat.rivet.mmio.SifiveUart;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvRebootException;
@@ -12,6 +13,7 @@ public class PhysicalMemory {
     private final ByteArraySupport byteArray;
 
     private final SifiveUart uart;
+    private final RivetContext ctx;
 
     private static final long NO_RESERVATION = 1;
     private long reservedDoubleWord = NO_RESERVATION;
@@ -20,6 +22,7 @@ public class PhysicalMemory {
         memory = new byte[1 * 1024 * 1024 * 1024];
         byteArray = ByteArraySupport.littleEndian();
         uart = new SifiveUart(context);
+        ctx = context;
     }
 
     public boolean isInPhysicalMemory(long physicalAddress, long accessWidth) {
@@ -136,7 +139,7 @@ public class PhysicalMemory {
             return uart.readMmio(reg, width);
         }
 
-        throw new RiscvTrapException(accessType.accessFaultCause);
+        return ctx.ffi.rustLoad(physicalAddress, (byte) (width.bytes * 8), accessType);
     }
 
     public void writeByte(long physicalAddress, byte value) {
@@ -267,6 +270,6 @@ public class PhysicalMemory {
             return;
         }
 
-        throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+        ctx.ffi.rustStore(physicalAddress, value, (byte) (width.bytes * 8));
     }
 }
