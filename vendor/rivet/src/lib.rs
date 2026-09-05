@@ -75,7 +75,10 @@ unsafe extern "C" fn rust_create_devices(
         (virtio_net as Arc<dyn MmioDevice>).into(),
     );
 
-    for (i, path) in Vec::<Option<PathBuf>>::new().into_iter().enumerate() {
+    // FIXME: This list should instead be passed as an argument
+    let blk_images = vec![Some(PathBuf::from("dqib/image.img")), None, None, None];
+
+    for (i, path) in blk_images.into_iter().enumerate() {
         if let Some(path) = path {
             let Ok(virtio_blk) = VirtioBlock::new(
                 &path,
