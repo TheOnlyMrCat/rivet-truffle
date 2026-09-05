@@ -33,18 +33,13 @@ public class RivetStartupNode extends Node {
         provideNextPhaseInfo = true;
     }
 
-    public long getStartingPc() {
-        return startingPc;
-    }
-
-    public void executeVoid(VirtualFrame frame) {
+    public RegisterState executeState(VirtualFrame frame) {
         RivetContext ctx = RivetContext.get(this);
 
         // Reset the architectural state
         ctx.privilegedState.reset();
-        for (int i = 0; i < 32; i++) {
-            frame.setLongStatic(i, 0);
-        }
+        RegisterState cpuState = new RegisterState();
+        cpuState.setPc(startingPc);
 
         // Load the startup program into memory
         for (long startingOffset : initialMemory.keySet()) {
@@ -76,16 +71,17 @@ public class RivetStartupNode extends Node {
             ctx.writeLong(baseAddr, 0x4942534f); // Magic value ('OSBI' in little endian)
             ctx.writeLong(baseAddr + 8L, 0x2); // Info version
             ctx.writeLong(baseAddr + 16L, nextPhasePc); // Next booting stage address
-            ctx.writeLong(baseAddr + 24L, 0x0); // Next booting stage mode (U-mode)
+            ctx.writeLong(baseAddr + 24L, 0x1); // Next booting stage mode (S-mode)
             ctx.writeLong(baseAddr + 32L, 0x0); // OpenSBI options
             ctx.writeLong(baseAddr + 40L, 0x0); // Preferred boot hart
         }
 
         // Prepare boot arguments
-        frame.setLongStatic(RegisterState.A0, 0);
-        frame.setLongStatic(RegisterState.A1, 0xbffff000L);
+        cpuState.setRegister(RegisterState.A0, 0);
+        cpuState.setRegister(RegisterState.A1, 0xbffff000L);
         if (provideNextPhaseInfo) {
-            frame.setLongStatic(RegisterState.A2, 0xbfffd000L);
+            cpuState.setRegister(RegisterState.A2, 0xbfffd000L);
         }
+        return cpuState;
     }
 }

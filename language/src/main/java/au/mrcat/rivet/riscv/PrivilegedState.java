@@ -194,7 +194,7 @@ public final class PrivilegedState {
             case Csr.MCONFIGPTR -> { return 0; }
 
             case Csr.MSTATUS -> { return mstatus; }
-            case Csr.MISA -> { return 0x8000000000000000L | 0b00_0001_0000_0001_0001_0000_0101; }
+            case Csr.MISA -> { return 0x8000000000000000L | 0b00_0001_0100_0001_0001_0000_0101; }
             case Csr.MEDELEG -> { return medeleg; }
             case Csr.MIDELEG -> { return mideleg; }
             case Csr.MIE -> { return mie; }

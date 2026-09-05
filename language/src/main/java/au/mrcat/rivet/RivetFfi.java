@@ -181,6 +181,10 @@ public final class RivetFfi {
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
+
+        if (devices.address() == 0) {
+            throw new RuntimeException("Failed to initialise Rivet FFI devices");
+        }
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
@@ -217,34 +221,33 @@ public final class RivetFfi {
         }
     }
 
-    @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    public boolean memoryRead(long addr, long len, MemorySegment buffer) {
+    private boolean memoryRead(long addr, long len, MemorySegment buffer) {
         if (!ctx.physicalMemory.isInPhysicalMemory(addr, len)) {
             return false;
         }
-        var byteBuffer = buffer.asByteBuffer();
+        var byteBuffer = buffer.reinterpret(len).asByteBuffer();
         for (int i = 0; i < len; i++) {
             byteBuffer.put(i, ctx.physicalMemory.readByte(addr + i));
         }
         return true;
     }
 
-    public boolean memoryWrite(long addr, long len, MemorySegment buffer) {
+    private boolean memoryWrite(long addr, long len, MemorySegment buffer) {
         if (!ctx.physicalMemory.isInPhysicalMemory(addr, len)) {
             return false;
         }
-        var byteBuffer = buffer.asByteBuffer();
+        var byteBuffer = buffer.reinterpret(len).asByteBuffer();
         for (int i = 0; i < len; i++) {
             ctx.physicalMemory.writeByte(addr + i, byteBuffer.get(i));;
         }
         return true;
     }
 
-    public void hartTrigger(int interrupt) {
+    private void hartTrigger(int interrupt) {
         ctx.privilegedState.trigger(interrupt);
     }
 
-    public void hartUntrigger(int interrupt) {
+    private void hartUntrigger(int interrupt) {
         ctx.privilegedState.untrigger(interrupt);
     }
 }

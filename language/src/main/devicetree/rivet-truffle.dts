@@ -24,8 +24,8 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		// 1GiB starting at 0x80000000
-		reg = <0x00 0x80000000 0x00 0x40000000>;
+		// 1.5GiB starting at 0x80000000
+		reg = <0x00 0x80000000 0x00 0x60000000>;
 	};
 
 	cpus {
@@ -66,6 +66,8 @@
 			compatible = "sifive,uart0";
 			reg = <0x00 0x10000000 0x00 0x1000>;
 			clock-frequency = <3686400>;
+			interrupts = <0x01>;
+			interrupt-parent = <&plic_int>;
 		};
 
 		test: test@100000 {

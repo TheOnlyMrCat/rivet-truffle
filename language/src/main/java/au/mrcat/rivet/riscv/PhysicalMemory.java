@@ -19,7 +19,7 @@ public class PhysicalMemory {
     private long reservedDoubleWord = NO_RESERVATION;
 
     public PhysicalMemory(RivetContext context) {
-        memory = new byte[1 * 1024 * 1024 * 1024];
+        memory = new byte[1 * 1024 * 1024 * 1024 + 512 * 1024 * 1024];
         byteArray = ByteArraySupport.littleEndian();
         uart = new SifiveUart(context);
         ctx = context;
@@ -113,7 +113,7 @@ public class PhysicalMemory {
 
     public void writeByte(long physicalAddress, byte value) {
         if (!isInPhysicalMemory(physicalAddress, 1)) {
-            writeMmio(physicalAddress, value, MemoryWidth.Byte);
+            writeMmio(physicalAddress, Byte.toUnsignedLong(value), MemoryWidth.Byte);
             return;
         }
         byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
@@ -121,7 +121,7 @@ public class PhysicalMemory {
 
     public void writeShort(long physicalAddress, short value) {
         if (!isInPhysicalMemory(physicalAddress, 2)) {
-            writeMmio(physicalAddress, value, MemoryWidth.HalfWord);
+            writeMmio(physicalAddress, Short.toUnsignedLong(value), MemoryWidth.HalfWord);
             return;
         }
         byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
@@ -129,7 +129,7 @@ public class PhysicalMemory {
 
     public void writeInt(long physicalAddress, int value) {
         if (!isInPhysicalMemory(physicalAddress, 4)) {
-            writeMmio(physicalAddress, value, MemoryWidth.Word);
+            writeMmio(physicalAddress, Integer.toUnsignedLong(value), MemoryWidth.Word);
             return;
         }
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);

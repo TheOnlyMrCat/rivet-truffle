@@ -58,10 +58,7 @@ public class RivetRootNode extends RootNode {
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
         while (true) {
-            startupNode.executeVoid(frame);
-            RegisterState cpuState = new RegisterState();
-            cpuState.setPc(startupNode.getStartingPc());
-
+            RegisterState cpuState = startupNode.executeState(frame);
             try {
                 while (true) {
                     Integer callTargetIndex = callTargetPcs.get(new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentMode()));
