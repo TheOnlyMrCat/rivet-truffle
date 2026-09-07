@@ -1042,12 +1042,16 @@ public final class RivetParser {
 
         switch (funct3) {
             case Opcode.System.PRIV -> {
-                if (rd != 0 || rs1 != 0) {
+                if (rd != 0) {
                     return new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 if (funct7 == Opcode.Priv.SFENCE_VMA) {
                     return new VirtualMemoryFence(instruction, pc, instret);
+                }
+
+                if (rs1 != 0) {
+                    return new IllegalInstructionNode(instruction, pc, instret);
                 }
 
                 return switch (funct12) {
