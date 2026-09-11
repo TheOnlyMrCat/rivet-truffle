@@ -47,9 +47,9 @@ public class RivetBasicBlockNode extends RivetDivergentNode {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RivetBasicBlockNode{");
-        sb.append("instructions=").append(Arrays.toString(instructions));
+        sb.append("firstPc=").append(Long.toHexString(firstPc));
+        sb.append(", instructions=").append(Arrays.toString(instructions));
         sb.append(", divergent=").append(divergentNode);
-        sb.append(", firstPc=").append(firstPc);
         sb.append(", instructionsRetired=").append(instructionsRetired);
         sb.append('}');
         return sb.toString();

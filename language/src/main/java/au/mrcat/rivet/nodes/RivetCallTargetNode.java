@@ -131,7 +131,8 @@ public class RivetCallTargetNode extends RootNode {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RivetCallTargetNode{");
-        sb.append("basicBlockNodes=").append(Arrays.toString(basicBlockNodes));
+        sb.append("entryPc=").append(Long.toHexString(entryPc));
+        sb.append(", basicBlockNodes=").append(Arrays.toString(basicBlockNodes));
         sb.append('}');
         return sb.toString();
     }
