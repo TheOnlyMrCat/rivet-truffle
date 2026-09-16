@@ -14,6 +14,7 @@ use crate::ffi::{AmoKind, Memory};
 
 pub struct DeviceMap {
     pub aclint: Arc<Aclint>,
+    pub serial_interrupt: Interrupt,
     pub devices: RangeMap<u64, PtrEqArc<dyn MmioDevice>>,
 }
 

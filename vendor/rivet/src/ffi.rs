@@ -178,3 +178,21 @@ unsafe extern "C" fn rust_set_stimecmp(
 
     run.set_stimecmp(value)
 }
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn rust_trigger_serial_interrupt(ctx: *const MaybeUninit<DeviceMap>) {
+    let Some(run) = (unsafe { upgrade_ctx(ctx) }) else {
+        return;
+    };
+
+    run.serial_interrupt.trigger()
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn rust_untrigger_serial_interrupt(ctx: *const MaybeUninit<DeviceMap>) {
+    let Some(run) = (unsafe { upgrade_ctx(ctx) }) else {
+        return;
+    };
+
+    run.serial_interrupt.untrigger()
+}

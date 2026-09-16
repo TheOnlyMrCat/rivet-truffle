@@ -128,7 +128,11 @@ unsafe extern "C" fn rust_create_devices(
         // SAFETY: device_map is a valid pointer. All pointers to this allocation are
         // raw pointers at this stage, but I'm not entirely certain how that interacts
         // with the aliasing model (either stacked or tree borrows).
-        (device_map as *mut DeviceMap).write(DeviceMap { aclint, devices })
+        (device_map as *mut DeviceMap).write(DeviceMap {
+            aclint,
+            serial_interrupt: plic.clone().interrupt_destination(1),
+            devices,
+        })
     };
 
     device_map
