@@ -52,4 +52,4 @@ build-tests:
     # Extension exclusion justifications:
     # - Sm: Excluded by default
     # - Ssstrict{Sm,S,U}: Assembler errors with unrecognised opcodes "CSRW(mtvec, t0)"
-    make -C vendor/riscv-arch-test --jobs $(nproc) CONFIG_FILES=config/rivet/rivet-rv64imac/test_config.yaml EXCLUDE_EXTENSIONS=Sm,SsstrictS,SsstrictU,SsstrictSm
+    make -C vendor/riscv-arch-test --jobs $(nproc) CONFIG_FILES=config/rivet/rivet-rv64imac/test_config.yaml EXCLUDE_EXTENSIONS=SsstrictS,SsstrictU,SsstrictSm
