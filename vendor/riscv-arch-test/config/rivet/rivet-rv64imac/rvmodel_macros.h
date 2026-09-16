@@ -13,7 +13,16 @@
 # Perform boot operations. Can be empty or left undefined unless needed for
 # DUT-specific behavior such as turning on a memory controller or
 # initializing custom state.
-//#define RVMODEL_BOOT
+
+.EQU UART_BASE_ADDR, 0x10000000
+.EQU UART_TXDATA, (UART_BASE_ADDR + 0)
+.EQU UART_TXCTRL, (UART_BASE_ADDR + 8)
+.EQU UART_IE, (UART_BASE_ADDR + 0x10)
+
+#define RVMODEL_BOOT \
+  li t0, UART_TXCTRL;               \
+  li t1, 0x10001;                   \
+  sw t1, 0(t0);
 
 // Custom RVMODEL_BOOT_TO_MMODE overrides default RVTEST_BOOT_TO_MMODE
 // if defined.  For most DUTs, the default should work and this macro
@@ -41,10 +50,6 @@
 
 ##### IO #####
 
-.EQU UART_BASE_ADDR, 0x10000000
-.EQU UART_TXDATA, (UART_BASE_ADDR + 0)
-.EQU UART_TXCTRL, (UART_BASE_ADDR + 8)
-
 # Initialization steps needed prior to writing to the console
 # _R1, _R2, and _R3 can be used as temporary registers if needed.
 # Do not modify any other registers (or make sure to restore them).
@@ -52,7 +57,7 @@
 #define RVMODEL_IO_INIT(_R1, _R2, _R3) \
   uart_init:                           \
     li _R1, UART_TXCTRL;               \
-    li _R2, 1;                         \
+    li _R2, 0x10001;                   \
     sw _R2, 0(_R1);
 
 # Prints a null-terminated string using a DUT specific mechanism.
@@ -88,12 +93,39 @@
 
 ##### Machine Interrupts #####
 
-#define CLINT_BASE_ADDRESS 0x02000000
-#define RVMODEL_MSIP_ADDRESS (CLINT_BASE_ADDRESS + 0x0)
+#define PLIC_BASE_ADDRESS    0x0c000000
+#define PLIC_ENABLE_ADDRESS  0x0c002000
+#define PLIC_THRESH_ADDRESS  0x0c200000
+#define PLIC_CLAIM_ADDRESS   0x0c200004
+#define PLIC_SENABLE_ADDRESS 0x0c002080   /* For S mode */
+#define PLIC_STHRESH_ADDRESS 0x0c201000
+#define PLIC_SCLAIM_ADDRESS  0x0c201004
 
-#define RVMODEL_SET_MEXT_INT(_R1, _R2)
+#define UART_INT_SRC      1
 
-#define RVMODEL_CLR_MEXT_INT(_R1, _R2)
+#define RVMODEL_MSIP_ADDRESS 0x1337
+
+#define RVMODEL_SET_MEXT_INT(_R1, _R2)          \
+  li _R1, 7;                                    \
+  li _R2, PLIC_BASE_ADDRESS;                    \
+  sw _R1, (4*UART_INT_SRC)(_R2);                \
+  li _R1, (1 << UART_INT_SRC);                  \
+  li _R2, PLIC_ENABLE_ADDRESS;                  \
+  sw _R1, 0(_R2);                               \
+  li _R2, PLIC_THRESH_ADDRESS;                  \
+  sw zero, 0(_R2);                              \
+  li _R1, 0x01;                                 \
+  li _R2, UART_IE;                              \
+  sw _R1, 0(_R2);
+
+#define RVMODEL_CLR_MEXT_INT(_R1, _R2)          \
+  li _R2, UART_IE;                              \
+  sw zero, 0(_R2);                              \
+  li _R2, PLIC_CLAIM_ADDRESS;                   \
+  lw _R1, 0(_R2);                               \
+  sw _R1, 0(_R2);                               \
+  li _R2, PLIC_ENABLE_ADDRESS;  /* Since SEXT and MEXT interrupt contexts share the same source, PLIC must be disabled for MEXT context so that it can properly trigger SEXT */\
+  sw zero, 0(_R2);
 
 #define RVMODEL_SET_MSW_INT(_R1, _R2) \
   li _R1, 1; \
@@ -106,11 +138,29 @@
 
 ##### Supervisor Interrupts #####
 
-#define CVW_SSIP_ADDRESS (CLINT_BASE_ADDRESS + 0xC000)
+#define CVW_SSIP_ADDRESS 0x1338
 
-#define RVMODEL_SET_SEXT_INT(_R1, _R2)
+#define RVMODEL_SET_SEXT_INT(_R1, _R2)          \
+  li _R1, 7;                                    \
+  li _R2, PLIC_BASE_ADDRESS;                    \
+  sw _R1, (4*UART_INT_SRC)(_R2);                \
+  li _R1, (1 << UART_INT_SRC);                  \
+  li _R2, PLIC_SENABLE_ADDRESS;                 \
+  sw _R1, 0(_R2);                               \
+  li _R2, PLIC_STHRESH_ADDRESS;                 \
+  sw zero, 0(_R2);                              \
+  li _R1, 0x02;                                 \
+  li _R2, UART_IE;                              \
+  sw _R1, 0(_R2);
 
-#define RVMODEL_CLR_SEXT_INT(_R1, _R2)
+#define RVMODEL_CLR_SEXT_INT(_R1, _R2)          \
+  li _R2, UART_IE;                              \
+  sw zero, 0(_R2);                              \
+  li _R2, PLIC_SCLAIM_ADDRESS;                  \
+  lw _R1, 0(_R2);                               \
+  sw _R1, 0(_R2); \
+  li _R2, PLIC_SENABLE_ADDRESS;  /* Disable the S-context UART enable that SET_SEXT turned on, so a later MEXT test does not also raise SEIP via the shared source */\
+  sw zero, 0(_R2);
 
 #define RVMODEL_SET_SSW_INT(_R1, _R2) \
   li _R1, 1; \
