@@ -85,6 +85,7 @@ def _generate_trigger_sti_tests(test_data: TestData) -> list[str]:
 
             lines.extend(
                 [
+                    "#ifdef SM1P12P0_OR_LATER_SUPPORTED",
                     "# 6. Read STCE (needed for timer functions)",
                     f"csrr x{r_stce}, menvcfg",
                     "#if __riscv_xlen == 64",
@@ -93,6 +94,9 @@ def _generate_trigger_sti_tests(test_data: TestData) -> list[str]:
                     f"    srli x{r_stce}, x{r_stce}, 31",
                     "#endif",
                     f"andi x{r_stce}, x{r_stce}, 0x1",
+                    "#else",
+                    f"LI(x{r_stce}, 0x0) # priv 1.11 fallback: assume STCE=0",
+                    "#endif",
                 ]
             )
 
@@ -584,6 +588,7 @@ def _generate_changingtos_sti_tests(test_data: TestData) -> list[str]:
 
     lines.extend(
         [
+            "#ifdef SM1P12P0_OR_LATER_SUPPORTED",
             "# Read STCE",
             f"csrr x{r_stce}, menvcfg",
             "#if __riscv_xlen == 64",
@@ -592,6 +597,9 @@ def _generate_changingtos_sti_tests(test_data: TestData) -> list[str]:
             f"    srli x{r_stce}, x{r_stce}, 31",
             "#endif",
             f"andi x{r_stce}, x{r_stce}, 0x1",
+            "#else",
+            f"LI(x{r_stce}, 0x0) # priv 1.11 fallback: assume STCE=0",
+            "#endif",
         ]
     )
 
@@ -893,6 +901,7 @@ def _generate_interrupts_s_tests(test_data: TestData) -> list[str]:
                     if mip_name == "stip":
                         lines.extend(
                             [
+                                "#ifdef SM1P12P0_OR_LATER_SUPPORTED",
                                 f"csrr x{r_stce}, menvcfg",
                                 "#if __riscv_xlen == 64",
                                 f"    srli x{r_stce}, x{r_stce}, 63",
@@ -900,6 +909,9 @@ def _generate_interrupts_s_tests(test_data: TestData) -> list[str]:
                                 f"    srli x{r_stce}, x{r_stce}, 31",
                                 "#endif",
                                 f"andi x{r_stce}, x{r_stce}, 0x1",
+                                "#else",
+                                f"LI(x{r_stce}, 0x0) # priv 1.11 fallback: assume STCE=0",
+                                "#endif",
                             ]
                         )
                         lines.extend(set_stimer_int(r_mtime, r_temp, r_temp2, r_scratch, r_stce))
@@ -1049,6 +1061,7 @@ def _generate_vectored_s_tests(test_data: TestData) -> list[str]:
                 if int_name == "stip":
                     lines.extend(
                         [
+                            "#ifdef SM1P12P0_OR_LATER_SUPPORTED",
                             f"csrr x{r_stce}, menvcfg",
                             "#if __riscv_xlen == 64",
                             f"    srli x{r_stce}, x{r_stce}, 63",
@@ -1056,6 +1069,9 @@ def _generate_vectored_s_tests(test_data: TestData) -> list[str]:
                             f"    srli x{r_stce}, x{r_stce}, 31",
                             "#endif",
                             f"andi x{r_stce}, x{r_stce}, 0x1",
+                            "#else",
+                            f"LI(x{r_stce}, 0x0) # priv 1.11 fallback: assume STCE=0",
+                            "#endif",
                         ]
                     )
                     lines.extend(set_stimer_int(r_mtime, r_temp, r_temp2, r_scratch, r_stce))
@@ -2670,7 +2686,12 @@ def _generate_wfi_timeout_u_tests(test_data: TestData) -> list[str]:
     return lines
 
 
-@add_priv_test_generator("InterruptsS", required_extensions=["S", "Zicsr"])
+@add_priv_test_generator(
+    "InterruptsS",
+    required_extensions=["S"],
+    # TODO: Remove BOOT_TO_MMODE when converting this test to T-SBI.
+    extra_defines=["#define BOOT_TO_MMODE"],
+)
 def make_interruptss_s(test_data: TestData) -> list[TestChunk]:
     """Generate supervisor-mode interrupt tests.
 
