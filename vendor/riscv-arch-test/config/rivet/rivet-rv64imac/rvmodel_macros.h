@@ -13,7 +13,12 @@
 # Perform boot operations. Can be empty or left undefined unless needed for
 # DUT-specific behavior such as turning on a memory controller or
 # initializing custom state.
-//#define RVMODEL_BOOT
+
+// The Misalign tests break if sscratch isn't zeroed on reset. Probably a bug on
+// their part, but we work around it here.
+
+#define RVMODEL_BOOT \
+  csrw sscratch, zero;
 
 // Custom RVMODEL_BOOT_TO_MMODE overrides default RVTEST_BOOT_TO_MMODE
 // if defined.  For most DUTs, the default should work and this macro
