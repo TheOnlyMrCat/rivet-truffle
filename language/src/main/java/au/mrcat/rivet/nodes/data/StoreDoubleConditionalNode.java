@@ -7,27 +7,27 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class StoreDoubleConditionalNode extends RivetOpNode {
     @Child RivetOpNode address;
     @Child RivetOpNode src;
-    private final long pc;
+    private final long pcOffset;
     private final short instret;
 
-    public StoreDoubleConditionalNode(RivetOpNode address, RivetOpNode src, long pc, short instret) {
+    public StoreDoubleConditionalNode(RivetOpNode address, RivetOpNode src, long pcOffset, short instret) {
         this.address = address;
         this.src = src;
-        this.pc = pc;
+        this.pcOffset = pcOffset;
         this.instret = instret;
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         var ctx = currentLanguageContext();
 
-        long virtualAddress = address.executeLong(frame);
-        long value = src.executeLong(frame);
+        long virtualAddress = address.executeLong(frame, basePc);
+        long value = src.executeLong(frame, basePc);
         try {
             boolean succeeded = ctx.writeLongConditional(virtualAddress, value);
             return succeeded ? 0 : 1;
         } catch (RiscvTrapException trap) {
-            trap.setPc(pc);
+            trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);
             trap.setInstret(instret);
             throw trap;
@@ -39,7 +39,7 @@ public class StoreDoubleConditionalNode extends RivetOpNode {
         final StringBuffer sb = new StringBuffer("StoreDoubleConditionalNode{");
         sb.append("address=").append(address);
         sb.append(", src=").append(src);
-        sb.append(", pc=").append(pc);
+        sb.append(", pc=").append(pcOffset);
         sb.append('}');
         return sb.toString();
     }

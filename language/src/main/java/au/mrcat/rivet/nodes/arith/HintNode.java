@@ -1,9 +1,9 @@
 package au.mrcat.rivet.nodes.arith;
 
-import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetInstructionNode;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class HintNode extends RivetNode {
+public class HintNode extends RivetInstructionNode {
     private final int instruction;
 
     public HintNode(int instruction) {
@@ -11,7 +11,7 @@ public class HintNode extends RivetNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame, long basePc) {
     }
 
     @Override

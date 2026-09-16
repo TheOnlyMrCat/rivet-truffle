@@ -7,48 +7,39 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import java.util.Arrays;
 
-public class RivetBasicBlockNode extends RivetDivergentNode {
-    @Children RivetNode[] instructions;
+public class RivetBasicBlockNode extends RivetNode {
+    @Children RivetInstructionNode[] instructions;
     @Child RivetDivergentNode divergentNode;
 
-    private final long firstPc;
     public final short instructionsRetired;
 
     @CompilerDirectives.CompilationFinal(dimensions = 1) int[] successorIndices;
 
-    public RivetBasicBlockNode(RivetNode[] instructions, RivetDivergentNode divergentNode, long firstPc, short instructionsRetired) {
+    public RivetBasicBlockNode(RivetInstructionNode[] instructions, RivetDivergentNode divergentNode, short instructionsRetired) {
         this.instructions = instructions;
         this.divergentNode = divergentNode;
-        this.firstPc = firstPc;
         this.instructionsRetired = instructionsRetired;
     }
 
-    @Override
     @ExplodeLoop
-    public int executeDivergent(VirtualFrame frame) {
+    public int executeDivergent(VirtualFrame frame, long basePc) {
         CompilerAsserts.partialEvaluationConstant(this);
         if (instructions != null) {
-            for (RivetNode instruction : instructions) {
-                instruction.executeVoid(frame);
+            for (RivetInstructionNode instruction : instructions) {
+                instruction.executeVoid(frame, basePc);
             }
         }
-        return divergentNode.executeDivergent(frame);
+        return divergentNode.executeDivergent(frame, basePc);
     }
 
-    @Override
     public Long[] callTargetContinuations() {
         return divergentNode.callTargetContinuations();
-    }
-
-    public long getFirstPc() {
-        return firstPc;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RivetBasicBlockNode{");
-        sb.append("firstPc=").append(Long.toHexString(firstPc));
-        sb.append(", instructions=").append(Arrays.toString(instructions));
+        sb.append("instructions=").append(Arrays.toString(instructions));
         sb.append(", divergent=").append(divergentNode);
         sb.append(", instructionsRetired=").append(instructionsRetired);
         sb.append('}');

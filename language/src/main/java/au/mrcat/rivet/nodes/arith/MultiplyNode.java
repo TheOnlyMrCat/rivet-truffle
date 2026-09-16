@@ -13,8 +13,8 @@ public class MultiplyNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return multiplicand.executeLong(frame) * multiplier.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return multiplicand.executeLong(frame, basePc) * multiplier.executeLong(frame, basePc);
     }
 
     @Override

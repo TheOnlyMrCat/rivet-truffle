@@ -13,9 +13,9 @@ public class RemainderUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        long dividend = this.dividend.executeLong(frame);
-        long divisor = this.divisor.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        long dividend = this.dividend.executeLong(frame, basePc);
+        long divisor = this.divisor.executeLong(frame, basePc);
 
         if (divisor == 0) {
             return dividend;

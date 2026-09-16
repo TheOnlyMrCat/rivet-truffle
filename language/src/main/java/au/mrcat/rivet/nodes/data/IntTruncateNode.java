@@ -11,8 +11,8 @@ public class IntTruncateNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return op.executeLong(frame) & 0xFFFF_FFFFL;
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return op.executeLong(frame, basePc) & 0xFFFF_FFFFL;
     }
 
     @Override

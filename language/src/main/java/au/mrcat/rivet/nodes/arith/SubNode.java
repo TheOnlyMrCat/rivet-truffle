@@ -13,8 +13,8 @@ public class SubNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return minuend.executeLong(frame) - subtrahend.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return minuend.executeLong(frame, basePc) - subtrahend.executeLong(frame, basePc);
     }
 
     @Override

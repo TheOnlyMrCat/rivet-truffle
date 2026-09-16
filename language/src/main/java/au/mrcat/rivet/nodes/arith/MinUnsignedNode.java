@@ -13,9 +13,9 @@ public class MinUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        long operand1 = this.operand1.executeLong(frame);
-        long operand2 = this.operand2.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        long operand1 = this.operand1.executeLong(frame, basePc);
+        long operand2 = this.operand2.executeLong(frame, basePc);
         if (Long.compareUnsigned(operand1, operand2) < 0) {
             return operand1;
         } else {

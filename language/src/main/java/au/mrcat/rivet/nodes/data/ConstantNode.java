@@ -15,7 +15,7 @@ public class ConstantNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         return value;
     }
 

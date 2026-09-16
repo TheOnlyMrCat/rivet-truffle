@@ -8,38 +8,38 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class AmoDoubleNode extends RivetOpNode {
     @Child RivetOpNode address;
     @Child RivetOpNode op;
-    private final long pc;
+    private final long pcOffset;
     private final short instret;
 
-    public AmoDoubleNode(RivetOpNode address, RivetOpNode op, long pc, short instret) {
+    public AmoDoubleNode(RivetOpNode address, RivetOpNode op, long pcOffset, short instret) {
         this.address = address;
         this.op = op;
-        this.pc = pc;
+        this.pcOffset = pcOffset;
         this.instret = instret;
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         var ctx = currentLanguageContext();
 
-        long address = this.address.executeLong(frame);
+        long address = this.address.executeLong(frame, basePc);
         if ((address & 0b111) != 0) {
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, basePc + pcOffset, address, instret);
         }
         try {
             long originalValue = ctx.readLong(address);
 
             // Use the zero register as a temporary
             frame.setLongStatic(0, originalValue);
-            long opResult = op.executeLong(frame);
+            long opResult = op.executeLong(frame, basePc);
 
             ctx.writeLong(address, opResult);
             return originalValue;
         } catch (RiscvTrapException trap) {
             if (trap.cause == ExceptionCause.LoadPageFault || trap.cause == ExceptionCause.StoreAmoPageFault) {
-                throw new RiscvTrapException(ExceptionCause.StoreAmoPageFault, pc, address, instret);
+                throw new RiscvTrapException(ExceptionCause.StoreAmoPageFault, basePc + pcOffset, address, instret);
             }
-            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, pc, address, instret);
+            throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, basePc + pcOffset, address, instret);
         }
     }
 
@@ -48,7 +48,7 @@ public class AmoDoubleNode extends RivetOpNode {
         final StringBuffer sb = new StringBuffer("AmoDoubleNode{");
         sb.append("address=").append(address);
         sb.append(", op=").append(op);
-        sb.append(", pc=").append(pc);
+        sb.append(", pc=").append(pcOffset);
         sb.append('}');
         return sb.toString();
     }

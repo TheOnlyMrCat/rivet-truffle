@@ -1,24 +1,25 @@
 package au.mrcat.rivet.nodes.control;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
-import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class JumpAndLinkNode extends RivetDivergentNode {
     @Child RivetOpNode targetPc;
-    @Child RivetNode link;
+    @Child
+    RivetInstructionNode link;
 
-    public JumpAndLinkNode(RivetOpNode targetPc, RivetNode link) {
+    public JumpAndLinkNode(RivetOpNode targetPc, RivetInstructionNode link) {
         this.targetPc = targetPc;
         this.link = link;
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame) {
-        long targetPc = this.targetPc.executeLong(frame);
-        link.executeVoid(frame);
+    public int executeDivergent(VirtualFrame frame, long basePc) {
+        long targetPc = this.targetPc.executeLong(frame, basePc);
+        link.executeVoid(frame, basePc);
         throw new RiscvIndirectJumpException(targetPc & ~0b1);
     }
 

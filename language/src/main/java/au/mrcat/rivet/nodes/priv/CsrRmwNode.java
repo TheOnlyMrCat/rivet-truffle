@@ -1,10 +1,8 @@
 package au.mrcat.rivet.nodes.priv;
 
 import au.mrcat.rivet.nodes.RivetInstretNode;
-import au.mrcat.rivet.nodes.RivetNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.Csr;
-import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -13,21 +11,21 @@ public class CsrRmwNode extends RivetInstretNode {
     @Node.Child RivetOpNode op;
     private final int csr;
     private final int rd;
-    private final long pc;
+    private final long pcOffset;
     private final int instruction;
     private final short instret;
 
-    public CsrRmwNode(RivetOpNode op, int csr, int rd, long pc, int instruction, short instret) {
+    public CsrRmwNode(RivetOpNode op, int csr, int rd, long pcOffset, int instruction, short instret) {
         this.op = op;
         this.csr = csr;
         this.rd = rd;
-        this.pc = pc;
+        this.pcOffset = pcOffset;
         this.instruction = instruction;
         this.instret = instret;
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public void executeVoid(VirtualFrame frame, long basePc) {
         var ctx = currentLanguageContext();
         // CSR-write instructions reset the basic-block instruction counter, to allow them to read an accurate count.
         // We therefore need to step the counters here.
@@ -37,11 +35,11 @@ public class CsrRmwNode extends RivetInstretNode {
             long previousValue = ctx.privilegedState.tryReadWrite(csr);
             // Use the temp (0) register as the operand
             frame.setLongStatic(0, previousValue);
-            ctx.privilegedState.tryWrite(csr, op.executeLong(frame));
+            ctx.privilegedState.tryWrite(csr, op.executeLong(frame, basePc));
             previousValue = ctx.privilegedState.reconstituteHardwareSeip(csr, previousValue);
             frame.setLongStatic(rd, previousValue);
         } catch (RiscvTrapException trap) {
-            trap.setPc(pc);
+            trap.setPc(basePc + pcOffset);
             trap.setTval(Integer.toUnsignedLong(instruction));
             throw trap;
         }
@@ -59,7 +57,7 @@ public class CsrRmwNode extends RivetInstretNode {
         sb.append("op=").append(op);
         sb.append(", csr=").append(csr);
         sb.append(", rd=").append(rd);
-        sb.append(", pc=").append(pc);
+        sb.append(", pc=").append(pcOffset);
         sb.append('}');
         return sb.toString();
     }

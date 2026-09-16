@@ -2,11 +2,11 @@ package au.mrcat.rivet.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public abstract class RivetOpNode extends RivetNode {
-    public abstract long executeLong(VirtualFrame frame);
+public abstract class RivetOpNode extends RivetInstructionNode {
+    public abstract long executeLong(VirtualFrame frame, long basePc);
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        executeLong(frame);
+    public void executeVoid(VirtualFrame frame, long basePc) {
+        executeLong(frame, basePc);
     }
 }

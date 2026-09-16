@@ -25,7 +25,7 @@ public class GetRegisterNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         return frame.getLongStatic(register);
     }
 

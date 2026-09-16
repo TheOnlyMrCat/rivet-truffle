@@ -18,8 +18,8 @@ public class BranchLessThanNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame) {
-        if (lhs.executeLong(frame) < rhs.executeLong(frame)) {
+    public int executeDivergent(VirtualFrame frame, long basePc) {
+        if (lhs.executeLong(frame, basePc) < rhs.executeLong(frame, basePc)) {
             return 0;
         } else {
             return 1;

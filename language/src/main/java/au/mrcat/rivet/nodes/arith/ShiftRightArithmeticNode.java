@@ -20,8 +20,8 @@ public class ShiftRightArithmeticNode extends RivetOpNode {
 
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return operand.executeLong(frame) >> (shiftAmount.executeLong(frame) & shiftAmountMask);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return operand.executeLong(frame, basePc) >> (shiftAmount.executeLong(frame, basePc) & shiftAmountMask);
     }
 
     @Override

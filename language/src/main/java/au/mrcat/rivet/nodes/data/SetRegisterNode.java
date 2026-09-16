@@ -1,10 +1,10 @@
 package au.mrcat.rivet.nodes.data;
 
-import au.mrcat.rivet.nodes.RivetNode;
+import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class SetRegisterNode extends RivetNode {
+public class SetRegisterNode extends RivetInstructionNode {
     private final int register;
     @Child RivetOpNode op;
 
@@ -16,8 +16,8 @@ public class SetRegisterNode extends RivetNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        frame.setLongStatic(register, op.executeLong(frame));
+    public void executeVoid(VirtualFrame frame, long basePc) {
+        frame.setLongStatic(register, op.executeLong(frame, basePc));
     }
 
     @Override

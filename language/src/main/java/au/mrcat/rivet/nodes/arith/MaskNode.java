@@ -13,8 +13,8 @@ public class MaskNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return operand.executeLong(frame) & ~mask.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return operand.executeLong(frame, basePc) & ~mask.executeLong(frame, basePc);
     }
 
     @Override

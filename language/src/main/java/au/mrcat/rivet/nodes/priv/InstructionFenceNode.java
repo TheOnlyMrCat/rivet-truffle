@@ -14,8 +14,8 @@ public class InstructionFenceNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame) {
-        throw new RiscvInstructionFenceException(nextPc, instret);
+    public int executeDivergent(VirtualFrame frame, long basePc) {
+        throw new RiscvInstructionFenceException(basePc + nextPc, instret);
     }
 
     @Override

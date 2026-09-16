@@ -7,24 +7,24 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public class LoadDoubleNode extends RivetOpNode {
     @Child RivetOpNode address;
     private final int offset;
-    private final long pc;
+    private final long pcOffset;
     private final short instret;
 
-    public LoadDoubleNode(RivetOpNode address, int offset, long pc, short instret) {
+    public LoadDoubleNode(RivetOpNode address, int offset, long pcOffset, short instret) {
         this.address = address;
         this.offset = offset;
-        this.pc = pc;
+        this.pcOffset = pcOffset;
         this.instret = instret;
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         var ctx = currentLanguageContext();
-        long virtualAddress = address.executeLong(frame) + offset;
+        long virtualAddress = address.executeLong(frame, basePc) + offset;
         try {
             return ctx.readLong(virtualAddress);
         } catch (RiscvTrapException trap) {
-            trap.setPc(pc);
+            trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);
             trap.setInstret(instret);
             throw trap;
@@ -36,7 +36,7 @@ public class LoadDoubleNode extends RivetOpNode {
         final StringBuffer sb = new StringBuffer("LoadDoubleNode{");
         sb.append("address=").append(address);
         sb.append(", offset=").append(offset);
-        sb.append(", pc=").append(pc);
+        sb.append(", pc=").append(pcOffset);
         sb.append('}');
         return sb.toString();
     }

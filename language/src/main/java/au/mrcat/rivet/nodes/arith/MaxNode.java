@@ -13,8 +13,8 @@ public class MaxNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return Long.max(operand1.executeLong(frame), operand2.executeLong(frame));
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return Long.max(operand1.executeLong(frame, basePc), operand2.executeLong(frame, basePc));
     }
 
     @Override

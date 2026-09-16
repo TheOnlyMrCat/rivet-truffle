@@ -13,8 +13,8 @@ public class SetLessThanUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return Long.compareUnsigned(lhs.executeLong(frame), rhs.executeLong(frame)) < 0 ? 1L : 0L;
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return Long.compareUnsigned(lhs.executeLong(frame, basePc), rhs.executeLong(frame, basePc)) < 0 ? 1L : 0L;
     }
 
     @Override

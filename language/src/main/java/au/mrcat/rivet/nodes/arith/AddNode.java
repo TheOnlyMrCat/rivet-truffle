@@ -13,8 +13,8 @@ public class AddNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return addend1.executeLong(frame) + addend2.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return addend1.executeLong(frame, basePc) + addend2.executeLong(frame, basePc);
     }
 
     @Override

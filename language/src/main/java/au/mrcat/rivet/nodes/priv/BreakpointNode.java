@@ -6,22 +6,22 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class BreakpointNode extends RivetTrapNode {
-    private final long pc;
+    private final long pcOffset;
 
-    public BreakpointNode(long pc, short instret) {
+    public BreakpointNode(long pcOffset, short instret) {
         super(instret);
-        this.pc = pc;
+        this.pcOffset = pcOffset;
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame) {
-        throw new RiscvTrapException(ExceptionCause.Breakpoint, pc, pc, instret);
+    public int executeDivergent(VirtualFrame frame, long basePc) {
+        throw new RiscvTrapException(ExceptionCause.Breakpoint, basePc + pcOffset, basePc + pcOffset, instret);
     }
 
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("BreakpointNode{");
-        sb.append("pc=").append(pc);
+        sb.append("pc=").append(pcOffset);
         sb.append('}');
         return sb.toString();
     }

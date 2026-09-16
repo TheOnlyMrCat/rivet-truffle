@@ -11,8 +11,8 @@ public class SignExtendIntNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return (int) op.executeLong(frame);
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return (int) op.executeLong(frame, basePc);
     }
 
     @Override

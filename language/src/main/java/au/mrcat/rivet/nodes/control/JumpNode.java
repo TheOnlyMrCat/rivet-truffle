@@ -14,11 +14,11 @@ public class JumpNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame) {
+    public int executeDivergent(VirtualFrame frame, long basePc) {
         if (targetPc instanceof ConstantNode constant) {
             return 0;
         }
-        throw new RiscvIndirectJumpException(targetPc.executeLong(frame) & ~0b1);
+        throw new RiscvIndirectJumpException(targetPc.executeLong(frame, basePc) & ~0b1);
     }
 
     @Override

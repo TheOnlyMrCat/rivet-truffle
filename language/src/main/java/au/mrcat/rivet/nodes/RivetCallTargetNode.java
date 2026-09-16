@@ -21,6 +21,7 @@ import java.util.SortedMap;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] basePcs;
 
     @Children BareSetRegisterNode[] copyFromState = new BareSetRegisterNode[31];
     @Children GetRegisterNode[] copyToState = new GetRegisterNode[31];
@@ -35,17 +36,18 @@ public class RivetCallTargetNode extends RootNode {
         super(language, frameDescriptor.build());
 
         basicBlockNodes = basicBlocks.sequencedValues().toArray(new RivetBasicBlockNode[0]);
-        long[] pcOffsets = basicBlocks.sequencedKeySet().stream().mapToLong(x -> x).toArray();
-        firstBlockIndex = Arrays.binarySearch(pcOffsets, entryPc);
+        basePcs = basicBlocks.sequencedKeySet().stream().mapToLong(x -> x).toArray();
+        firstBlockIndex = Arrays.binarySearch(basePcs, entryPc);
         assert firstBlockIndex >= 0;
 
-        for (var block : basicBlockNodes) {
+        for (int i = 0; i < basicBlockNodes.length; i++) {
+            var block = basicBlockNodes[i];
             var continuations = block.callTargetContinuations();
             block.successorIndices = new int[continuations.length];
 
-            for (int i = 0; i < continuations.length; i++) {
-                block.successorIndices[i] = Arrays.binarySearch(pcOffsets, continuations[i]);
-                assert block.successorIndices[i] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
+            for (int j = 0; j < continuations.length; j++) {
+                block.successorIndices[j] = Arrays.binarySearch(basePcs, basePcs[i] + continuations[j]);
+                assert block.successorIndices[j] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
             }
         }
 
@@ -67,7 +69,7 @@ public class RivetCallTargetNode extends RootNode {
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
         for (int i = 0; i < 31; i++) {
-            state.setRegister(i+1, copyToState[i].executeLong(frame));
+            state.setRegister(i+1, copyToState[i].executeLong(frame, 0));
         }
     }
 
@@ -85,12 +87,12 @@ public class RivetCallTargetNode extends RootNode {
         try {
             int block = firstBlockIndex;
             while (true) {
-                CompilerAsserts.partialEvaluationConstant(block);
-                ctx.privilegedState.checkForInterrupts(basicBlockNodes[block].getFirstPc());
+                CompilerAsserts.partialEvaluationConstant(basePcs[block]);
+                ctx.privilegedState.checkForInterrupts(basePcs[block]);
 
                 int successorIndex;
                 try {
-                    successorIndex = basicBlockNodes[block].executeDivergent(frame);
+                    successorIndex = basicBlockNodes[block].executeDivergent(frame, basePcs[block]);
                 } catch (RiscvIndirectJumpException jump) {
                     // IndirectJumpExceptions should only be thrown in divergent nodes at the end of basic blocks, and only when
                     // they retire normally, so the block's instret counter is correct.

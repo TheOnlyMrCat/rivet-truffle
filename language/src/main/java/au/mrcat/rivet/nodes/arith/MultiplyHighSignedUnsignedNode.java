@@ -15,14 +15,14 @@ public class MultiplyHighSignedUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
+    public long executeLong(VirtualFrame frame, long basePc) {
         // If there's a way to do this with multiplyHigh and unsignedMultiplyHigh I don't know it.
         // Signed multiplicand
-        BigInteger multiplicand = BigInteger.valueOf(this.multiplicand.executeLong(frame));
+        BigInteger multiplicand = BigInteger.valueOf(this.multiplicand.executeLong(frame, basePc));
 
         // Unsigned multiplier
         BigInteger multiplier;
-        long multiplierSigned = this.multiplier.executeLong(frame);
+        long multiplierSigned = this.multiplier.executeLong(frame, basePc);
         // From OpenJDK: https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/master/src/java.base/share/classes/java/lang/Long.java#L241-L252
         if (multiplierSigned >= 0) {
             multiplier = BigInteger.valueOf(multiplierSigned);

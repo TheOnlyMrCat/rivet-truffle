@@ -13,8 +13,8 @@ public class SetLessThanNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame) {
-        return lhs.executeLong(frame) < rhs.executeLong(frame) ? 1L : 0L;
+    public long executeLong(VirtualFrame frame, long basePc) {
+        return lhs.executeLong(frame, basePc) < rhs.executeLong(frame, basePc) ? 1L : 0L;
     }
 
     @Override
