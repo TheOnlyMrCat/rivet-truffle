@@ -122,6 +122,23 @@ public final class PrivilegedState {
         return value;
     }
 
+    public void setMsip() {
+        mip |= 0b1000;
+    }
+
+    public void clearMsip() {
+        mip &= ~0b1000;
+    }
+
+    public void setSsip() {
+        mip |= 0b1000;
+    }
+
+    public void clearSsip() {
+        mip &= ~0b1000;
+    }
+
+
     public long tryRead(int csr) {
         // Do an initial rough check based on the privilege mode/CSR pair
         int minimumMode = (csr >> 8) & 0b11;

@@ -206,6 +206,24 @@ public class PhysicalMemory {
             return;
         }
 
+        // Janky software interrupt device
+        if (physicalAddress == 0x1337) {
+            if (value == 0) {
+                ctx.privilegedState.clearMsip();
+            } else {
+                ctx.privilegedState.setMsip();
+            }
+            return;
+        }
+        if (physicalAddress == 0x1338) {
+            if (value == 0) {
+                ctx.privilegedState.clearSsip();
+            } else {
+                ctx.privilegedState.setSsip();
+            }
+            return;
+        }
+
         ctx.ffi.rustStore(physicalAddress, value, (byte) (width.bytes * 8));
     }
 }

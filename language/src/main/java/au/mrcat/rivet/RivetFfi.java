@@ -55,6 +55,12 @@ public final class RivetFfi {
             symbolLookup.findOrThrow("rust_get_time"),
             FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
+    private static final MethodHandle rust_trigger_serial_interrupt = linker.downcallHandle(
+            symbolLookup.findOrThrow("rust_trigger_serial_interrupt"),
+            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+    private static final MethodHandle rust_untrigger_serial_interrupt = linker.downcallHandle(
+            symbolLookup.findOrThrow("rust_untrigger_serial_interrupt"),
+            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
 
     private static final MethodHandle memoryReadHandle = initMemoryReadHandle();
     private static MethodHandle initMemoryReadHandle() {
@@ -216,6 +222,24 @@ public final class RivetFfi {
     public long rustGetTime() {
         try {
             return (long) rust_get_time.invoke(devices);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
+    public void rustTriggerSerialInterrupt() {
+        try {
+            rust_trigger_serial_interrupt.invoke(devices);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
+    public void rustUntriggerSerialInterrupt() {
+        try {
+            rust_untrigger_serial_interrupt.invoke(devices);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
