@@ -2,6 +2,7 @@ package au.mrcat.rivet;
 
 import au.mrcat.rivet.riscv.*;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
 
@@ -34,6 +35,7 @@ public class RivetContext {
 
     public short readShort(long virtualAddress) {
         if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.HalfWord)) {
+            CompilerDirectives.transferToInterpreter();
             int lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
             int msb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
             return (short) (lsb | (msb << 8));
@@ -43,6 +45,7 @@ public class RivetContext {
 
     public int readInt(long virtualAddress) {
         if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+            CompilerDirectives.transferToInterpreter();
             int lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
             int sb1 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
             int sb2 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 2)));
@@ -71,6 +74,7 @@ public class RivetContext {
 
     public long readLong(long virtualAddress) {
         if (!privilegedState.currentAddressSpace(privilegedState.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.DoubleWord)) {
+            CompilerDirectives.transferToInterpreter();
             long lsb = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress)));
             long sb1 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 1)));
             long sb2 = Byte.toUnsignedInt(physicalMemory.readByte(translateReadAddress(virtualAddress + 2)));
@@ -108,24 +112,29 @@ public class RivetContext {
 
     public void writeShort(long virtualAddress, short value) {
         if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.HalfWord)) {
+            CompilerDirectives.transferToInterpreter();
             physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
+            return;
         }
         physicalMemory.writeShort(translateWriteAddress(virtualAddress), value);
     }
 
     public void writeInt(long virtualAddress, int value) {
         if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+            CompilerDirectives.transferToInterpreter();
             physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 2), (byte) (value >> 16));
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 3), (byte) (value >> 24));
+            return;
         }
         physicalMemory.writeInt(translateWriteAddress(virtualAddress), value);
     }
 
     public void writeLong(long virtualAddress, long value) {
         if (!privilegedState.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.DoubleWord)) {
+            CompilerDirectives.transferToInterpreter();
             physicalMemory.writeByte(translateWriteAddress(virtualAddress), (byte) value);
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 1), (byte) (value >> 8));
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 2), (byte) (value >> 16));
@@ -134,6 +143,7 @@ public class RivetContext {
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 5), (byte) (value >> 40));
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 6), (byte) (value >> 48));
             physicalMemory.writeByte(translateWriteAddress(virtualAddress + 7), (byte) (value >> 56));
+            return;
         }
         physicalMemory.writeLong(translateWriteAddress(virtualAddress), value);
     }
