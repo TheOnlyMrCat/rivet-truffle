@@ -19,7 +19,14 @@
 .EQU UART_TXCTRL, (UART_BASE_ADDR + 8)
 .EQU UART_IE, (UART_BASE_ADDR + 0x10)
 
+// The Misalign tests break if sscratch isn't zeroed on reset. Probably a bug on
+// their part, but we work around it here.
+//
+// Also set up the uart to have its ip register perpetually set to 0b01, so we can
+// easily trigger MIE and SIE later.
+
 #define RVMODEL_BOOT \
+  csrw sscratch, zero;              \
   li t0, UART_TXCTRL;               \
   li t1, 0x10001;                   \
   sw t1, 0(t0);
