@@ -39,9 +39,6 @@ public class SetCsrNode extends RivetCsrwNode {
         // Additionally, writes to mcycle and minstret are considered to happen after the instruction has othewrise retired.
         // We therefore need to step the counters here, only if we haven't just written to them
         ctx.privilegedState.stepPerformanceCounters((short) (csr != Csr.MCYCLE ? instret + 1 : 0), (short) (csr != Csr.MINSTRET ? instret + 1 : 0));
-        if (csr == Csr.SATP) {
-            throw new RiscvInstructionFenceException(basePc + pcOffset + 4, (short) 0);
-        }
     }
 
     @Override
