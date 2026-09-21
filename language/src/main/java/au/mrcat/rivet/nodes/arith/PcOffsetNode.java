@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class PcOffsetNode extends RivetOpNode {
@@ -11,7 +12,7 @@ public class PcOffsetNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         return basePc + offset;
     }
 }

@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -18,11 +19,11 @@ public class LoadByteUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
-        long virtualAddress = address.executeLong(frame, basePc) + offset;
+        long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
-            return Byte.toUnsignedLong(ctx.readByte(virtualAddress));
+            return Byte.toUnsignedLong(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress, ctx)));
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

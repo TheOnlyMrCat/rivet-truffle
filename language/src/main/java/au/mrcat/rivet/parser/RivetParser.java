@@ -7,7 +7,7 @@ import au.mrcat.rivet.nodes.arith.*;
 import au.mrcat.rivet.nodes.control.*;
 import au.mrcat.rivet.nodes.data.*;
 import au.mrcat.rivet.nodes.priv.*;
-import au.mrcat.rivet.riscv.Opcode;
+import au.mrcat.rivet.riscv.*;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerDirectives;
 import net.fornwall.jelf.ElfFile;
@@ -15,7 +15,6 @@ import net.fornwall.jelf.ElfSegment;
 import org.graalvm.polyglot.io.ByteSequence;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class RivetParser {
@@ -46,7 +45,10 @@ public final class RivetParser {
     }
 
     @CompilerDirectives.TruffleBoundary
-    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, long initialPc) {
+    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, long initialPc, PrivilegedContext priv) {
+        if ((initialPc & 0b1) != 0) {
+            throw new IllegalArgumentException("Instruction virtual address not aligned to 16 bits: " + (initialPc));
+        }
         var currentBlock = new ArrayList<RivetInstructionNode>();
         var basicBlocks = new TreeMap<Long, RivetBasicBlockNode>();
         var frontier = new ArrayDeque<Long>();
@@ -70,19 +72,56 @@ public final class RivetParser {
                 }
 
                 int instruction;
-                try {
-                    instruction = context.readInstructionInt(basePc + pcOffset);
-                } catch (RiscvTrapException trap) {
-                    // Convert this into an instruction-access fault. Only actually do so if this is the first
-                    // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
-                    // to and re-parse
-                    if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
-                        trap.setPc(basePc + pcOffset);
-                        trap.setTval(basePc + pcOffset);
-                        throw trap;
+                AddressSpace addressSpace = priv.currentAddressSpace(AccessType.EXECUTE);
+                if (!addressSpace.isAccessContiguous(basePc + pcOffset, MemoryWidth.Word)) {
+                    int lsh;
+                    try {
+                        lsh = Short.toUnsignedInt(context.physicalMemory.readShort(addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE));
+                    } catch (RiscvTrapException trap) {
+                        // Convert this into an instruction-access fault. Only actually do so if this is the first
+                        // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
+                        // to and re-parse
+                        if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
+                            trap.setPc(basePc + pcOffset);
+                            trap.setTval(basePc + pcOffset);
+                            throw trap;
+                        } else {
+                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            break;
+                        }
+                    }
+                    if ((lsh & 0b11) != 0b11) {
+                        // Compressed instruction; don't bother reading the most significant half since it'll be discarded anyway
+                        instruction = lsh;
                     } else {
-                        finalNode = new JumpNode(new PcOffsetNode(pcOffset));
-                        break;
+                        try {
+                            int msh = context.physicalMemory.readShort(addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE);
+                            instruction = lsh | (msh << 16);
+                        } catch (RiscvTrapException trap) {
+                            // As above, but set the tval to the actual part of the access that faulted
+                            if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
+                                trap.setPc(basePc + pcOffset);
+                                trap.setTval(basePc + pcOffset + 2);
+                                throw trap;
+                            } else {
+                                finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    try {
+                        instruction = context.physicalMemory.readInt(addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE);
+                    } catch (RiscvTrapException trap) {
+                        // As above
+                        if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
+                            trap.setPc(basePc + pcOffset);
+                            trap.setTval(basePc + pcOffset);
+                            throw trap;
+                        } else {
+                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            break;
+                        }
                     }
                 }
                 var node = Objects.requireNonNull(parseInstruction(instruction, pcOffset, instret));
@@ -95,6 +134,7 @@ public final class RivetParser {
 
                 switch (node) {
                     case HintNode ignored -> {
+                        // This instruction doesn't change the architectural state, so skip it
                         instret += 1;
                     }
                     case RivetTrapNode trapNode -> {
@@ -102,14 +142,20 @@ public final class RivetParser {
                         break bb;
                     }
                     case RivetDivergentNode divergentNode -> {
+                        // This is the end of a basic block; break here
                         finalNode = divergentNode;
                         instret += 1;
                         Stream.of(divergentNode.callTargetContinuations()).map(offset -> basePc + offset).forEachOrdered(frontier::add);
                         break bb;
                     }
-                    case RivetInstretNode ignored -> {
+                    case RivetCsrwNode csrw -> {
                         instret = 0;
                         currentBlock.add(node);
+                        if (csrw.doesChangePrivilegedContext()) {
+                            // Break this call target here; we'll need to parse a new one with the modified context
+                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            break bb;
+                        }
                     }
                     default -> {
                         instret += 1;
@@ -120,7 +166,7 @@ public final class RivetParser {
             basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetInstructionNode[0]), finalNode, instret));
         }
 
-        return new RivetCallTargetNode(language, initialPc, basicBlocks);
+        return new RivetCallTargetNode(language, initialPc, basicBlocks, priv);
     }
 
     public static RivetInstructionNode parseInstruction(int instruction, long pcOffset, short instret) {

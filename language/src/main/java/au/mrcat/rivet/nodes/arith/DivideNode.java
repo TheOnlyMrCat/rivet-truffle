@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class DivideNode extends RivetOpNode {
@@ -13,9 +14,9 @@ public class DivideNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        long dividend = this.dividend.executeLong(frame, basePc);
-        long divisor = this.divisor.executeLong(frame, basePc);
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        long dividend = this.dividend.executeLong(frame, basePc, priv);
+        long divisor = this.divisor.executeLong(frame, basePc, priv);
 
         if (divisor == 0) {
             return -1;

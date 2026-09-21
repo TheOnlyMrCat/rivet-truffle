@@ -59,52 +59,29 @@ public final class PrivilegedState {
         this.ctx = ctx;
     }
 
-    public PrivilegeMode currentMode() {
+    public PrivilegedContext currentContext() {
+        return new PrivilegedContext(
+                mode,
+                currentEffectiveMode(),
+                addressSpace,
+                mstatus,
+                menvcfg
+        );
+    }
+
+    private PrivilegeMode currentMode() {
         return mode;
     }
 
-    public PrivilegeMode currentEffectiveMode() {
+    private PrivilegeMode currentEffectiveMode() {
         if (mode == PrivilegeMode.Machine && (mstatus & (1L << 17)) != 0) {
             return PrivilegeMode.fromValue((int) ((mstatus >> 11) & 0b11));
         }
         return currentMode();
     }
 
-    public PrivilegeMode currentEffectiveModeFor(AccessType accessType) {
-        if (accessType == AccessType.EXECUTE) {
-            return currentMode();
-        }
-        return currentEffectiveMode();
-    }
-
-    public AddressSpace currentAddressSpace(AccessType accessType) {
-        if (currentEffectiveModeFor(accessType) == PrivilegeMode.Machine) {
-            return BareAddressSpace.SINGLETON;
-        }
-        return addressSpace;
-    }
-
-    public boolean shouldTrapSret() {
-        return mode == PrivilegeMode.User || (mode == PrivilegeMode.Supervisor && (mstatus & (1L << 22)) != 0);
-    }
-
-    public boolean shouldTrapSatpAccess() {
+    private boolean shouldTrapSatpAccess() {
         return mode != PrivilegeMode.Machine && (mstatus & (1L << 20)) != 0;
-    }
-
-    public AccessType readAccessType() {
-        if ((mstatus & (1 << 19)) != 0) {
-            return AccessType.MXR_READ;
-        }
-        return AccessType.READ;
-    }
-
-    public boolean allowUserMemoryAccessFromSMode() {
-        return (mstatus & (1L << 18)) != 0;
-    }
-
-    public boolean shouldUpdatePteAccessDirtyBits() {
-        return (menvcfg & (1L << 61)) == 0;
     }
 
     public long reconstituteHardwareSeip(int csr, long value) {

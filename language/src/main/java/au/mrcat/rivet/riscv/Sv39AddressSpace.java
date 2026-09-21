@@ -1,7 +1,6 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.runtime.RiscvTrapException;
-import com.oracle.truffle.api.CompilerDirectives;
 
 public class Sv39AddressSpace extends AddressSpace {
     private final long rootPageTableAddr;
@@ -11,7 +10,7 @@ public class Sv39AddressSpace extends AddressSpace {
     }
 
     @Override
-    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedState privilegedState, PhysicalMemory memory) {
+    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState, PhysicalMemory memory) {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
         if (vte < -(1 << 27) || vte > (1 << 26)) {

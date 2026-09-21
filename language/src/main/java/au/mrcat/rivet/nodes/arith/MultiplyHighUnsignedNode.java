@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class MultiplyHighUnsignedNode extends RivetOpNode {
@@ -13,8 +14,8 @@ public class MultiplyHighUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        return Math.unsignedMultiplyHigh(multiplicand.executeLong(frame, basePc), multiplier.executeLong(frame, basePc));
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        return Math.unsignedMultiplyHigh(multiplicand.executeLong(frame, basePc, priv), multiplier.executeLong(frame, basePc, priv));
     }
 
     @Override

@@ -1,8 +1,12 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.AccessType;
 import au.mrcat.rivet.riscv.ExceptionCause;
+import au.mrcat.rivet.riscv.MemoryWidth;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class AmoWordNode extends RivetOpNode {
@@ -19,21 +23,21 @@ public class AmoWordNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
 
-        long address = this.address.executeLong(frame, basePc);
+        long address = this.address.executeLong(frame, basePc, priv);
         if ((address & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, basePc + pcOffset, address, instret);
         }
         try {
-            int originalValue = ctx.readInt(address);
+            int originalValue = ctx.physicalMemory.readInt(priv.translateReadAddress(address, ctx), priv.readAccessType());
 
             // Use the zero register as a temporary
             frame.setLongStatic(0, originalValue);
-            long opResult = op.executeLong(frame, basePc);
+            long opResult = op.executeLong(frame, basePc, priv);
 
-            ctx.writeInt(address, (int) opResult);
+            ctx.physicalMemory.writeInt(priv.translateWriteAddress(address, ctx), (int) opResult);
             return originalValue;
         } catch (RiscvTrapException trap) {
             if (trap.cause == ExceptionCause.LoadPageFault || trap.cause == ExceptionCause.StoreAmoPageFault) {

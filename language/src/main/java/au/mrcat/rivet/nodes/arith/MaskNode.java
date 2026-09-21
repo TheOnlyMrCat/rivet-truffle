@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class MaskNode extends RivetOpNode {
@@ -13,8 +14,8 @@ public class MaskNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        return operand.executeLong(frame, basePc) & ~mask.executeLong(frame, basePc);
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        return operand.executeLong(frame, basePc, priv) & ~mask.executeLong(frame, basePc, priv);
     }
 
     @Override

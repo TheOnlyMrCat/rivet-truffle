@@ -10,7 +10,7 @@ public enum AccessType {
     public final ExceptionCause pageFaultCause;
     public final ExceptionCause accessFaultCause;
 
-    private AccessType(byte pteBit, ExceptionCause pageFaultCause, ExceptionCause accessFaultCause) {
+    AccessType(byte pteBit, ExceptionCause pageFaultCause, ExceptionCause accessFaultCause) {
         this.pteBit = pteBit;
         this.pageFaultCause = pageFaultCause;
         this.accessFaultCause = accessFaultCause;

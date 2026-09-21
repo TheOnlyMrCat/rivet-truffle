@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class ShiftRightLogicalNode extends RivetOpNode {
@@ -20,8 +21,8 @@ public class ShiftRightLogicalNode extends RivetOpNode {
 
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        return operand.executeLong(frame, basePc) >>> (shiftAmount.executeLong(frame, basePc) & shiftAmountMask);
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        return operand.executeLong(frame, basePc, priv) >>> (shiftAmount.executeLong(frame, basePc, priv) & shiftAmountMask);
     }
 
     @Override

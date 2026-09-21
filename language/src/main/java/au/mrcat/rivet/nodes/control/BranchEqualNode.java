@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.control;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class BranchEqualNode extends RivetDivergentNode {
@@ -18,8 +19,8 @@ public class BranchEqualNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc) {
-        if (lhs.executeLong(frame, basePc) == rhs.executeLong(frame, basePc)) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        if (lhs.executeLong(frame, basePc, priv) == rhs.executeLong(frame, basePc, priv)) {
             return 0;
         } else {
             return 1;

@@ -45,7 +45,7 @@ public class RivetStartupNode extends Node {
         for (long startingOffset : initialMemory.keySet()) {
             ByteSequence segment = initialMemory.get(startingOffset);
             for (int i = 0; i < segment.length(); i++) {
-                ctx.writeByte(startingOffset + i, segment.byteAt(i));
+                ctx.physicalMemory.writeByte(startingOffset + i, segment.byteAt(i));
             }
         }
 
@@ -55,7 +55,7 @@ public class RivetStartupNode extends Node {
                 byte[] bytes = deviceTree.readAllBytes();
                 long baseAddr = 0xbffff000L;
                 for (int i = 0; i < bytes.length; i++) {
-                    ctx.writeByte(baseAddr + i, bytes[i]);
+                    ctx.physicalMemory.writeByte(baseAddr + i, bytes[i]);
                 }
             } else {
                 System.err.println("Warning: no device tree loaded. Running software may not be able to find devices.");
@@ -68,12 +68,12 @@ public class RivetStartupNode extends Node {
         if (provideNextPhaseInfo) {
             // Write an OpenSBI struct fw_dynamic_info
             long baseAddr = 0xbfffd000L;
-            ctx.writeLong(baseAddr, 0x4942534f); // Magic value ('OSBI' in little endian)
-            ctx.writeLong(baseAddr + 8L, 0x2); // Info version
-            ctx.writeLong(baseAddr + 16L, nextPhasePc); // Next booting stage address
-            ctx.writeLong(baseAddr + 24L, 0x1); // Next booting stage mode (S-mode)
-            ctx.writeLong(baseAddr + 32L, 0x0); // OpenSBI options
-            ctx.writeLong(baseAddr + 40L, 0x0); // Preferred boot hart
+            ctx.physicalMemory.writeLong(baseAddr, 0x4942534f); // Magic value ('OSBI' in little endian)
+            ctx.physicalMemory.writeLong(baseAddr + 8L, 0x2); // Info version
+            ctx.physicalMemory.writeLong(baseAddr + 16L, nextPhasePc); // Next booting stage address
+            ctx.physicalMemory.writeLong(baseAddr + 24L, 0x1); // Next booting stage mode (S-mode)
+            ctx.physicalMemory.writeLong(baseAddr + 32L, 0x0); // OpenSBI options
+            ctx.physicalMemory.writeLong(baseAddr + 40L, 0x0); // Preferred boot hart
         }
 
         // Prepare boot arguments

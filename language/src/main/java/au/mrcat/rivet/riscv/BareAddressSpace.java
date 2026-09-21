@@ -6,7 +6,7 @@ public class BareAddressSpace extends AddressSpace {
     private BareAddressSpace() {}
 
     @Override
-    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedState privilegedState, PhysicalMemory memory) {
+    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState, PhysicalMemory memory) {
         return virtualAddress;
     }
 

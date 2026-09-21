@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class HintNode extends RivetInstructionNode {
@@ -11,7 +12,7 @@ public class HintNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
     }
 
     @Override

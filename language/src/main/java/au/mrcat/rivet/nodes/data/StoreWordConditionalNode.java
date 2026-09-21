@@ -1,6 +1,8 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.ExceptionCause;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -18,13 +20,16 @@ public class StoreWordConditionalNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
 
-        long virtualAddress = address.executeLong(frame, basePc);
-        long value = src.executeLong(frame, basePc);
+        long virtualAddress = address.executeLong(frame, basePc, priv);
+        long value = src.executeLong(frame, basePc, priv);
         try {
-            boolean succeeded = ctx.writeIntConditional(virtualAddress, (int) value);
+            if ((virtualAddress & 0b11) != 0) {
+                throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
+            }
+            boolean succeeded = ctx.physicalMemory.writeIntConditional(priv.translateWriteAddress(virtualAddress, ctx), (int) value);
             return succeeded ? 0 : 1;
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);

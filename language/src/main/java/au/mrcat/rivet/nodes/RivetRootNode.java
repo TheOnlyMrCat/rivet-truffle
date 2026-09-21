@@ -3,10 +3,7 @@ package au.mrcat.rivet.nodes;
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
-import au.mrcat.rivet.riscv.AccessType;
-import au.mrcat.rivet.riscv.AddressSpace;
-import au.mrcat.rivet.riscv.PrivilegeMode;
-import au.mrcat.rivet.riscv.RegisterState;
+import au.mrcat.rivet.riscv.*;
 import au.mrcat.rivet.runtime.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -20,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RivetRootNode extends RootNode {
-    private record CallTargetKey(long pc, PrivilegeMode mode, AddressSpace as) {
+    private record CallTargetKey(long pc, PrivilegedContext priv) {
     }
 
     private final RivetLanguage language;
@@ -63,18 +60,19 @@ public class RivetRootNode extends RootNode {
             RegisterState cpuState = startupNode.executeState(frame);
             try {
                 while (true) {
-                    Integer callTargetIndex = callTargetPcs.get(new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentMode(), ctx.privilegedState.currentAddressSpace(AccessType.EXECUTE)));
+                    var priv = ctx.privilegedState.currentContext();
+                    Integer callTargetIndex = callTargetPcs.get(new CallTargetKey(cpuState.getPc(), priv));
                     if (callTargetIndex == null) {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
                         try {
-                            root = RivetParser.extractCallTarget(language, RivetContext.get(this), cpuState.getPc());
+                            root = RivetParser.extractCallTarget(language, ctx, cpuState.getPc(), priv);
                         } catch (RiscvTrapException trap) {
                             cpuState.setPc(ctx.privilegedState.handleException(trap));
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
-                        callTargetPcs.put(new CallTargetKey(root.getEntryPc(), ctx.privilegedState.currentMode(), ctx.privilegedState.currentAddressSpace(AccessType.EXECUTE)), callTargetIndex);
+                        callTargetPcs.put(new CallTargetKey(root.getEntryPc(), priv), callTargetIndex);
 //                        for (long entryPc : root.getPcOffsets()) {
 //                            callTargetPcs.put(entryPc, callTargetIndex);
 //                        }

@@ -1,33 +1,33 @@
 package au.mrcat.rivet.nodes.priv;
 
-import au.mrcat.rivet.nodes.RivetInstretNode;
+import au.mrcat.rivet.nodes.RivetCsrwNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.Csr;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class SetCsrNode extends RivetInstretNode {
+public class SetCsrNode extends RivetCsrwNode {
     @Child RivetOpNode value;
-    private final int csr;
     private final long pcOffset;
     private final int instruction;
     private final short instret;
 
     public SetCsrNode(RivetOpNode value, int csr, long pcOffset, int instruction, short instret) {
+        super(csr);
         this.value = value;
-        this.csr = csr;
         this.pcOffset = pcOffset;
         this.instruction = instruction;
         this.instret = instret;
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
 
         try {
-            ctx.privilegedState.tryWrite(csr, value.executeLong(frame, basePc));
+            ctx.privilegedState.tryWrite(csr, value.executeLong(frame, basePc, priv));
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(Integer.toUnsignedLong(instruction));

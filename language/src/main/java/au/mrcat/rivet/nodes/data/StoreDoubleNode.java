@@ -2,7 +2,11 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.AccessType;
+import au.mrcat.rivet.riscv.MemoryWidth;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class StoreDoubleNode extends RivetInstructionNode {
@@ -21,11 +25,24 @@ public class StoreDoubleNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
-        long virtualAddress = address.executeLong(frame, basePc) + offset;
+        long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
-            ctx.writeLong(virtualAddress, value.executeLong(frame, basePc));
+            long value1 = value.executeLong(frame, basePc, priv);
+            if (!priv.currentAddressSpace(AccessType.WRITE).isAccessContiguous(virtualAddress, MemoryWidth.DoubleWord)) {
+                CompilerDirectives.transferToInterpreter();
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress, ctx), (byte) value1);
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 1, ctx), (byte) (value1 >> 8));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 2, ctx), (byte) (value1 >> 16));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 3, ctx), (byte) (value1 >> 24));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 4, ctx), (byte) (value1 >> 32));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 5, ctx), (byte) (value1 >> 40));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 6, ctx), (byte) (value1 >> 48));
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 7, ctx), (byte) (value1 >> 56));
+            } else {
+                ctx.physicalMemory.writeLong(priv.translateWriteAddress(virtualAddress, ctx), value1);
+            }
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import java.math.BigInteger;
@@ -15,14 +16,14 @@ public class MultiplyHighSignedUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         // If there's a way to do this with multiplyHigh and unsignedMultiplyHigh I don't know it.
         // Signed multiplicand
-        BigInteger multiplicand = BigInteger.valueOf(this.multiplicand.executeLong(frame, basePc));
+        BigInteger multiplicand = BigInteger.valueOf(this.multiplicand.executeLong(frame, basePc, priv));
 
         // Unsigned multiplier
         BigInteger multiplier;
-        long multiplierSigned = this.multiplier.executeLong(frame, basePc);
+        long multiplierSigned = this.multiplier.executeLong(frame, basePc, priv);
         // From OpenJDK: https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/master/src/java.base/share/classes/java/lang/Long.java#L241-L252
         if (multiplierSigned >= 0) {
             multiplier = BigInteger.valueOf(multiplierSigned);

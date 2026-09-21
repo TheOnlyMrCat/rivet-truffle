@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -21,11 +22,12 @@ public class StoreByteNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
-        long virtualAddress = address.executeLong(frame, basePc) + offset;
+        long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
-            ctx.writeByte(virtualAddress, (byte) value.executeLong(frame, basePc));
+            byte value1 = (byte) value.executeLong(frame, basePc, priv);
+            ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress, ctx), value1);
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

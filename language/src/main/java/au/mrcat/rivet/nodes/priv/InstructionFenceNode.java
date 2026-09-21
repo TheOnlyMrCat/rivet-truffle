@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.priv;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -14,7 +15,7 @@ public class InstructionFenceNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         throw new RiscvInstructionFenceException(basePc + nextPc, instret);
     }
 

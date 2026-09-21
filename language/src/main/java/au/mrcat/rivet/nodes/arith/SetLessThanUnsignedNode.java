@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class SetLessThanUnsignedNode extends RivetOpNode {
@@ -13,8 +14,8 @@ public class SetLessThanUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        return Long.compareUnsigned(lhs.executeLong(frame, basePc), rhs.executeLong(frame, basePc)) < 0 ? 1L : 0L;
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        return Long.compareUnsigned(lhs.executeLong(frame, basePc, priv), rhs.executeLong(frame, basePc, priv)) < 0 ? 1L : 0L;
     }
 
     @Override

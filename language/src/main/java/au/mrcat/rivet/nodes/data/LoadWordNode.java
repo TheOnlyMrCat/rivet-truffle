@@ -1,7 +1,10 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.MemoryWidth;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class LoadWordNode extends RivetOpNode {
@@ -18,11 +21,19 @@ public class LoadWordNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         var ctx = currentLanguageContext();
-        long virtualAddress = address.executeLong(frame, basePc) + offset;
+        long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
-            return ctx.readInt(virtualAddress);
+            if (!priv.currentAddressSpace(priv.readAccessType()).isAccessContiguous(virtualAddress, MemoryWidth.Word)) {
+                CompilerDirectives.transferToInterpreter();
+                int lsb = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress, ctx)));
+                int sb1 = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress + 1, ctx)));
+                int sb2 = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress + 2, ctx)));
+                int msb = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress + 3, ctx)));
+                return lsb | (sb1 << 8) | (sb2 << 16) | (msb << 24);
+            }
+            return ctx.physicalMemory.readInt(priv.translateReadAddress(virtualAddress, ctx), priv.readAccessType());
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

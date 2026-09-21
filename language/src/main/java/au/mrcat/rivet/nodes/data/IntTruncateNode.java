@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class IntTruncateNode extends RivetOpNode {
@@ -11,8 +12,8 @@ public class IntTruncateNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc) {
-        return op.executeLong(frame, basePc) & 0xFFFF_FFFFL;
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+        return op.executeLong(frame, basePc, priv) & 0xFFFF_FFFFL;
     }
 
     @Override

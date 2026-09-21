@@ -4,6 +4,7 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.nodes.data.BareSetRegisterNode;
 import au.mrcat.rivet.nodes.data.GetRegisterNode;
+import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
 import au.mrcat.rivet.runtime.RiscvInstructionFenceException;
@@ -28,8 +29,9 @@ public class RivetCallTargetNode extends RootNode {
 
     private final long entryPc;
     private final int firstBlockIndex;
+    private final PrivilegedContext priv;
 
-    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks) {
+    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv) {
         var frameDescriptor = FrameDescriptor.newBuilder();
 //        frameDescriptor.useSlotKinds(false);
         frameDescriptor.addSlots(32, FrameSlotKind.Static);
@@ -38,6 +40,7 @@ public class RivetCallTargetNode extends RootNode {
         basicBlockNodes = basicBlocks.sequencedValues().toArray(new RivetBasicBlockNode[0]);
         basePcs = basicBlocks.sequencedKeySet().stream().mapToLong(x -> x).toArray();
         firstBlockIndex = Arrays.binarySearch(basePcs, entryPc);
+        this.priv = priv;
         assert firstBlockIndex >= 0;
 
         for (int i = 0; i < basicBlockNodes.length; i++) {
@@ -69,7 +72,7 @@ public class RivetCallTargetNode extends RootNode {
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
         for (int i = 0; i < 31; i++) {
-            state.setRegister(i+1, copyToState[i].executeLong(frame, 0));
+            state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
         }
     }
 
@@ -92,7 +95,7 @@ public class RivetCallTargetNode extends RootNode {
 
                 int successorIndex;
                 try {
-                    successorIndex = basicBlockNodes[block].executeDivergent(frame, basePcs[block]);
+                    successorIndex = basicBlockNodes[block].executeDivergent(frame, basePcs[block], priv);
                 } catch (RiscvIndirectJumpException jump) {
                     // IndirectJumpExceptions should only be thrown in divergent nodes at the end of basic blocks, and only when
                     // they retire normally, so the block's instret counter is correct.
