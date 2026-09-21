@@ -15,4 +15,8 @@ public class PcOffsetNode extends RivetOpNode {
     public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
         return basePc + offset;
     }
+
+    public long getOffset() {
+        return offset;
+    }
 }

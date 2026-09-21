@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.control;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.nodes.arith.PcOffsetNode;
 import au.mrcat.rivet.nodes.data.ConstantNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
@@ -16,7 +17,7 @@ public class JumpNode extends RivetDivergentNode {
 
     @Override
     public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
-        if (targetPc instanceof ConstantNode) {
+        if (targetPc instanceof PcOffsetNode) {
             return 0;
         }
         throw new RiscvIndirectJumpException(targetPc.executeLong(frame, basePc, priv) & ~0b1);
@@ -24,8 +25,8 @@ public class JumpNode extends RivetDivergentNode {
 
     @Override
     public Long[] callTargetContinuations() {
-        if (targetPc instanceof ConstantNode constant) {
-            return new Long[] {constant.getValue() & ~0b1};
+        if (targetPc instanceof PcOffsetNode offset) {
+            return new Long[] {offset.getOffset() & ~0b1};
         }
         return new Long[0];
     }

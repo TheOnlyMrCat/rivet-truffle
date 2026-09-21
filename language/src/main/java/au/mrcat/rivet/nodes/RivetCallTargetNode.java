@@ -50,7 +50,10 @@ public class RivetCallTargetNode extends RootNode {
 
             for (int j = 0; j < continuations.length; j++) {
                 block.successorIndices[j] = Arrays.binarySearch(basePcs, basePcs[i] + continuations[j]);
-                assert block.successorIndices[j] >= 0; // FIXME: This will fail when the parser bailed out for large call targets
+                if (block.successorIndices[j] < 0) {
+                    // FIXME: This will fail when the parser bailed out for large call targets
+                    throw new IllegalStateException("Block successor not parsed");
+                }
             }
         }
 

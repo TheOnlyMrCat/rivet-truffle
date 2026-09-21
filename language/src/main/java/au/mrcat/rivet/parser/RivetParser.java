@@ -86,7 +86,7 @@ public final class RivetParser {
                             trap.setTval(basePc + pcOffset);
                             throw trap;
                         } else {
-                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            finalNode = new HoleNode(pcOffset);
                             break;
                         }
                     }
@@ -104,7 +104,7 @@ public final class RivetParser {
                                 trap.setTval(basePc + pcOffset + 2);
                                 throw trap;
                             } else {
-                                finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                                finalNode = new HoleNode(pcOffset);
                                 break;
                             }
                         }
@@ -119,7 +119,7 @@ public final class RivetParser {
                             trap.setTval(basePc + pcOffset);
                             throw trap;
                         } else {
-                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            finalNode = new HoleNode(pcOffset);
                             break;
                         }
                     }
@@ -153,7 +153,7 @@ public final class RivetParser {
                         currentBlock.add(node);
                         if (csrw.doesChangePrivilegedContext()) {
                             // Break this call target here; we'll need to parse a new one with the modified context
-                            finalNode = new JumpNode(new PcOffsetNode(pcOffset));
+                            finalNode = new HoleNode(pcOffset);
                             break bb;
                         }
                     }
