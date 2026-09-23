@@ -94,7 +94,6 @@ public class RivetCallTargetNode extends RootNode {
             int block = firstBlockIndex;
             while (true) {
                 CompilerAsserts.partialEvaluationConstant(basePcs[block]);
-                ctx.privilegedState.checkForInterrupts(basePcs[block]);
 
                 int successorIndex;
                 try {
@@ -114,7 +113,11 @@ public class RivetCallTargetNode extends RootNode {
                 // but introduces branching points for Truffle to unroll different paths through the loop.
                 for (int i = 0; i < basicBlockNodes[block].successorIndices.length; i++) {
                     if (successorIndex == i) {
-                        block = basicBlockNodes[block].successorIndices[i];
+                        int nextBlock = basicBlockNodes[block].successorIndices[i];
+                        if (nextBlock <= block) {
+                            ctx.privilegedState.checkForInterrupts(basePcs[nextBlock]);
+                        }
+                        block = nextBlock;
                     }
                 }
             }
