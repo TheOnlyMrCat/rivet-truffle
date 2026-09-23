@@ -1,5 +1,6 @@
 import? '.local.just'
 
+rlib_path := justfile_directory() / "vendor/rivet/target/release"
 resources_path := "language/src/main/resources/au/mrcat/rivet"
 classpath_path := "target/cp.txt"
 
@@ -17,12 +18,12 @@ build-resources:
     # Device tree
     dtc -o {{resources_path / "rivet-truffle.dtb"}} language/src/main/devicetree/rivet-truffle.dts
 
-    # Devices implementation
-    cd vendor/rivet && cargo build
-
     # OpenSBI firmware
     make -C vendor/opensbi PLATFORM=generic LLVM=1
     cp vendor/opensbi/build/platform/generic/firmware/fw_dynamic.bin {{resources_path / "fw_dynamic.bin"}}
+
+build-devices:
+    cd vendor/rivet && cargo build --release
 
 clean-coremark:
     make -C vendor/coremark clean PORT_DIR=rivet
@@ -30,17 +31,17 @@ clean-coremark:
 build-coremark:
     make -C vendor/coremark link PORT_DIR=rivet
 
-build:
-    mvn compile
+build: build-devices
+    mvn install
     mvn dependency:build-classpath -pl launcher -Dmdep.outputFile={{classpath_path}}
 
 [env("RISCV_ARCH_TEST_ELFS", "vendor/riscv-arch-test/work/rivet-rv64imac/elfs")]
 test: build
     java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.RiscvArchTest
 
-bench: build build-coremark
-    java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
-    
+bench: build # build-coremark
+    LD_LIBRARY_PATH={{rlib_path}} java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
+
 
 
 # Most of this file is designed to be executed within the `nix develop` shell, but nixpkgs doesn't
