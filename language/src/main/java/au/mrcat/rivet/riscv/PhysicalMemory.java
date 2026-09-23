@@ -1,12 +1,15 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.RivetContext;
-import au.mrcat.rivet.RivetFfi;
 import au.mrcat.rivet.mmio.SifiveUart;
 import au.mrcat.rivet.runtime.RiscvExitException;
 import au.mrcat.rivet.runtime.RiscvRebootException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.memory.ByteArraySupport;
+
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class PhysicalMemory {
     private final byte[] memory;
@@ -18,11 +21,16 @@ public class PhysicalMemory {
     private static final long NO_RESERVATION = 1;
     private long reservedDoubleWord = NO_RESERVATION;
 
+    private boolean[] isInstructionPage;
+    private HashMap<Long, HashSet<InstructionParseRequest>> instructionPages;
+
     public PhysicalMemory(RivetContext context) {
         memory = new byte[1 * 1024 * 1024 * 1024 + 512 * 1024 * 1024];
         byteArray = ByteArraySupport.littleEndian();
         uart = new SifiveUart(context);
         ctx = context;
+        isInstructionPage = new boolean[memory.length / 4096];
+        instructionPages = new HashMap<>();
     }
 
     public boolean isInPhysicalMemory(long physicalAddress, long accessWidth) {
@@ -117,6 +125,7 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeShort(long physicalAddress, short value) {
@@ -125,6 +134,7 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeInt(long physicalAddress, int value) {
@@ -133,6 +143,7 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeLong(long physicalAddress, long value) {
@@ -141,6 +152,7 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
     }
 
     public boolean writeIntConditional(long physicalAddress, int value) {
@@ -156,6 +168,7 @@ public class PhysicalMemory {
             return false;
         }
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
         return true;
     }
 
@@ -172,6 +185,7 @@ public class PhysicalMemory {
             return false;
         }
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
         return true;
     }
 
@@ -225,5 +239,25 @@ public class PhysicalMemory {
         }
 
         ctx.ffi.rustStore(physicalAddress, value, (byte) (width.bytes * 8));
+    }
+
+    public void markInstructionPage(long physicalAddress, InstructionParseRequest key) {
+        var page = (physicalAddress - 0x8000_0000L) & ~0xfff;
+        isInstructionPage[Math.toIntExact(page >> 12)] = true;
+        instructionPages.computeIfAbsent(page, _ -> new HashSet<>()).add(key);
+    }
+
+    public void invalidateInstructionPage(long physicalAddress) {
+        var page = (physicalAddress - 0x8000_0000L) & ~0xfff;
+        if (!isInstructionPage[Math.toIntExact(page >> 12)]) {
+            return;
+        }
+        CompilerDirectives.transferToInterpreter();
+
+        isInstructionPage[Math.toIntExact(page >> 12)] = false;
+        var callTargets = instructionPages.remove(page);
+        for (var key : callTargets) {
+            key.root().invalidateCallTarget(key);
+        }
     }
 }

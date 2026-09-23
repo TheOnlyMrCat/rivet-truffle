@@ -45,14 +45,14 @@ public final class RivetParser {
     }
 
     @CompilerDirectives.TruffleBoundary
-    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, long initialPc, PrivilegedContext priv) {
-        if ((initialPc & 0b1) != 0) {
-            throw new IllegalArgumentException("Instruction virtual address not aligned to 16 bits: " + (initialPc));
+    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, InstructionParseRequest key) {
+        if ((key.pc() & 0b1) != 0) {
+            throw new IllegalArgumentException("Instruction virtual address not aligned to 16 bits: " + (key.pc()));
         }
         var currentBlock = new ArrayList<RivetInstructionNode>();
         var basicBlocks = new TreeMap<Long, RivetBasicBlockNode>();
         var frontier = new ArrayDeque<Long>();
-        frontier.addLast(initialPc);
+        frontier.addLast(key.pc());
 
         while (!frontier.isEmpty()) {
             long basePc = frontier.removeFirst();
@@ -72,11 +72,13 @@ public final class RivetParser {
                 }
 
                 int instruction;
-                AddressSpace addressSpace = priv.currentAddressSpace(AccessType.EXECUTE);
+                AddressSpace addressSpace = key.priv().currentAddressSpace(AccessType.EXECUTE);
                 if (!addressSpace.isAccessContiguous(basePc + pcOffset, MemoryWidth.Word)) {
                     int lsh;
                     try {
-                        lsh = Short.toUnsignedInt(context.physicalMemory.readShort(addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE));
+                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                        lsh = Short.toUnsignedInt(context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE));
+                        context.physicalMemory.markInstructionPage(physicalAddress, key);
                     } catch (RiscvTrapException trap) {
                         // Convert this into an instruction-access fault. Only actually do so if this is the first
                         // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
@@ -95,7 +97,9 @@ public final class RivetParser {
                         instruction = lsh;
                     } else {
                         try {
-                            int msh = context.physicalMemory.readShort(addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE);
+                            long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                            int msh = context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE);
+                            context.physicalMemory.markInstructionPage(physicalAddress, key);
                             instruction = lsh | (msh << 16);
                         } catch (RiscvTrapException trap) {
                             // As above, but set the tval to the actual part of the access that faulted
@@ -111,7 +115,9 @@ public final class RivetParser {
                     }
                 } else {
                     try {
-                        instruction = context.physicalMemory.readInt(addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, context.privilegedState.currentContext(), context.physicalMemory), AccessType.EXECUTE);
+                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                        instruction = context.physicalMemory.readInt(physicalAddress, AccessType.EXECUTE);
+                        context.physicalMemory.markInstructionPage(physicalAddress, key);
                     } catch (RiscvTrapException trap) {
                         // As above
                         if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
@@ -166,7 +172,7 @@ public final class RivetParser {
             basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetInstructionNode[0]), finalNode, instret));
         }
 
-        return new RivetCallTargetNode(language, initialPc, basicBlocks, priv);
+        return new RivetCallTargetNode(language, key.pc(), basicBlocks, key.priv());
     }
 
     public static RivetInstructionNode parseInstruction(int instruction, long pcOffset, short instret) {

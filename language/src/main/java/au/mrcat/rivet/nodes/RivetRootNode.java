@@ -12,9 +12,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.RootNode;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class RivetRootNode extends RootNode {
     private record CallTargetKey(long pc, PrivilegedContext priv) {
@@ -26,6 +24,7 @@ public class RivetRootNode extends RootNode {
     @Children private DirectCallNode[] callTargets;
     private int callTargetsLength;
     private final Map<CallTargetKey, Integer> callTargetPcs;
+    private final Set<CallTargetKey> invalidatedCallTargets;
 
     public RivetRootNode(RivetLanguage language, RivetStartupNode startupNode) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -38,6 +37,7 @@ public class RivetRootNode extends RootNode {
         this.callTargets = new DirectCallNode[16];
         this.callTargetsLength = 0;
         this.callTargetPcs = new HashMap<>();
+        this.invalidatedCallTargets = new HashSet<>();
     }
 
     private int addCallTarget(CallTarget callTarget) {
@@ -49,8 +49,19 @@ public class RivetRootNode extends RootNode {
     }
 
     private void clearCallTargets() {
-        callTargets = new DirectCallNode[callTargetsLength];
-        callTargetPcs.clear();
+        for (var invalidated : invalidatedCallTargets) {
+            var callTargetIdx = callTargetPcs.remove(invalidated);
+            if (callTargetIdx != null) {
+                callTargets[callTargetIdx] = null;
+            }
+        }
+        invalidatedCallTargets.clear();
+//        callTargets = new DirectCallNode[callTargetsLength];
+//        callTargetPcs.clear();
+    }
+
+    public void invalidateCallTarget(InstructionParseRequest request) {
+        invalidatedCallTargets.add(new CallTargetKey(request.pc(), request.priv()));
     }
 
     @Override
@@ -60,19 +71,19 @@ public class RivetRootNode extends RootNode {
             RegisterState cpuState = startupNode.executeState(frame);
             try {
                 while (true) {
-                    var priv = ctx.privilegedState.currentContext();
-                    Integer callTargetIndex = callTargetPcs.get(new CallTargetKey(cpuState.getPc(), priv));
+                    var key = new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentContext());
+                    Integer callTargetIndex = callTargetPcs.get(key);
                     if (callTargetIndex == null) {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
                         try {
-                            root = RivetParser.extractCallTarget(language, ctx, cpuState.getPc(), priv);
+                            root = RivetParser.extractCallTarget(language, ctx, new InstructionParseRequest(key.pc, key.priv, this));
                         } catch (RiscvTrapException trap) {
                             cpuState.setPc(ctx.privilegedState.handleException(trap));
                             continue;
                         }
                         callTargetIndex = addCallTarget(root.getCallTarget());
-                        callTargetPcs.put(new CallTargetKey(root.getEntryPc(), priv), callTargetIndex);
+                        callTargetPcs.put(key, callTargetIndex);
 //                        for (long entryPc : root.getPcOffsets()) {
 //                            callTargetPcs.put(entryPc, callTargetIndex);
 //                        }
