@@ -14,7 +14,7 @@
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <graalvm.version>25.0.2</graalvm.version>
+        <graalvm.version>25.4.4.1.1</graalvm.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
