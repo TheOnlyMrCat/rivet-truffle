@@ -29,7 +29,7 @@ clean-coremark:
     make -C vendor/coremark clean PORT_DIR=rivet
 
 build-coremark:
-    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=50000
+    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=40000
 
 build: build-devices
     mvn install
