@@ -25,6 +25,7 @@ public class RivetRootNode extends RootNode {
     private int callTargetsLength;
     private final Map<CallTargetKey, Integer> callTargetPcs;
     private final Set<CallTargetKey> invalidatedCallTargets;
+    private final ArrayList<Integer> freeCallTargets;
 
     public RivetRootNode(RivetLanguage language, RivetStartupNode startupNode) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -38,14 +39,24 @@ public class RivetRootNode extends RootNode {
         this.callTargetsLength = 0;
         this.callTargetPcs = new HashMap<>();
         this.invalidatedCallTargets = new HashSet<>();
+        freeCallTargets = new ArrayList<>();
     }
 
     private int addCallTarget(CallTarget callTarget) {
-        if (callTargetsLength == callTargets.length) {
-            callTargets = Arrays.copyOf(callTargets, callTargets.length * 2);
+        int newIndex;
+        if (freeCallTargets.isEmpty()) {
+            if (callTargetsLength == callTargets.length) {
+                callTargets = Arrays.copyOf(callTargets, callTargets.length * 2);
+            }
+            newIndex = callTargetsLength++;
+        } else {
+            newIndex = freeCallTargets.removeLast();
         }
-        callTargets[callTargetsLength] = DirectCallNode.create(callTarget);
-        return callTargetsLength++;
+        if (callTargets[newIndex] != null) {
+            throw new IllegalStateException("Attempted to override existing call target");
+        }
+        callTargets[newIndex] = DirectCallNode.create(callTarget);
+        return newIndex;
     }
 
     private void clearCallTargets() {
@@ -53,6 +64,7 @@ public class RivetRootNode extends RootNode {
             var callTargetIdx = callTargetPcs.remove(invalidated);
             if (callTargetIdx != null) {
                 callTargets[callTargetIdx] = null;
+                freeCallTargets.add(callTargetIdx);
             }
         }
         invalidatedCallTargets.clear();
