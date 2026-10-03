@@ -1,0 +1,25 @@
+when:
+  - event: manual
+
+steps:
+  - name: build
+    image: bash
+    commands:
+     - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
+  - name: build-coremark
+    image: bash
+    commands:
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark
+
+  - name: warmup
+    image: bash
+    commands:
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+  - name: bench
+    image: bash
+    commands:
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
