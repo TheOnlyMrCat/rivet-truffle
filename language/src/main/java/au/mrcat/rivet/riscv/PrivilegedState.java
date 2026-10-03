@@ -264,7 +264,7 @@ public final class PrivilegedState {
                     addressSpace = BareAddressSpace.SINGLETON;
                 } else if (mode == 8) {
                     satp = value;
-                    addressSpace = new Sv39AddressSpace(satp & 0xfffffffffffL);
+                    addressSpace = new Sv39AddressSpace(satp & 0xfffffffffffL, ctx.physicalMemory.getMemory());
                 }
             }
 

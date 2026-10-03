@@ -76,7 +76,7 @@ public final class RivetParser {
                 if (!addressSpace.isAccessContiguous(basePc + pcOffset, MemoryWidth.Word)) {
                     int lsh;
                     try {
-                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv());
                         lsh = Short.toUnsignedInt(context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE));
                         context.physicalMemory.markInstructionPage(physicalAddress, key);
                     } catch (RiscvTrapException trap) {
@@ -97,7 +97,7 @@ public final class RivetParser {
                         instruction = lsh;
                     } else {
                         try {
-                            long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                            long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, key.priv());
                             int msh = context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE);
                             context.physicalMemory.markInstructionPage(physicalAddress, key);
                             instruction = lsh | (msh << 16);
@@ -115,7 +115,7 @@ public final class RivetParser {
                     }
                 } else {
                     try {
-                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv(), context.physicalMemory);
+                        long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv());
                         instruction = context.physicalMemory.readInt(physicalAddress, AccessType.EXECUTE);
                         context.physicalMemory.markInstructionPage(physicalAddress, key);
                     } catch (RiscvTrapException trap) {

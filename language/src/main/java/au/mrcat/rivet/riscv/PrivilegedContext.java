@@ -66,11 +66,11 @@ public class PrivilegedContext {
     }
 
     public long translateReadAddress(long virtualAddress, RivetContext ctx) {
-        return currentAddressSpace(readAccessType()).toPhysicalAddress(virtualAddress, readAccessType(), this, ctx.physicalMemory);
+        return currentAddressSpace(readAccessType()).toPhysicalAddress(virtualAddress, readAccessType(), this);
     }
 
     public long translateWriteAddress(long virtualAddress, RivetContext ctx) {
-        return currentAddressSpace(AccessType.WRITE).toPhysicalAddress(virtualAddress, AccessType.WRITE, this, ctx.physicalMemory);
+        return currentAddressSpace(AccessType.WRITE).toPhysicalAddress(virtualAddress, AccessType.WRITE, this);
     }
 
     @Override

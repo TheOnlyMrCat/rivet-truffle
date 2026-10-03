@@ -1,16 +1,24 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.memory.ByteArraySupport;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class Sv39AddressSpace extends AddressSpace {
     private final long rootPageTableAddr;
+    @CompilerDirectives.CompilationFinal private final byte[] memory;
+    private final ByteArraySupport byteArray;
 
-    public Sv39AddressSpace(long rootPageTablePpn) {
+    public Sv39AddressSpace(long rootPageTablePpn, byte[] memory) {
         this.rootPageTableAddr = rootPageTablePpn << 12;
+        this.memory = memory;
+        this.byteArray = ByteArraySupport.littleEndian();
     }
 
     @Override
-    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState, PhysicalMemory memory) {
+    @ExplodeLoop
+    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
         if (vte < -(1 << 27) || vte > (1 << 26)) {
@@ -28,7 +36,7 @@ public class Sv39AddressSpace extends AddressSpace {
             pageLevel -= 1;
             pteAddr = currentAddr + ((vte & 0b111111111L << pageLevel * 9) >> pageLevel * 9) * Long.BYTES;
             try {
-                pte = memory.readLong(pteAddr);
+                pte = byteArray.getLong(memory, pteAddr - 0x8000_0000L);
             } catch (RiscvTrapException e) {
                 throw new RiscvTrapException(accessType.pageFaultCause);
             }
@@ -76,7 +84,7 @@ public class Sv39AddressSpace extends AddressSpace {
             if (accessType == AccessType.WRITE) {
                 pte |= 1 << 7;
             }
-            memory.writeLong(pteAddr, pte);
+            byteArray.putLong(memory, pteAddr - 0x8000_0000L, pte);
         }
 
         currentAddr |= (vte & superpageMask) << 12;

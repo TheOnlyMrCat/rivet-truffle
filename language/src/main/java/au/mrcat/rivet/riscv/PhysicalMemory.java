@@ -260,4 +260,8 @@ public class PhysicalMemory {
             key.root().invalidateCallTarget(key);
         }
     }
+
+    public byte[] getMemory() {
+        return memory;
+    }
 }
