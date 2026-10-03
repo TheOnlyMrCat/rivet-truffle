@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use rangemap::RangeMap;
 
-use crate::devices::virtio::{VirtioBlock, VirtioMmio, VirtioNet};
-use crate::devices::{Aclint, MmioDevice, Plic, Rom, Rtc};
+use crate::devices::virtio::{ForwardedPort, VirtioBlock, VirtioMmio, VirtioNet};
+use crate::devices::{Aclint, MmioDevice, Ns16550a, Plic, Rom, Rtc};
 use crate::emulator::{DeviceMap, EmulatorControl, HartInterrupt, Interrupt, PtrEqArc};
 use crate::ffi::{Hart, Memory};
 
@@ -65,10 +65,22 @@ unsafe extern "C" fn rust_create_devices(
         (plic.clone() as Arc<dyn MmioDevice>).into(),
     );
 
+    let serial = Arc::new(Ns16550a::new(
+        plic.clone().interrupt_destination(1),
+        control.clone(),
+    ));
+    devices.insert(
+        0x1_0000_2000..0x1_0000_2100,
+        (serial as Arc<dyn MmioDevice>).into(),
+    );
+
     let virtio_net = Arc::new(VirtioMmio::new(VirtioNet::new(
         control.clone(),
         plic.clone().interrupt_destination(2),
-        vec![],
+        vec![ForwardedPort {
+            host_port: 2222,
+            guest_port: 22,
+        }],
     )));
     devices.insert(
         0x1000_1000..0x1000_2000,

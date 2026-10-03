@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use std::mem::MaybeUninit;
+use std::sync::atomic::{self, AtomicI8, AtomicU8};
 use std::sync::{Arc, Weak};
 
 use crate::devices::IoWidth;
@@ -29,6 +30,38 @@ pub enum AmoKind {
 
 impl AmoKind {
     pub fn operate_u32_unordered(self, lhs: u32, rhs: u32) -> u32 {
+        match self {
+            AmoKind::Swap => rhs,
+            AmoKind::Add => lhs.wrapping_add(rhs),
+            AmoKind::Xor => lhs ^ rhs,
+            AmoKind::And => lhs & rhs,
+            AmoKind::Or => lhs | rhs,
+            AmoKind::Min => lhs.cast_signed().min(rhs.cast_signed()).cast_unsigned(),
+            AmoKind::Max => lhs.cast_signed().max(rhs.cast_signed()).cast_unsigned(),
+            AmoKind::Minu => lhs.min(rhs),
+            AmoKind::Maxu => lhs.max(rhs),
+        }
+    }
+
+    pub fn operate_u8(self, atomic: &AtomicU8, operand: u8, order: atomic::Ordering) -> u8 {
+        match self {
+            AmoKind::Swap => atomic.swap(operand, order),
+            AmoKind::Add => atomic.fetch_add(operand, order),
+            AmoKind::Xor => atomic.fetch_xor(operand, order),
+            AmoKind::And => atomic.fetch_and(operand, order),
+            AmoKind::Or => atomic.fetch_or(operand, order),
+            AmoKind::Min => unsafe { AtomicI8::from_ptr(atomic.as_ptr() as *mut i8) }
+                .fetch_min(operand.cast_signed(), order)
+                .cast_unsigned(),
+            AmoKind::Max => unsafe { AtomicI8::from_ptr(atomic.as_ptr() as *mut i8) }
+                .fetch_max(operand.cast_signed(), order)
+                .cast_unsigned(),
+            AmoKind::Minu => atomic.fetch_min(operand, order),
+            AmoKind::Maxu => atomic.fetch_max(operand, order),
+        }
+    }
+
+    pub fn operate_u8_unordered(self, lhs: u8, rhs: u8) -> u8 {
         match self {
             AmoKind::Swap => rhs,
             AmoKind::Add => lhs.wrapping_add(rhs),

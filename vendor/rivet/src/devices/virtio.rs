@@ -6,7 +6,7 @@ mod block;
 pub use block::VirtioBlock;
 mod net;
 use bytemuck::{Pod, Zeroable};
-pub use net::VirtioNet;
+pub use net::{ForwardedPort, VirtioNet};
 mod queue;
 
 use std::sync::atomic::{self, AtomicU32};

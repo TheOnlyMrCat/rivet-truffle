@@ -10,6 +10,8 @@ mod aclint;
 pub use aclint::Aclint;
 mod goldfish;
 pub use goldfish::Rtc;
+mod ns16550a;
+pub use ns16550a::Ns16550a;
 mod plic;
 pub use plic::Plic;
 

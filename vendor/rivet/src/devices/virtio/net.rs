@@ -61,8 +61,8 @@ enum SlirpMessage {
 
 #[derive(Clone, Copy)]
 pub struct ForwardedPort {
-    host_port: u16,
-    guest_port: u16,
+    pub host_port: u16,
+    pub guest_port: u16,
 }
 
 struct InterruptStatus {
