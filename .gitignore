@@ -33,6 +33,10 @@ language/src/main/resources
 !perftests/*.ld
 !perftests/*.s
 
+# Whitelist our self-hosted CI runner
+!.woodpecker/
+!.woodpecker/*.yaml
+
 # Let vendored dependencies define their own ignore rules
 !vendor/
 !vendor/**/
