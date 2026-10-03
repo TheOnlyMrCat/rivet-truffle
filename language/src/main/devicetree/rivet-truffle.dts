@@ -62,17 +62,24 @@
 		compatible = "simple-bus";
 		ranges;
 
-		serial: serial@10000000 {
-			compatible = "sifive,uart0";
-			reg = <0x00 0x10000000 0x00 0x1000>;
-			clock-frequency = <3686400>;
-			interrupts = <0x01>;
-			interrupt-parent = <&plic_int>;
-		};
+		//serial: serial@10000000 {
+		//	compatible = "sifive,uart0";
+		//	reg = <0x00 0x10000000 0x00 0x1000>;
+		//	clock-frequency = <3686400>;
+		//	interrupts = <0x01>;
+		//	interrupt-parent = <&plic_int>;
+		//};
+		serial: serial@100002000 {
+        	compatible = "ns16550a";
+        	reg = <0x01 0x2000 0x00 0x0100>;
+        	clock-frequency = <3686400>;
+        	interrupts = <0x01>;
+        	interrupt-parent = <&plic_int>;
+        };
 
 		test: test@100000 {
 			reg = <0x00 0x100000 0x00 0x1000>;
-			compatible = "sifive,test1\0sifive,test0\0syscon";
+			compatible = "sifive,test1", "sifive,test0", "syscon";
 		};
 
 		mtimer@200000 {
