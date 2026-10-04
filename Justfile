@@ -31,6 +31,9 @@ clean-coremark:
 build-coremark:
     make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=50000
 
+build-coremark-mmu:
+    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=40000 XASFLAGS='-DMMU=1'
+
 build: build-devices
     mvn install
     mvn dependency:build-classpath -pl launcher -Dmdep.outputFile={{classpath_path}}
@@ -39,8 +42,29 @@ build: build-devices
 test: build
     java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.RiscvArchTest
 
-bench: build # build-coremark
+bench:
     LD_LIBRARY_PATH={{rlib_path}} java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
+
+
+[script("python")]
+bench-full:
+    import os
+    import shutil
+    import subprocess
+
+    for i in range(5):
+        print(f"\rWarming up: [{i+1}/5]", end="")
+        subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    print()
+
+    os.makedirs("results", exist_ok=True)
+    for i in range(100):
+        result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        lines = result.stdout.split("\n")
+        time = int(lines[2][19:].strip())/1000000
+        iterations = int(lines[5][19:].strip())
+        print(f"{iterations/time:.6f}")
 
 
 

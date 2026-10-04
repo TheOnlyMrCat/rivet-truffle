@@ -30,7 +30,12 @@
       default = pkgs.mkShell {
         packages = [
           # Java toolchain
-          pkgs.graalvmPackages.graalvm-oracle_25
+          (pkgs.graalvmPackages.graalvm-oracle_25.overrideAttrs (prevAttrs: {
+            src = pkgs.fetchurl {
+              url = "https://gds.oracle.com/download/graal/25i4/archive/graalvm-jdk-25i4-25.0.4.1.1_linux-x64_bin.tar.gz";
+              hash = "sha256-T8xjLPxo6Y9J+TFvijWIuv5PUonxIBBOLSkKdc8z4o4=";
+            };
+          }))
           pkgs.maven
           pkgs.just
 
@@ -42,6 +47,8 @@
 
           # Other toolchains
           pkgs.dtc
+          pkgs.rustc
+          pkgs.cargo
         ];
       };
     });

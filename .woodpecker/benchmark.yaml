@@ -1,0 +1,42 @@
+when:
+  - event: manual
+  - event: push
+    branch: bench/*
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      recursive: false
+      lfs: false
+
+steps:
+  - name: Build rivet-truffle
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
+  - name: Build coremark-nommu
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark
+
+  - name: Benchmark coremark-nommu
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full
+
+  - name: Build coremark-mmu
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just clean-coremark
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark-mmu
+
+  - name: Benchmark coremark-mmu
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full
