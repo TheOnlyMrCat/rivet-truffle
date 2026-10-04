@@ -99,7 +99,12 @@ unsafe extern "C" fn rust_create_devices(
             )
             .map(VirtioMmio::new)
             .map(Arc::new) else {
-                return std::ptr::null();
+                let rom = Arc::new(Rom::new(vec![0; 0x1000]));
+                devices.insert(
+                    0x1000_2000 + 0x1000 * i as u64..0x1000_3000 + 0x1000 * i as u64,
+                    (rom as Arc<dyn MmioDevice>).into(),
+                );
+                continue;
             };
             devices.insert(
                 0x1000_2000 + 0x1000 * i as u64..0x1000_3000 + 0x1000 * i as u64,

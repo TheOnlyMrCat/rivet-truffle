@@ -205,7 +205,7 @@ impl InterruptStatus {
 fn spawn_reader(
     input_send: Sender<u8>,
     interrupt: Arc<Mutex<InterruptStatus>>,
-    control: Arc<EmulatorControl>,
+    _control: Arc<EmulatorControl>,
 ) {
     std::thread::Builder::new()
         .name("ns16550a-reader".to_owned())
