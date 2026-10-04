@@ -2,19 +2,29 @@ when:
   - event: push
     branch: [main, bench/*]
 
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      recursive: false
+      lfs: false
+
 steps:
   - name: build
     image: bash
     commands:
-     - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
   - name: build-coremark
     image: bash
     commands:
+      - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark
 
   - name: warmup
     image: bash
     commands:
+      - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
@@ -23,4 +33,5 @@ steps:
   - name: bench
     image: bash
     commands:
+      - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
