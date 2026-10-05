@@ -1,5 +1,7 @@
 when:
   - event: manual
+  - event: push
+    branch: bench/*
 
 clone:
   git:
@@ -9,28 +11,32 @@ clone:
       lfs: false
 
 steps:
-  - name: build
+  - name: Build rivet-truffle
     image: bash
     commands:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
-  - name: build-coremark
+  - name: Build coremark-nommu
     image: bash
     commands:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark
 
-  - name: warmup
+  - name: Benchmark coremark-nommu
     image: bash
     commands:
       - . /etc/profile
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-  - name: bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full
+
+  - name: Build coremark-mmu
     image: bash
     commands:
       - . /etc/profile
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just clean-coremark
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark-mmu
+
+  - name: Benchmark coremark-mmu
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full

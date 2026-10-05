@@ -1,6 +1,6 @@
 when:
   - event: push
-    branch: [main, bench/*]
+    branch: main
 
 clone:
   git:
@@ -20,16 +20,6 @@ steps:
     commands:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build-coremark
-
-  - name: warmup
-    image: bash
-    commands:
-      - . /etc/profile
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench
   - name: bench
     image: bash
     commands:

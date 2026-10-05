@@ -50,8 +50,8 @@ LFLAGS_END =
 # 	Port specific source files can be added here
 #	You may also need cvt.c if the fcvt functions are not provided as intrinsics by your compiler!
 PORT_FILES = $(PORT_DIR)/core_portme $(PORT_DIR)/ee_printf
-PORT_SRCS = $(addsuffix .c,$(PORT_FILES)) $(PORT_DIR)/syscall.s
-PORT_OBJS = $(addprefix $(OPATH),$(addsuffix $(OEXT),$(PORT_FILES)) $(PORT_DIR)/syscall.o)
+PORT_SRCS = $(addsuffix .c,$(PORT_FILES)) $(PORT_DIR)/syscall.S
+PORT_OBJS = $(addprefix $(OPATH),$(addsuffix $(OEXT),$(PORT_FILES)) $(OPATH)$(PORT_DIR)/syscall.o)
 vpath %.c $(PORT_DIR)
 vpath %.s $(PORT_DIR)
 
@@ -73,8 +73,14 @@ $(OPATH)$(PORT_DIR)/%$(OEXT) : %.c
 $(OPATH)%$(OEXT) : %.c
 	$(CC) $(CFLAGS) $(XCFLAGS) $(COUT) $< $(OBJOUT) $@
 
+$(OPATH)%$(OEXT) : %.S
+	$(CC) $(ASFLAGS) $(XASFLAGS) $(COUT) $< $(OBJOUT) $@
+
+$(OPATH)$(PORT_DIR)/%$(OEXT) : %.S
+	$(CC) $(ASFLAGS) $(XASFLAGS) $(COUT) $< $(OBJOUT) $@
+
 $(OPATH)$(PORT_DIR)/%$(OEXT) : %.s
-	$(AS) $(ASFLAGS) $< $(OBJOUT) $@
+	$(AS) $(ASFLAGS) $(XASFLAGS) $< $(OBJOUT) $@
 
 # Target : port_pre% and port_post%
 # For the purpose of this simple port, no pre or post steps needed.
