@@ -62,7 +62,7 @@ bench-full build_target="build-coremark":
         lines = result.stdout.split("\n")
         time = int(lines[2][19:].strip())/1000000
         ips = iterations/time
-        iterations = ips * 12
+        iterations = ips * 20
         iterations = int(round(iterations, -int(floor(log10(iterations))) + 1))
 
 
