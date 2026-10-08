@@ -20,10 +20,10 @@ steps:
     image: bash
     commands:
       - . /etc/profile
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full build-coremark
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full
 
   - name: Benchmark coremark-mmu
     image: bash
     commands:
       - . /etc/profile
-      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full build-coremark-mmu
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full --mmu=true

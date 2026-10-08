@@ -25,14 +25,16 @@ build-resources:
 build-devices:
     cd vendor/rivet && cargo build --release
 
-clean-coremark:
-    make -C vendor/coremark clean PORT_DIR=rivet
+clean-coremark port="rivet":
+    make -C vendor/coremark clean PORT_DIR={{port}}
 
-build-coremark iterations="40000":
-    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS={{iterations}}
-
-build-coremark-mmu iterations="40000":
-    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS={{iterations}} XASFLAGS='-DMMU=1'
+[arg("iterations", long="iterations")]
+[arg("mmu", long="mmu")]
+build-coremark port="rivet" iterations="0" mmu="false":
+    make -C vendor/coremark link \
+        PORT_DIR={{port}} \
+        ITERATIONS={{iterations}} \
+        {{ if mmu == "true" { "XASFLAGS='-DMMU=1'" } else { "" } }}
 
 build: build-devices
     mvn install
@@ -45,9 +47,15 @@ test: build
 bench:
     LD_LIBRARY_PATH={{rlib_path}} java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
 
+bench-temu:
+    just clean-coremark tinyemu
+    just build-coremark tinyemu
+    riscv64-unknown-elf-objcopy -O binary vendor/coremark/coremark.elf vendor/coremark/coremark.bin
+    vendor/tinyemu/temu -ctrlc vendor/tinyemu/coremark.cfg
 
 [script("python")]
-bench-full build_target="build-coremark":
+[arg("mmu", long="mmu")]
+bench-full mmu="false":
     from math import log10, floor
     import os
     import shutil
@@ -57,7 +65,7 @@ bench-full build_target="build-coremark":
     for i in range(5):
         print(f"\rCalibrating: [{i+1}/5] (iterations={iterations})", end="")
         subprocess.run(["just", "clean-coremark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["just", "{{build_target}}", str(iterations)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["just", "build-coremark", "--iterations", str(iterations), "--mmu", "{{mmu}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         lines = result.stdout.split("\n")
         time = int(lines[2][19:].strip())/1000000
