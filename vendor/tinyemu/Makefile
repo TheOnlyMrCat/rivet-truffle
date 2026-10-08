@@ -24,14 +24,14 @@
 
 # if set, network filesystem is enabled. libcurl and libcrypto
 # (openssl) must be installed.
-CONFIG_FS_NET=y
+# CONFIG_FS_NET=y
 # SDL support (optional)
-CONFIG_SDL=y
+# CONFIG_SDL=y
 # if set, compile the 128 bit emulator. Note: the 128 bit target does
 # not compile if gcc does not support the int128 type (32 bit hosts).
 CONFIG_INT128=y
 # build x86 emulator
-CONFIG_X86EMU=y
+# CONFIG_X86EMU=y
 # win32 build (not usable yet)
 #CONFIG_WIN32=y
 # user space network redirector

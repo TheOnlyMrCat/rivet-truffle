@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "cutils.h"
 #include "iomem.h"
@@ -645,7 +646,7 @@ static void glue(riscv_cpu_flush_tlb_write_range_ram,
                       MSTATUS_MPRV | MSTATUS_SUM | MSTATUS_MXR)
 
 /* cycle and insn counters */
-#define COUNTEREN_MASK ((1 << 0) | (1 << 2))
+#define COUNTEREN_MASK ((1 << 0) | (1 << 1) | (1 << 2))
 
 /* return the complete mstatus with the SD bit */
 static target_ulong get_mstatus(RISCVCPUState *s, target_ulong mask)
@@ -742,6 +743,24 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
             }
         }
         val = (int64_t)s->insn_counter;
+        break;
+    case 0xc01: 
+        {
+            uint32_t counteren;
+            if (s->priv < PRV_M) {
+                if (s->priv < PRV_S)
+                    counteren = s->scounteren;
+                else
+                    counteren = s->mcounteren;
+                if (((counteren >> (csr & 0x1f)) & 1) == 0)
+                    goto invalid_csr;
+            }
+        }
+        {
+            struct timespec tp;
+            clock_gettime(CLOCK_MONOTONIC, &tp);
+            val = tp.tv_sec * 1000000000 + tp.tv_nsec;
+        }
         break;
     case 0xc80: /* mcycleh */
     case 0xc82: /* minstreth */
