@@ -25,14 +25,16 @@ build-resources:
 build-devices:
     cd vendor/rivet && cargo build --release
 
-clean-coremark:
-    make -C vendor/coremark clean PORT_DIR=rivet
+clean-coremark port="rivet":
+    make -C vendor/coremark clean PORT_DIR={{port}}
 
-build-coremark:
-    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=40000
-
-build-coremark-mmu:
-    make -C vendor/coremark link PORT_DIR=rivet ITERATIONS=40000 XASFLAGS='-DMMU=1'
+[arg("iterations", long="iterations")]
+[arg("mmu", long="mmu")]
+build-coremark port="rivet" iterations="0" mmu="false":
+    make -C vendor/coremark link \
+        PORT_DIR={{port}} \
+        ITERATIONS={{iterations}} \
+        {{ if mmu == "true" { "XASFLAGS='-DMMU=1'" } else { "" } }}
 
 build: build-devices
     mvn install
@@ -45,18 +47,35 @@ test: build
 bench:
     LD_LIBRARY_PATH={{rlib_path}} java -p $(<{{"launcher" / classpath_path}}):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf
 
+bench-temu:
+    just clean-coremark tinyemu
+    just build-coremark tinyemu
+    riscv64-unknown-elf-objcopy -O binary vendor/coremark/coremark.elf vendor/coremark/coremark.bin
+    vendor/tinyemu/temu -ctrlc vendor/tinyemu/coremark.cfg
 
 [script("python")]
-bench-full:
+[arg("mmu", long="mmu")]
+bench-full mmu="false":
+    from math import log10, floor
     import os
     import shutil
     import subprocess
 
+    iterations = 10000
     for i in range(5):
-        print(f"\rWarming up: [{i+1}/5]", end="")
-        subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"\rCalibrating: [{i+1}/5] (iterations={iterations})", end="")
+        subprocess.run(["just", "clean-coremark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["just", "build-coremark", "--iterations", str(iterations), "--mmu", "{{mmu}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        lines = result.stdout.split("\n")
+        time = int(lines[2][19:].strip())/1000000
+        ips = iterations/time
+        iterations = ips * 20
+        iterations = int(round(iterations, -int(floor(log10(iterations))) + 1))
+
 
     print()
+    print(f"Iterations: {iterations}")
 
     os.makedirs("results", exist_ok=True)
     for i in range(100):
@@ -64,6 +83,8 @@ bench-full:
         lines = result.stdout.split("\n")
         time = int(lines[2][19:].strip())/1000000
         iterations = int(lines[5][19:].strip())
+        if time < 10:
+            print("INVALID RESULT")
         print(f"{iterations/time:.6f}")
 
 

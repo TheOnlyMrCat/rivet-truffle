@@ -48,3 +48,8 @@ vendor/coremark/**/*.exe
 vendor/coremark/**/*.elf
 vendor/coremark/**/*.bin
 vendor/coremark/**/*.log
+
+# Ignore compilation artifacts in vendor/tinyemu
+vendor/tinyemu/**/*.o
+vendor/tinyemu/**/*.d
+vendor/tinyemu/temu
