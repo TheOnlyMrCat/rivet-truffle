@@ -155,7 +155,7 @@
       // - "ExtContext_FourState" allows all values {Off, Initial, Clean, Dirty}.
       // - "ExtContext_TwoState" allows {Off, Dirty}, and writes of Initial and Clean get written as Dirty.
       // - "ExtContext_Off" allows only {Off}.  This makes the field read-only zero.
-      "fs_legal_states": "ExtContext_Off",
+      "fs_legal_states": "ExtContext_FourState",
       "vs_legal_states": "ExtContext_Off"
     },
     // Set the version of the privileged ISA. `"Privileged_ISA_1_13"`
@@ -421,7 +421,7 @@
     },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
-    "wfi_is_nop": true,
+    "wfi_is_nop": false,
     // WFI is optionally available to User mode.  Note that even if
     // `wfi_is_nop` is set to `true` above, it will still not be
     // available to User mode unless `wfi_available_to_user_mode` is
@@ -448,7 +448,7 @@
       "supported": true
     },
     "F": {
-      "supported": false,
+      "supported": true,
       // When to set mstatus[FS] and mstatus[SD] to 1, as a result of fflags
       // being set. There are three options:
       //
@@ -458,7 +458,7 @@
       //                      if that flag is already set.
       // - Fflags_Dirty_Instruction: Set FS/SD when we execute an instruction that
       //                             might set a flag, even if it actually doesn't.
-      "fflags_dirty_policy": "Fflags_Dirty_Precise"
+      "fflags_dirty_policy": "Fflags_Dirty_Instruction"
     },
     "D": {
       "supported": true
