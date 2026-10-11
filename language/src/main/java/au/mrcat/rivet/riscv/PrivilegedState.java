@@ -18,7 +18,7 @@ public final class PrivilegedState {
     private static final long MSTATUS_RESET_VALUE =
             0b00000000_00000000_00000100_00001010_00000000_00000000_00011000_10100000L;
     private static final long MENVCFG_WRITABLE_MASK =
-            0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
+            0b10100000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
     private static final long SENVCFG_WRITABLE_MASK =
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
 //    private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
@@ -39,6 +39,7 @@ public final class PrivilegedState {
     private long scause;
     private long stval;
 
+    private long stimecmp;
     private long senvcfg;
     private long satp;
     private AddressSpace addressSpace;
@@ -194,6 +195,12 @@ public final class PrivilegedState {
             case Csr.STVAL -> { return stval; }
             case Csr.SIP -> { return mip & mideleg; }
 
+            case Csr.STIMECMP -> {
+                if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) != 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return stimecmp;
+            }
             case Csr.SENVCFG -> { return senvcfg; }
             case Csr.SATP -> {
                 if (shouldTrapSatpAccess()) {
@@ -276,6 +283,13 @@ public final class PrivilegedState {
             case Csr.STVAL -> stval = value;
             case Csr.SIP -> mip = value & mideleg & INTERRUPT_WRITABLE_MASK_S;
 
+            case Csr.STIMECMP -> {
+                if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) != 0) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                ctx.ffi.rustSetStimecmp(value);
+                stimecmp = value;
+            }
             case Csr.SENVCFG -> senvcfg = value & SENVCFG_WRITABLE_MASK;
             case Csr.SATP -> {
                 if (shouldTrapSatpAccess()) {

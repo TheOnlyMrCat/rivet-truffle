@@ -9,7 +9,6 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.nio.file.Path;
 import java.util.ArrayList;
 
 public final class RivetFfi {
@@ -55,6 +54,9 @@ public final class RivetFfi {
             symbolLookup.findOrThrow("rust_get_time"),
             FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
+    private static final MethodHandle rust_set_stimecmp = linker.downcallHandle(
+            symbolLookup.findOrThrow("rust_set_stimecmp"),
+            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
     private static final MethodHandle rust_trigger_serial_interrupt = linker.downcallHandle(
             symbolLookup.findOrThrow("rust_trigger_serial_interrupt"),
             FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
@@ -222,6 +224,15 @@ public final class RivetFfi {
     public long rustGetTime() {
         try {
             return (long) rust_get_time.invoke(devices);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
+    public void rustSetStimecmp(long value) {
+        try {
+            rust_set_stimecmp.invoke(devices, value);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

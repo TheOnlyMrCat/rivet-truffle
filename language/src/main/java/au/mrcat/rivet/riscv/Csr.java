@@ -22,6 +22,9 @@ public class Csr {
     public static final int STVAL = 0x143;
     public static final int SIP = 0x144;
 
+    // Supervisor Timer Compare
+    public static final int STIMECMP = 0x14D;
+
     // Supervisor Protection and Translation
     public static final int SATP = 0x180;
 
