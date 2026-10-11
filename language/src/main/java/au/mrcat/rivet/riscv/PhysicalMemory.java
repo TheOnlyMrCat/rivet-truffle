@@ -257,7 +257,7 @@ public class PhysicalMemory {
         isInstructionPage[Math.toIntExact(page >> 12)] = false;
         var callTargets = instructionPages.remove(page);
         for (var key : callTargets) {
-            key.root().invalidateCallTarget(key);
+            key.root().markDirtyCallTarget(key);
         }
     }
 

@@ -6,7 +6,7 @@ import com.oracle.truffle.api.memory.ByteArraySupport;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class Sv39AddressSpace extends AddressSpace {
-    private final long rootPageTableAddr;
+    @CompilerDirectives.CompilationFinal private long rootPageTableAddr;
     @CompilerDirectives.CompilationFinal private final byte[] memory;
     private final ByteArraySupport byteArray;
 
@@ -95,5 +95,13 @@ public class Sv39AddressSpace extends AddressSpace {
     @Override
     public boolean isAccessContiguous(long virtualAddress, MemoryWidth width) {
         return (virtualAddress & ~(0xfff)) == ((virtualAddress + width.bytes) & ~(0xfff));
+    }
+
+    public long getRootPageTableAddr() {
+        return rootPageTableAddr;
+    }
+
+    public void setRootPageTableAddr(long rootPageTableAddr) {
+        this.rootPageTableAddr = rootPageTableAddr << 12;
     }
 }

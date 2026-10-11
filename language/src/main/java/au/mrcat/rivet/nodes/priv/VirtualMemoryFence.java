@@ -1,6 +1,8 @@
 package au.mrcat.rivet.nodes.priv;
 
 import au.mrcat.rivet.nodes.RivetDivergentNode;
+import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.nodes.data.GetRegisterNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
@@ -8,11 +10,13 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class VirtualMemoryFence extends RivetDivergentNode {
+    @Child RivetOpNode asid;
     private final int instruction;
     private final long pcOffset;
     private final short instret;
 
-    public VirtualMemoryFence(int instruction, long pcOffset, short instret) {
+    public VirtualMemoryFence(RivetOpNode asid, int instruction, long pcOffset, short instret) {
+        this.asid = asid;
         this.instruction = instruction;
         this.pcOffset = pcOffset;
         this.instret = instret;
@@ -24,7 +28,11 @@ public class VirtualMemoryFence extends RivetDivergentNode {
         if (priv.shouldTrapSatpAccess()) {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction, basePc + pcOffset, Integer.toUnsignedLong(instruction), instret);
         }
-        ctx.privilegedState.fenceVirtualMemory();
+        if (asid instanceof GetRegisterNode) {
+            ctx.privilegedState.fenceVirtualMemory((short) asid.executeLong(frame, basePc, priv));
+        } else {
+            ctx.privilegedState.fenceVirtualMemory();
+        }
         throw new RiscvIndirectJumpException(basePc + pcOffset + 4);
     }
 

@@ -1091,6 +1091,7 @@ public final class RivetParser {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
         int funct7 = instruction >>> 25;
         int funct12 = instruction >>> 20;
 
@@ -1101,7 +1102,7 @@ public final class RivetParser {
                 }
 
                 if (funct7 == Opcode.Priv.SFENCE_VMA) {
-                    return new VirtualMemoryFence(instruction, pcOffset, instret);
+                    return new VirtualMemoryFence(GetRegisterNode.create(rs2), instruction, pcOffset, instret);
                 }
 
                 if (rs1 != 0) {

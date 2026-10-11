@@ -16,6 +16,9 @@ import java.util.*;
 
 public class RivetRootNode extends RootNode {
     private record CallTargetKey(long pc, PrivilegedContext priv) {
+        CallTargetKey(InstructionParseRequest request) {
+            this(request.pc(), request.priv());
+        }
     }
 
     private final RivetLanguage language;
@@ -59,21 +62,32 @@ public class RivetRootNode extends RootNode {
         return newIndex;
     }
 
-    private void clearCallTargets() {
+    private void invalidateCallTarget(CallTargetKey key) {
+        var callTargetIdx = callTargetPcs.remove(key);
+        if (callTargetIdx != null) {
+            callTargets[callTargetIdx] = null;
+            freeCallTargets.add(callTargetIdx);
+        }
+    }
+
+    private void invalidateDirtyCallTargets() {
         for (var invalidated : invalidatedCallTargets) {
-            var callTargetIdx = callTargetPcs.remove(invalidated);
-            if (callTargetIdx != null) {
-                callTargets[callTargetIdx] = null;
-                freeCallTargets.add(callTargetIdx);
-            }
+            invalidateCallTarget(invalidated);
         }
         invalidatedCallTargets.clear();
-//        callTargets = new DirectCallNode[callTargetsLength];
-//        callTargetPcs.clear();
     }
 
     public void invalidateCallTarget(InstructionParseRequest request) {
-        invalidatedCallTargets.add(new CallTargetKey(request.pc(), request.priv()));
+        invalidateCallTarget(new CallTargetKey(request));
+    }
+
+    public void markDirtyCallTarget(InstructionParseRequest request) {
+        invalidatedCallTargets.add(new CallTargetKey(request));
+    }
+
+    private void clearCallTargets() {
+        callTargets = new DirectCallNode[callTargetsLength];
+        callTargetPcs.clear();
     }
 
     @Override
@@ -89,7 +103,9 @@ public class RivetRootNode extends RootNode {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
                         try {
-                            root = RivetParser.extractCallTarget(language, ctx, new InstructionParseRequest(key.pc, key.priv, this));
+                            var parseRequest = new InstructionParseRequest(key.pc, key.priv, this);
+                            root = RivetParser.extractCallTarget(language, ctx, parseRequest);
+                            ctx.privilegedState.registerVirtualMemoryParseRequest(parseRequest);
                         } catch (RiscvTrapException trap) {
                             cpuState.setPc(ctx.privilegedState.handleException(trap));
                             continue;
@@ -108,7 +124,7 @@ public class RivetRootNode extends RootNode {
                         cpuState = fence.getState();
                         ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
                         cpuState.setPc(fence.getNextPc());
-                        clearCallTargets();
+                        invalidateDirtyCallTargets();
                     } catch (RiscvTrapException trap) {
                         cpuState = trap.getState();
                         ctx.privilegedState.stepPerformanceCounters(trap.getInstret());

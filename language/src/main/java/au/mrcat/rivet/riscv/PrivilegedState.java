@@ -4,6 +4,9 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.runtime.RiscvDoubleTrapException;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
 
@@ -33,6 +36,9 @@ public final class PrivilegedState {
     private long senvcfg;
     private long satp;
     private AddressSpace addressSpace;
+    private short currentAsid;
+    private final HashMap<Short, Sv39AddressSpace> cachedAddressSpaces;
+    private final HashMap<Short, HashSet<InstructionParseRequest>> addressSpaceCallTargets;
 
     private long mstatus = MSTATUS_RESET_VALUE;
     private long medeleg;
@@ -57,6 +63,8 @@ public final class PrivilegedState {
 
     public PrivilegedState(RivetContext ctx) {
         this.ctx = ctx;
+        cachedAddressSpaces = new HashMap<>();
+        addressSpaceCallTargets = new HashMap<>();
     }
 
     public PrivilegedContext currentContext() {
@@ -264,7 +272,10 @@ public final class PrivilegedState {
                     addressSpace = BareAddressSpace.SINGLETON;
                 } else if (mode == 8) {
                     satp = value;
-                    addressSpace = new Sv39AddressSpace(satp & 0xfffffffffffL, ctx.physicalMemory.getMemory());
+                    currentAsid = (short) (satp >> 44L);
+                    var sv39Space =  cachedAddressSpaces.computeIfAbsent(currentAsid, _ -> new Sv39AddressSpace(satp & 0xfffffffffffL, ctx.physicalMemory.getMemory()));
+                    sv39Space.setRootPageTableAddr(satp & 0xfffffffffffL);
+                    addressSpace = sv39Space;
                 }
             }
 
@@ -456,7 +467,30 @@ public final class PrivilegedState {
     }
 
     public void fenceVirtualMemory() {
-        // Nothing to do yet
+        for (short asid : cachedAddressSpaces.keySet()) {
+            fenceVirtualMemory(asid);
+        }
+    }
+
+    public void fenceVirtualMemory(short asid) {
+        // Force a re-parse of those call targets. The address space object can stay the same; it will use updated
+        // values from physical memory if/when it is compiled again.
+        var callTargets = addressSpaceCallTargets.remove(asid);
+        if (callTargets == null) {
+            return;
+        }
+
+        for (var key : callTargets) {
+            key.root().invalidateCallTarget(key);
+        }
+    }
+
+    public void registerVirtualMemoryParseRequest(InstructionParseRequest key) {
+        if (addressSpace == BareAddressSpace.SINGLETON) {
+            // Nothing to do, the bare address space can't be invalidated
+            return;
+        }
+        addressSpaceCallTargets.computeIfAbsent(currentAsid, _ -> new HashSet<>()).add(key);
     }
 
     private long currentPendingSupervisorInterrupts() {
