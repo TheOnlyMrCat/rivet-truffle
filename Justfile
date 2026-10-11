@@ -97,4 +97,4 @@ bench-full mmu="false":
 build-tests:
     # Extension exclusion justifications:
     # - Ssstrict{Sm,S,U}: Assembler errors with unrecognised opcodes "CSRW(mtvec, t0)"
-    make -C vendor/riscv-arch-test --jobs $(nproc) CONFIG_FILES=config/rivet/rivet-rv64imac/test_config.yaml EXCLUDE_EXTENSIONS=SsstrictS,SsstrictU,SsstrictSm
+    make -C vendor/riscv-arch-test --jobs $(nproc) CONFIG_FILES=config/rivet/rivet-rv64gc/test_config.yaml EXCLUDE_EXTENSIONS=SsstrictS,SsstrictU,SsstrictSm

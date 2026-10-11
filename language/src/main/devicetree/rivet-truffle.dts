@@ -39,9 +39,9 @@
 			compatible = "riscv";
 			mmu-type = "riscv,sv39";
 
-			riscv,isa = "rv64imac_zicsr_zifencei_svadu_sstc";
+			riscv,isa = "rv64imafdc_zicsr_zifencei_svadu_sstc";
 			riscv,isa-base = "rv64i";
-			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei", "svadu", "sstc";
+			riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "zicsr", "zifencei", "svadu", "sstc";
 
 			hart0_int: interrupt-controller {
 				#interrupt-cells = <1>;
