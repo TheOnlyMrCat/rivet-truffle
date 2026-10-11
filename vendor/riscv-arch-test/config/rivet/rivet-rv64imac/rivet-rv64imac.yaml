@@ -27,6 +27,7 @@ implemented_extensions:
   - { name: Sv39, version: "= 1.0.0" }
   - { name: Svade, version: "= 1.0.0" }
   - { name: Svadu, version: "= 1.0.0" }
+  - { name: Sstc, version: "= 1.0.0" }
   - { name: Ssstrict, version: "= 1.0.0" }
   - { name: Smdbltrp, version: "= 1.0.0" }
   - { name: Sm, version: "= 1.12.0" }

@@ -766,7 +766,7 @@
       "supported": false
     },
     "Sstc": {
-      "supported": false
+      "supported": true
     },
     // Enabling Sstvala requires that the exceptions specified in the extension
     // have their appropriate settings under `base.xtval_nonzero`.
