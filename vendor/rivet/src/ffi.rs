@@ -200,11 +200,7 @@ unsafe extern "C" fn rust_get_time(ctx: *const MaybeUninit<DeviceMap>) -> u64 {
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn rust_set_stimecmp(
-    ctx: *const MaybeUninit<DeviceMap>,
-    _hart: *mut Hart,
-    value: u64,
-) {
+unsafe extern "C" fn rust_set_stimecmp(ctx: *const MaybeUninit<DeviceMap>, value: u64) {
     let Some(run) = (unsafe { upgrade_ctx(ctx) }) else {
         return;
     };
