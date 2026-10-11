@@ -8,13 +8,15 @@ public class PrivilegedContext {
     public final AddressSpace addressSpace;
     public final long mstatus;
     public final long menvcfg;
+    public final boolean isFpuEnabled;
 
-    public PrivilegedContext(PrivilegeMode mode, PrivilegeMode effectiveMode, AddressSpace addressSpace, long mstatus, long menvcfg) {
+    public PrivilegedContext(PrivilegeMode mode, PrivilegeMode effectiveMode, AddressSpace addressSpace, long mstatus, long menvcfg, boolean isFpuEnabled) {
         this.mode = mode;
         this.effectiveMode = effectiveMode;
         this.mstatus = mstatus;
         this.addressSpace = addressSpace;
         this.menvcfg = menvcfg;
+        this.isFpuEnabled = isFpuEnabled;
     }
 
     public PrivilegeMode currentMode() {
@@ -78,7 +80,7 @@ public class PrivilegedContext {
     public final boolean equals(Object o) {
         if (!(o instanceof PrivilegedContext that)) return false;
 
-        return mstatus == that.mstatus && menvcfg == that.menvcfg && mode == that.mode && effectiveMode == that.effectiveMode && addressSpace.equals(that.addressSpace);
+        return mstatus == that.mstatus && menvcfg == that.menvcfg && mode == that.mode && isFpuEnabled == that.isFpuEnabled && effectiveMode == that.effectiveMode && addressSpace.equals(that.addressSpace);
     }
 
     @Override
@@ -88,6 +90,7 @@ public class PrivilegedContext {
         result = 31 * result + addressSpace.hashCode();
         result = 31 * result + Long.hashCode(mstatus);
         result = 31 * result + Long.hashCode(menvcfg);
+        result = 31 * result + Boolean.hashCode(isFpuEnabled);
         return result;
     }
 }

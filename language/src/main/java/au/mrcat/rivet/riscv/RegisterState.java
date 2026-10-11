@@ -35,6 +35,7 @@ public final class RegisterState {
     public static final int T6 = 31;
 
     private final long[] registers = new long[31];
+    private final long[] floatRegisters = new long[32];
     private long pc;
 
     public long getRegister(int r) {
@@ -43,6 +44,14 @@ public final class RegisterState {
 
     public void setRegister(int r, long value) {
         registers[r - 1] = value;
+    }
+
+    public long getFloat(int r) {
+        return floatRegisters[r];
+    }
+
+    public void setFloat(int r, long value) {
+        floatRegisters[r] = value;
     }
 
     public long getPc() {

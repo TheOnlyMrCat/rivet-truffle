@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.nodes.arith.HintNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -14,6 +15,13 @@ public class SetRegisterNode extends RivetInstructionNode {
     public SetRegisterNode(int register, RivetOpNode op) {
         this.register = register;
         this.op = op;
+    }
+
+    public static RivetInstructionNode create(int rd, RivetOpNode op) {
+        if (rd == 0) {
+            return op;
+        }
+        return new SetRegisterNode(rd, op);
     }
 
     @Override

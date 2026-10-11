@@ -1,6 +1,11 @@
 package au.mrcat.rivet.riscv;
 
 public class Csr {
+    // Unprivileged Floating-Point
+    public static final int FFLAGS = 0x001;
+    public static final int FRM = 0x002;
+    public static final int FCSR = 0x003;
+
     // Unprivileged Counter/Timers
     public static final int CYCLE = 0xC00;
     public static final int TIME = 0xC01;

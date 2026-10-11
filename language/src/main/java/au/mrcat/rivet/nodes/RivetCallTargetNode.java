@@ -35,6 +35,7 @@ public class RivetCallTargetNode extends RootNode {
         var frameDescriptor = FrameDescriptor.newBuilder();
 //        frameDescriptor.useSlotKinds(false);
         frameDescriptor.addSlots(32, FrameSlotKind.Static);
+        frameDescriptor.addSlots(32, FrameSlotKind.Static);
         super(language, frameDescriptor.build());
 
         basicBlockNodes = basicBlocks.sequencedValues().toArray(new RivetBasicBlockNode[0]);
@@ -70,12 +71,18 @@ public class RivetCallTargetNode extends RootNode {
         for (int i = 0; i < 31; i++) {
             copyFromState[i].executeVoid(frame, state.getRegister(i + 1));
         }
+        for (int i = 0; i < 32; i++) {
+            frame.setLongStatic(32 + i, state.getFloat(i));
+        }
     }
 
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
         for (int i = 0; i < 31; i++) {
             state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
+        }
+        for (int i = 0; i < 32; i++) {
+            state.setFloat(i, frame.getLongStatic(32 + i));
         }
     }
 

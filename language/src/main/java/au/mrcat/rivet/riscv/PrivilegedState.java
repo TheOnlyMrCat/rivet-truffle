@@ -12,9 +12,11 @@ public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
 
     private static final long MSTATUS_WRITABLE_MASK =
-            0b00000000_00000000_00000100_00000000_00000000_01111110_00011001_10101010L;
+            0b10000000_00000000_00000100_00000000_00000000_01111110_01111001_10101010L;
     private static final long SSTATUS_VISIBLE_MASK =
             0b10000000_00000000_00000000_00000011_00000001_10001101_11100111_01100010L;
+    private static final long MSTATUS_CACHABLE_MASK =
+            0b00000000_00000000_00000100_00000000_00000000_01111110_00011001_10101010L;
     private static final long MSTATUS_RESET_VALUE =
             0b00000000_00000000_00000100_00001010_00000000_00000000_00011000_10100000L;
     private static final long MENVCFG_WRITABLE_MASK =
@@ -83,8 +85,9 @@ public final class PrivilegedState {
                 mode,
                 currentEffectiveMode(),
                 addressSpace,
-                mstatus,
-                menvcfg
+                mstatus & MSTATUS_CACHABLE_MASK,
+                menvcfg,
+                isFpuEnabled()
         );
     }
 
@@ -116,6 +119,15 @@ public final class PrivilegedState {
             return value | (1 << 9);
         }
         return value;
+    }
+
+    public boolean isFpuEnabled() {
+        return (mstatus & (0b11 << 13)) != 0;
+    }
+
+    public void markFpuDirty() {
+        mstatus |= 0b11 << 13;
+        mstatus |= 0b1L << 63;
     }
 
     public long getFcsr() {
@@ -174,6 +186,25 @@ public final class PrivilegedState {
         long counterenMask = (mode != PrivilegeMode.Machine ? mcounteren : Long.MAX_VALUE) & (mode == PrivilegeMode.User ? scounteren : Long.MAX_VALUE);
         switch (csr) {
             // User-level CSRs
+            case Csr.FFLAGS -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return fcsr & 0b11111;
+            }
+            case Csr.FRM -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return (fcsr >> 5) & 0b111;
+            }
+            case Csr.FCSR -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                return fcsr;
+            }
+
             case Csr.CYCLE -> {
                 if ((counterenMask & (1 << 0)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
@@ -271,6 +302,26 @@ public final class PrivilegedState {
         }
 
         switch (csr) {
+            // User-level CSRs
+            case Csr.FFLAGS -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                fcsr = (fcsr & ~0b11111) | (value & 0b11111);
+            }
+            case Csr.FRM -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                fcsr = (fcsr & ~0b11100000) | ((value & 0b111) << 5);
+            }
+            case Csr.FCSR -> {
+                if (!isFpuEnabled()) {
+                    throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
+                }
+                fcsr = value & 0b11111111;
+            }
+
             // Supervisor-level CSRs
             case Csr.SSTATUS -> {
                 long prevMstatus = mstatus;

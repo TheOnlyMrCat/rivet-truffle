@@ -2,15 +2,22 @@ package au.mrcat.rivet.riscv;
 
 public class Opcode {
     public static final int LOAD = 0b0000011;
+    public static final int LOAD_FP = 0b0000111;
     public static final int MISC_MEM = 0b0001111;
     public static final int OP_IMM = 0b0010011;
     public static final int AUIPC = 0b0010111;
     public static final int OP_IMM_32 = 0b0011011;
     public static final int STORE = 0b0100011;
+    public static final int STORE_FP = 0b0100111;
     public static final int AMO = 0b0101111;
     public static final int OP = 0b0110011;
     public static final int LUI = 0b0110111;
     public static final int OP_32 = 0b0111011;
+    public static final int FMADD = 0b1000011;
+    public static final int FMSUB = 0b1000111;
+    public static final int FNMADD = 0b1001011;
+    public static final int FNMSUB = 0b1001111;
+    public static final int OP_FP = 0b1010011;
     public static final int BRANCH = 0b1100011;
     public static final int JALR = 0b1100111;
     public static final int JAL = 0b1101111;
@@ -104,6 +111,60 @@ public class Opcode {
         public static final int REM = 0b110;
         public static final int REMU = 0b111;
     }
+
+    public static class Fma {
+        public static final int FMADD = 0b00;
+        public static final int FMSUB = 0b01;
+        public static final int FNMADD = 0b10;
+        public static final int FNMSUB = 0b11;
+    }
+
+    public static class OpFp {
+        public static final int FADD = 0b00000;
+        public static final int FSUB = 0b00001;
+        public static final int FMUL = 0b00010;
+        public static final int FDIV = 0b00011;
+        public static final int FSGNJ = 0b00100;
+        public static final int FSQRT = 0b01011;
+        public static final int FMINMAX = 0b00101;
+        public static final int FCVT_SD = 0b01000;
+        public static final int FVCT_I_F = 0b11000;
+        public static final int FCMP = 0b10100;
+        public static final int FCVT_F_I = 0b11010;
+        public static final int FCLASS = 0b11100;
+        public static final int FMV_W_X = 0b11110;
+    }
+
+
+    public static class OpFpSgnj {
+        public static final int J = 0b000;
+        public static final int JN = 0b001;
+        public static final int JX = 0b010;
+    }
+
+    public static class OpFpMinMax {
+        public static final int MIN = 0b000;
+        public static final int MAX = 0b001;
+    }
+
+    public static class OpFpCvt {
+        public static final int W = 0b00000;
+        public static final int WU = 0b00001;
+        public static final int L = 0b00010;
+        public static final int LU = 0b00011;
+    }
+
+    public static class OpFpCmp {
+        public static final int LE = 0b000;
+        public static final int LT = 0b001;
+        public static final int EQ = 0b010;
+    }
+
+    public static class OpFpClass {
+        public static final int MV_X_W = 0b000;
+        public static final int CLASS = 0b001;
+    }
+
 
     public static class Branch {
         public static final int BEQ = 0b000;

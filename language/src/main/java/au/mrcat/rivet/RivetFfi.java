@@ -559,7 +559,9 @@ public final class RivetFfi {
     int add_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) add_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) add_sf32.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -568,7 +570,9 @@ public final class RivetFfi {
     int sub_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) sub_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) sub_sf32.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -577,7 +581,9 @@ public final class RivetFfi {
     int mul_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) mul_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) mul_sf32.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -586,7 +592,9 @@ public final class RivetFfi {
     int div_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) div_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) div_sf32.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -596,7 +604,9 @@ public final class RivetFfi {
     int sqrt_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) sqrt_sf32.invoke(a, rm, fcsr);
+            var result = (int) sqrt_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -606,7 +616,9 @@ public final class RivetFfi {
     int fma_sf32(int a, int b, int c, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) fma_sf32.invoke(a, b, c, rm, fcsr);
+            var result = (int) fma_sf32.invoke(a, b, c, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -616,7 +628,9 @@ public final class RivetFfi {
     int min_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) min_sf32.invoke(a, b, fcsr);
+            var result = (int) min_sf32.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -626,7 +640,9 @@ public final class RivetFfi {
     int max_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) max_sf32.invoke(a, b, fcsr);
+            var result = (int) max_sf32.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -636,7 +652,9 @@ public final class RivetFfi {
     int eq_quiet_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) eq_quiet_sf32.invoke(a, b, fcsr);
+            var result = (int) eq_quiet_sf32.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -646,7 +664,9 @@ public final class RivetFfi {
     int le_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) le_sf32.invoke(a, b, fcsr);
+            var result = (int) le_sf32.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -656,7 +676,9 @@ public final class RivetFfi {
     int lt_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) lt_sf32.invoke(a, b, fcsr);
+            var result = (int) lt_sf32.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -675,7 +697,9 @@ public final class RivetFfi {
     long cvt_sf32_sf64(int a) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (long) cvt_sf32_sf64.invoke(a, fcsr);
+            var result = (long) cvt_sf32_sf64.invoke(a, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -685,7 +709,9 @@ public final class RivetFfi {
     int cvt_sf64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_sf64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -695,7 +721,9 @@ public final class RivetFfi {
     int cvt_sf32_i32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_sf32_i32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf32_i32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -705,7 +733,9 @@ public final class RivetFfi {
     int cvt_sf32_u32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_sf32_u32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf32_u32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -715,7 +745,9 @@ public final class RivetFfi {
     long cvt_sf32_i64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (long) cvt_sf32_i64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf32_i64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -725,7 +757,9 @@ public final class RivetFfi {
     long cvt_sf32_u64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (long) cvt_sf32_u64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf32_u64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -735,7 +769,9 @@ public final class RivetFfi {
     int cvt_i32_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_i32_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_i32_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -745,7 +781,9 @@ public final class RivetFfi {
     int cvt_u32_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_u32_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_u32_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -755,7 +793,9 @@ public final class RivetFfi {
     int cvt_i64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_i64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_i64_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -765,7 +805,9 @@ public final class RivetFfi {
     int cvt_u64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_u64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_u64_sf32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -775,7 +817,9 @@ public final class RivetFfi {
     int add_sf64(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) add_sf64.invoke(a, b, rm, fcsr);
+            var result = (int) add_sf64.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -784,7 +828,9 @@ public final class RivetFfi {
     int sub_sf64(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) sub_sf64.invoke(a, b, rm, fcsr);
+            var result = (int) sub_sf64.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -793,7 +839,9 @@ public final class RivetFfi {
     int mul_sf64(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) mul_sf64.invoke(a, b, rm, fcsr);
+            var result = (int) mul_sf64.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -802,7 +850,9 @@ public final class RivetFfi {
     int div_sf64(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) div_sf64.invoke(a, b, rm, fcsr);
+            var result = (int) div_sf64.invoke(a, b, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -812,7 +862,9 @@ public final class RivetFfi {
     int sqrt_sf64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) sqrt_sf64.invoke(a, rm, fcsr);
+            var result = (int) sqrt_sf64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -822,7 +874,9 @@ public final class RivetFfi {
     int fma_sf64(int a, int b, int c, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) fma_sf64.invoke(a, b, c, rm, fcsr);
+            var result = (int) fma_sf64.invoke(a, b, c, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -832,7 +886,9 @@ public final class RivetFfi {
     int min_sf64(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) min_sf64.invoke(a, b, fcsr);
+            var result = (int) min_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -842,7 +898,9 @@ public final class RivetFfi {
     int max_sf64(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) max_sf64.invoke(a, b, fcsr);
+            var result = (int) max_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -852,7 +910,9 @@ public final class RivetFfi {
     int eq_quiet_sf64(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) eq_quiet_sf64.invoke(a, b, fcsr);
+            var result = (int) eq_quiet_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -862,7 +922,9 @@ public final class RivetFfi {
     int le_sf64(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) le_sf64.invoke(a, b, fcsr);
+            var result = (int) le_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -872,7 +934,9 @@ public final class RivetFfi {
     int lt_sf64(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) lt_sf64.invoke(a, b, fcsr);
+            var result = (int) lt_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -891,7 +955,9 @@ public final class RivetFfi {
     int cvt_sf64_i32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_sf64_i32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_i32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -901,7 +967,9 @@ public final class RivetFfi {
     int cvt_sf64_u32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_sf64_u32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_u32.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -911,7 +979,9 @@ public final class RivetFfi {
     long cvt_sf64_i64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (long) cvt_sf64_i64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf64_i64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -921,7 +991,9 @@ public final class RivetFfi {
     long cvt_sf64_u64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (long) cvt_sf64_u64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf64_u64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -931,7 +1003,9 @@ public final class RivetFfi {
     int cvt_i32_sf64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_i32_sf64.invoke(a, rm, fcsr);
+            var result = (int) cvt_i32_sf64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -941,7 +1015,9 @@ public final class RivetFfi {
     int cvt_u32_sf64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_u32_sf64.invoke(a, rm, fcsr);
+            var result = (int) cvt_u32_sf64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -951,7 +1027,9 @@ public final class RivetFfi {
     int cvt_i64_sf64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_i64_sf64.invoke(a, rm, fcsr);
+            var result = (int) cvt_i64_sf64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -961,7 +1039,9 @@ public final class RivetFfi {
     int cvt_u64_sf64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            return (int) cvt_u64_sf64.invoke(a, rm, fcsr);
+            var result = (int) cvt_u64_sf64.invoke(a, rm, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }

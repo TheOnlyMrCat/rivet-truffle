@@ -20,4 +20,16 @@ public enum RoundingMode {
         }
         return encoding;
     }
+
+    public static RoundingMode fromEncoding(int encoding) {
+        return switch (encoding) {
+            case 0 -> RoundNearestTiesEven;
+            case 1 -> RoundTowardsZero;
+            case 2 -> RoundDown;
+            case 3 -> RoundUp;
+            case 4 -> RoundNearestTiesAwayZero;
+            case 7 -> DynamicRoundingMode;
+            default -> null;
+        };
+    }
 }
