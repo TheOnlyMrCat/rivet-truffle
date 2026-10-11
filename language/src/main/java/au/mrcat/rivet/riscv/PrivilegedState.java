@@ -31,6 +31,8 @@ public final class PrivilegedState {
 
     private final RivetContext ctx;
 
+    private long fcsr;
+
     private long stvec;
     private long scounteren;
 
@@ -114,6 +116,14 @@ public final class PrivilegedState {
             return value | (1 << 9);
         }
         return value;
+    }
+
+    public long getFcsr() {
+        return fcsr;
+    }
+
+    public void setFcsr(long fcsr) {
+        this.fcsr = fcsr;
     }
 
     public void setMsip() {
