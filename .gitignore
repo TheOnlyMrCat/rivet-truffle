@@ -53,3 +53,8 @@ vendor/coremark/**/*.log
 vendor/tinyemu/**/*.o
 vendor/tinyemu/**/*.d
 vendor/tinyemu/temu
+
+# Ignore compilation artifacts in vendor/softfp
+vendor/softfp/**/*.o
+vendor/softfp/**/*.d
+vendor/softfp/libsoftfp.so

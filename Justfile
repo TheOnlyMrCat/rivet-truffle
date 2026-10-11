@@ -1,6 +1,6 @@
 import? '.local.just'
 
-rlib_path := justfile_directory() / "vendor/rivet/target/release"
+rlib_path := (justfile_directory() / "vendor/rivet/target/release") + ":" + (justfile_directory() / "vendor/softfp")
 resources_path := "language/src/main/resources/au/mrcat/rivet"
 classpath_path := "target/cp.txt"
 
