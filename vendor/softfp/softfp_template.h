@@ -775,8 +775,9 @@ F_UINT glue(min_sf, F_SIZE)(F_UINT a, F_UINT b, uint32_t *pfflags)
     if (isnan_sf(a) || isnan_sf(b)) {
         if (issignan_sf(a) || issignan_sf(b)) {
             *pfflags |= FFLAG_INVALID_OP;
-            return F_QNAN;
-        } else if (isnan_sf(a)) {
+        }
+        
+        if (isnan_sf(a)) {
             if (isnan_sf(b)) 
                 return F_QNAN;
             else
@@ -808,8 +809,9 @@ F_UINT glue(max_sf, F_SIZE)(F_UINT a, F_UINT b, uint32_t *pfflags)
     if (isnan_sf(a) || isnan_sf(b)) {
         if (issignan_sf(a) || issignan_sf(b)) {
             *pfflags |= FFLAG_INVALID_OP;
-            return F_QNAN;
-        } else if (isnan_sf(a)) {
+        }
+        
+        if (isnan_sf(a)) {
             if (isnan_sf(b)) 
                 return F_QNAN;
             else
