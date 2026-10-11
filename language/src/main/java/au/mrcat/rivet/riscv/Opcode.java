@@ -128,7 +128,7 @@ public class Opcode {
         public static final int FSQRT = 0b01011;
         public static final int FMINMAX = 0b00101;
         public static final int FCVT_SD = 0b01000;
-        public static final int FVCT_I_F = 0b11000;
+        public static final int FCVT_I_F = 0b11000;
         public static final int FCMP = 0b10100;
         public static final int FCVT_F_I = 0b11010;
         public static final int FCLASS = 0b11100;

@@ -12,7 +12,7 @@ public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
 
     private static final long MSTATUS_WRITABLE_MASK =
-            0b10000000_00000000_00000100_00000000_00000000_01111110_01111001_10101010L;
+            0b00000000_00000000_00000100_00000000_00000000_01111110_01111001_10101010L;
     private static final long SSTATUS_VISIBLE_MASK =
             0b10000000_00000000_00000000_00000011_00000001_10001101_11100111_01100010L;
     private static final long MSTATUS_CACHABLE_MASK =
@@ -307,18 +307,21 @@ public final class PrivilegedState {
                 if (!isFpuEnabled()) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
+                markFpuDirty();
                 fcsr = (fcsr & ~0b11111) | (value & 0b11111);
             }
             case Csr.FRM -> {
                 if (!isFpuEnabled()) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
+                markFpuDirty();
                 fcsr = (fcsr & ~0b11100000) | ((value & 0b111) << 5);
             }
             case Csr.FCSR -> {
                 if (!isFpuEnabled()) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
+                markFpuDirty();
                 fcsr = value & 0b11111111;
             }
 
@@ -329,6 +332,11 @@ public final class PrivilegedState {
                 mstatus = value & SSTATUS_VISIBLE_MASK & MSTATUS_WRITABLE_MASK;
                 // Preserve non-writeable fields
                 mstatus |= prevMstatus & ~(SSTATUS_VISIBLE_MASK & MSTATUS_WRITABLE_MASK);
+                // Set SD iff FS is dirty
+                mstatus &= ~(1L << 63);
+                if (((mstatus >> 13) & 0b11) == 0b11) {
+                    mstatus |= 1L << 63;
+                }
             }
             case Csr.SIE -> mie = value & INTERRUPT_VALID_MASK & mideleg;
             case Csr.STVEC -> {
@@ -391,6 +399,11 @@ public final class PrivilegedState {
                 // Only allow MIE to be explicitly set if MDT is 0
                 if ((prevMstatus & (1L << 3)) == 0 && (mstatus & (1L << 3)) != 0 && (mstatus & (1L << 42)) != 0) {
                     mstatus &= ~(1 << 3);
+                }
+                // Set SD iff FS is dirty
+                mstatus &= ~(1L << 63);
+                if (((mstatus >> 13) & 0b11) == 0b11) {
+                    mstatus |= 1L << 63;
                 }
             }
             case Csr.MISA -> { /* Do nothing */ }

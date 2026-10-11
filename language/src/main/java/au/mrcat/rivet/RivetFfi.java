@@ -204,125 +204,125 @@ public final class RivetFfi {
 
     private static final MethodHandle add_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("add_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle sub_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("sub_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle mul_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("mul_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle div_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("div_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle sqrt_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("sqrt_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle fma_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("fma_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle min_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("min_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
     private static final MethodHandle max_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("max_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
     private static final MethodHandle eq_quiet_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("eq_quiet_sf64"),
             FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
     private static final MethodHandle le_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("le_sf64"),
             FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
     private static final MethodHandle lt_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("lt_sf64"),
             FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.ADDRESS));
     private static final MethodHandle fclass_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("fclass_sf64"),
             FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT));
+                    ValueLayout.JAVA_LONG));
     private static final MethodHandle cvt_sf64_i64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_sf64_i64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_sf64_u64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_sf64_u64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_sf64_i32 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_sf64_i32"),
-            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_sf64_u32 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_sf64_u32"),
-            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
-                    ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_i32_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_i32_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_u32_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_u32_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_i64_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_i64_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
     private static final MethodHandle cvt_u64_sf64 = linker.downcallHandle(
             symbolLookup.findOrThrow("cvt_u64_sf64"),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            FunctionDescriptor.of(ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_LONG,
                     ValueLayout.JAVA_INT,
                     ValueLayout.ADDRESS));
@@ -556,10 +556,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int add_sf32(int a, int b, RoundingMode rm) {
+    public int add_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) add_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) add_sf32.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -567,10 +567,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int sub_sf32(int a, int b, RoundingMode rm) {
+    public int sub_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) sub_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) sub_sf32.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -578,10 +578,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int mul_sf32(int a, int b, RoundingMode rm) {
+    public int mul_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) mul_sf32.invoke(a, b, rm, fcsr);
+            var result = (int) mul_sf32.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -589,22 +589,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int div_sf32(int a, int b, RoundingMode rm) {
+    public int div_sf32(int a, int b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) div_sf32.invoke(a, b, rm, fcsr);
-            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
-            return result;
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int sqrt_sf32(int a, RoundingMode rm) {
-        fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
-        try {
-            var result = (int) sqrt_sf32.invoke(a, rm, fcsr);
+            var result = (int) div_sf32.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -613,10 +601,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int fma_sf32(int a, int b, int c, RoundingMode rm) {
+    public int sqrt_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) fma_sf32.invoke(a, b, c, rm, fcsr);
+            var result = (int) sqrt_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -625,7 +613,19 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int min_sf32(int a, int b) {
+    public int fma_sf32(int a, int b, int c, RoundingMode rm) {
+        fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
+        try {
+            var result = (int) fma_sf32.invoke(a, b, c, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
+    public int min_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) min_sf32.invoke(a, b, fcsr);
@@ -637,7 +637,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int max_sf32(int a, int b) {
+    public int max_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) max_sf32.invoke(a, b, fcsr);
@@ -649,7 +649,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int eq_quiet_sf32(int a, int b) {
+    public int eq_quiet_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) eq_quiet_sf32.invoke(a, b, fcsr);
@@ -661,7 +661,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int le_sf32(int a, int b) {
+    public int le_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) le_sf32.invoke(a, b, fcsr);
@@ -673,7 +673,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int lt_sf32(int a, int b) {
+    public int lt_sf32(int a, int b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) lt_sf32.invoke(a, b, fcsr);
@@ -685,7 +685,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int fclass_sf32(int a) {
+    public int fclass_sf32(int a) {
         try {
             return (int) fclass_sf32.invoke(a);
         } catch (Throwable t) {
@@ -694,7 +694,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    long cvt_sf32_sf64(int a) {
+    public long cvt_sf32_sf64(int a) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (long) cvt_sf32_sf64.invoke(a, fcsr);
@@ -706,10 +706,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_sf64_sf32(long a, RoundingMode rm) {
+    public int cvt_sf64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_sf64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -718,10 +718,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_sf32_i32(int a, RoundingMode rm) {
+    public int cvt_sf32_i32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_sf32_i32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf32_i32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -730,10 +730,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_sf32_u32(int a, RoundingMode rm) {
+    public int cvt_sf32_u32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_sf32_u32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf32_u32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -742,10 +742,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    long cvt_sf32_i64(int a, RoundingMode rm) {
+    public long cvt_sf32_i64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (long) cvt_sf32_i64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf32_i64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -754,10 +754,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    long cvt_sf32_u64(int a, RoundingMode rm) {
+    public long cvt_sf32_u64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (long) cvt_sf32_u64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf32_u64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -766,10 +766,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_i32_sf32(int a, RoundingMode rm) {
+    public int cvt_i32_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_i32_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_i32_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -778,10 +778,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_u32_sf32(int a, RoundingMode rm) {
+    public int cvt_u32_sf32(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_u32_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_u32_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -790,10 +790,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_i64_sf32(long a, RoundingMode rm) {
+    public int cvt_i64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_i64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_i64_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -802,10 +802,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining =true)
-    int cvt_u64_sf32(long a, RoundingMode rm) {
+    public int cvt_u64_sf32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_u64_sf32.invoke(a, rm, fcsr);
+            var result = (int) cvt_u64_sf32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -814,10 +814,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int add_sf64(int a, int b, RoundingMode rm) {
+    public long add_sf64(long a, long b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) add_sf64.invoke(a, b, rm, fcsr);
+            var result = (long) add_sf64.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -825,10 +825,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int sub_sf64(int a, int b, RoundingMode rm) {
+    public long sub_sf64(long a, long b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) sub_sf64.invoke(a, b, rm, fcsr);
+            var result = (long) sub_sf64.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -836,10 +836,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int mul_sf64(int a, int b, RoundingMode rm) {
+    public long mul_sf64(long a, long b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) mul_sf64.invoke(a, b, rm, fcsr);
+            var result = (long) mul_sf64.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -847,22 +847,10 @@ public final class RivetFfi {
         }
     }
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int div_sf64(int a, int b, RoundingMode rm) {
+    public long div_sf64(long a, long b, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) div_sf64.invoke(a, b, rm, fcsr);
-            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
-            return result;
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int sqrt_sf64(int a, RoundingMode rm) {
-        fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
-        try {
-            var result = (int) sqrt_sf64.invoke(a, rm, fcsr);
+            var result = (long) div_sf64.invoke(a, b, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -871,10 +859,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int fma_sf64(int a, int b, int c, RoundingMode rm) {
+    public long sqrt_sf64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) fma_sf64.invoke(a, b, c, rm, fcsr);
+            var result = (long) sqrt_sf64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -883,10 +871,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int min_sf64(int a, int b) {
+    public long fma_sf64(long a, long b, long c, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) min_sf64.invoke(a, b, fcsr);
+            var result = (long) fma_sf64.invoke(a, b, c, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -895,10 +883,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int max_sf64(int a, int b) {
+    public long min_sf64(long a, long b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) max_sf64.invoke(a, b, fcsr);
+            var result = (long) min_sf64.invoke(a, b, fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -907,7 +895,19 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int eq_quiet_sf64(int a, int b) {
+    public long max_sf64(long a, long b) {
+        fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
+        try {
+            var result = (long) max_sf64.invoke(a, b, fcsr);
+            ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
+            return result;
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary(allowInlining = true)
+    public int eq_quiet_sf64(long a, long b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) eq_quiet_sf64.invoke(a, b, fcsr);
@@ -919,7 +919,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int le_sf64(int a, int b) {
+    public int le_sf64(long a, long b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) le_sf64.invoke(a, b, fcsr);
@@ -931,7 +931,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int lt_sf64(int a, int b) {
+    public int lt_sf64(long a, long b) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
             var result = (int) lt_sf64.invoke(a, b, fcsr);
@@ -943,7 +943,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int fclass_sf64(int a) {
+    public int fclass_sf64(long a) {
         try {
             return (int) fclass_sf64.invoke(a);
         } catch (Throwable t) {
@@ -952,10 +952,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_sf64_i32(int a, RoundingMode rm) {
+    public int cvt_sf64_i32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_sf64_i32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_i32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -964,10 +964,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_sf64_u32(int a, RoundingMode rm) {
+    public int cvt_sf64_u32(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_sf64_u32.invoke(a, rm, fcsr);
+            var result = (int) cvt_sf64_u32.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -976,10 +976,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    long cvt_sf64_i64(int a, RoundingMode rm) {
+    public long cvt_sf64_i64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (long) cvt_sf64_i64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf64_i64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -988,10 +988,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    long cvt_sf64_u64(int a, RoundingMode rm) {
+    public long cvt_sf64_u64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (long) cvt_sf64_u64.invoke(a, rm, fcsr);
+            var result = (long) cvt_sf64_u64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -1000,10 +1000,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_i32_sf64(int a, RoundingMode rm) {
+    public long cvt_i32_sf64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_i32_sf64.invoke(a, rm, fcsr);
+            var result = (long) cvt_i32_sf64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -1012,10 +1012,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_u32_sf64(int a, RoundingMode rm) {
+    public long cvt_u32_sf64(int a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_u32_sf64.invoke(a, rm, fcsr);
+            var result = (long) cvt_u32_sf64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -1024,10 +1024,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    int cvt_i64_sf64(long a, RoundingMode rm) {
+    public long cvt_i64_sf64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_i64_sf64.invoke(a, rm, fcsr);
+            var result = (long) cvt_i64_sf64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {
@@ -1036,10 +1036,10 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining =true)
-    int cvt_u64_sf64(long a, RoundingMode rm) {
+    public long cvt_u64_sf64(long a, RoundingMode rm) {
         fcsr.set(ValueLayout.JAVA_LONG, 0, ctx.privilegedState.getFcsr());
         try {
-            var result = (int) cvt_u64_sf64.invoke(a, rm, fcsr);
+            var result = (long) cvt_u64_sf64.invoke(a, rm.toRoundingModeEnum(ctx.privilegedState), fcsr);
             ctx.privilegedState.setFcsr(fcsr.get(ValueLayout.JAVA_LONG, 0));
             return result;
         } catch (Throwable t) {

@@ -196,7 +196,7 @@ public final class RivetParser {
                     case Opcode.OP -> parseOp(instruction, pcOffset, instret);
                     case Opcode.LUI -> parseLui(instruction);
                     case Opcode.OP_32 -> parseOp32(instruction, pcOffset, instret);
-//                    case Opcode.FMADD, Opcode.FMSUB, Opcode.FNMADD, Opcode.FNMSUB -> parseFma(instruction, pcOffset, instret, priv);
+                    case Opcode.FMADD, Opcode.FMSUB, Opcode.FNMADD, Opcode.FNMSUB -> parseFma(instruction, pcOffset, instret, priv);
                     case Opcode.OP_FP -> parseOpFp(instruction, pcOffset, instret, priv);
                     case Opcode.BRANCH -> parseBranch(instruction, pcOffset, instret);
                     case Opcode.JAL -> parseJal(instruction, pcOffset);
@@ -462,10 +462,6 @@ public final class RivetParser {
             }
             case Opcode.C2.FLDSP -> {
                 int rd = (instruction >> 7) & 0b11111;
-                if (rd == 0) {
-                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
-                }
-
                 int offset = ((instruction >> 5) & 0b11) << 3
                         | ((instruction >> 12) & 0b1) << 5
                         | ((instruction >> 2) & 0b111) << 6;
@@ -1098,20 +1094,33 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-//    private static RivetInstructionNode parseFma(int instruction, long pcOffset, short instret) {
-//        int fma = (instruction >> 2) & 0b11;
-//        int rd = (instruction >> 7) & 0b11111;
-//        int funct3 = (instruction >> 12) & 0b111;
-//        int rs1 = (instruction >> 15) & 0b11111;
-//        int rs2 = (instruction >> 20) & 0b11111;
-//        int fmt = (instruction >> 25) & 0b11;
-//        int rs3 = instruction >>> 27;
-//
-//        if (rd == 0) {
-//            return new HintNode(instruction);
-//        }
-//        return new SetRegisterNode(rd, op);
-//    }
+    private static RivetInstructionNode parseFma(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+        int fma = (instruction >> 2) & 0b11;
+        int rd = (instruction >> 7) & 0b11111;
+        int rm = (instruction >> 12) & 0b111;
+        int rs1 = (instruction >> 15) & 0b11111;
+        int rs2 = (instruction >> 20) & 0b11111;
+        int fmt = (instruction >> 25) & 0b11;
+        int rs3 = instruction >>> 27;
+
+        if (!priv.isFpuEnabled) {
+            return new IllegalInstructionNode(instruction, pcOffset, instret);
+        }
+
+        RoundingMode roundingMode = RoundingMode.fromEncoding(rm);
+        FloatWidth width = FloatWidth.fromEncoding(fmt);
+
+        RivetOpNode op;
+        switch (fma) {
+            case Opcode.Fma.FMADD -> op = new FloatFmaNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), new GetFloatRegisterNode(rs3, width), roundingMode, width);
+            case Opcode.Fma.FMSUB -> op = new FloatFmaNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), new FloatNegateNode(new GetFloatRegisterNode(rs3, width), width), roundingMode, width);
+            case Opcode.Fma.FNMADD -> op = new FloatFmaNode(new GetFloatRegisterNode(rs1, width), new FloatNegateNode(new GetFloatRegisterNode(rs2, width), width), new GetFloatRegisterNode(rs3, width), roundingMode, width);
+            case Opcode.Fma.FNMSUB -> op = new FloatFmaNode(new GetFloatRegisterNode(rs1, width), new FloatNegateNode(new GetFloatRegisterNode(rs2, width), width), new FloatNegateNode(new GetFloatRegisterNode(rs3, width), width), roundingMode, width);
+            default -> throw new IllegalStateException("Unexpected value for fma");
+        }
+
+        return new SetFloatRegisterNode(rd, width, op);
+    }
 
     private static RivetInstructionNode parseOpFp(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
         int rd = (instruction >> 7) & 0b11111;
@@ -1129,12 +1138,80 @@ public final class RivetParser {
         FloatWidth width = FloatWidth.fromEncoding(fmt);
 
         return switch (funct5) {
-            case Opcode.OpFp.FMV_W_X -> {
-                if (rm != 0 || rs2 != 0) {
+            case Opcode.OpFp.FADD ->
+                    new SetFloatRegisterNode(rd, width, new FloatAddNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), roundingMode, width));
+            case Opcode.OpFp.FSUB ->
+                    new SetFloatRegisterNode(rd, width, new FloatSubNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), roundingMode, width));
+            case Opcode.OpFp.FMUL ->
+                    new SetFloatRegisterNode(rd, width, new FloatMulNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), roundingMode, width));
+            case Opcode.OpFp.FDIV ->
+                    new SetFloatRegisterNode(rd, width, new FloatDivNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), roundingMode, width));
+            case Opcode.OpFp.FSGNJ -> switch (rm) {
+                case Opcode.OpFpSgnj.J ->
+                        new SetFloatRegisterNode(rd, width,
+                                new FloatSignInjectNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width)
+                        );
+                case Opcode.OpFpSgnj.JN ->
+                        new SetFloatRegisterNode(rd, width,
+                                new FloatSignInjectNode(new GetFloatRegisterNode(rs1, width), new FloatNegateNode(new GetFloatRegisterNode(rs2, width), width), width)
+                        );
+                case Opcode.OpFpSgnj.JX ->
+                        new SetFloatRegisterNode(rd, width,
+                                new FloatSignInjectNode(new GetFloatRegisterNode(rs1, width), new XorNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width)), width)
+                        );
+                default -> new IllegalInstructionNode(instruction, pcOffset, instret);
+            };
+            case Opcode.OpFp.FSQRT -> {
+                if (rs2 != 0) {
                     yield new IllegalInstructionNode(instruction, pcOffset, instret);
                 }
-                yield new SetFloatRegisterNode(rd, width, GetRegisterNode.create(rs1));
+                yield new SetFloatRegisterNode(rd, width, new FloatSqrtNode(new GetFloatRegisterNode(rs1, width), roundingMode, width));
             }
+            case Opcode.OpFp.FMINMAX -> switch (rm) {
+                case Opcode.OpFpMinMax.MIN ->
+                        new SetFloatRegisterNode(rd, width, new FloatMinNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width));
+                case Opcode.OpFpMinMax.MAX ->
+                        new SetFloatRegisterNode(rd, width, new FloatMaxNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width));
+                default -> new IllegalInstructionNode(instruction, pcOffset, instret);
+            };
+            case Opcode.OpFp.FCVT_SD -> {
+                FloatWidth fromWidth = FloatWidth.fromEncoding(rs2);
+                if (width == fromWidth || width == null || fromWidth == null) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                yield new SetFloatRegisterNode(rd, width, new FloatConvertNode(new GetFloatRegisterNode(rs1, fromWidth), roundingMode, fromWidth));
+            }
+            case Opcode.OpFp.FCVT_I_F -> switch (rs2) {
+                case Opcode.OpFpCvt.W ->
+                    SetRegisterNode.create(rd, new FloatToIntNode(new GetFloatRegisterNode(rs1, width), roundingMode, width));
+                case Opcode.OpFpCvt.WU ->
+                        SetRegisterNode.create(rd, new FloatToUnsignedIntNode(new GetFloatRegisterNode(rs1, width), roundingMode, width));
+                case Opcode.OpFpCvt.L ->
+                        SetRegisterNode.create(rd, new FloatToLongNode(new GetFloatRegisterNode(rs1, width), roundingMode, width));
+                case Opcode.OpFpCvt.LU ->
+                        SetRegisterNode.create(rd, new FloatToUnsignedLongNode(new GetFloatRegisterNode(rs1, width), roundingMode, width));
+                default -> new IllegalInstructionNode(instruction, pcOffset, instret);
+            };
+            case Opcode.OpFp.FCMP -> switch (rm) {
+                case Opcode.OpFpCmp.LE ->
+                        SetRegisterNode.create(rd, new FloatLeNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width));
+                case Opcode.OpFpCmp.LT ->
+                        SetRegisterNode.create(rd, new FloatLtNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width));
+                case Opcode.OpFpCmp.EQ ->
+                        SetRegisterNode.create(rd, new FloatEqNode(new GetFloatRegisterNode(rs1, width), new GetFloatRegisterNode(rs2, width), width));
+                default -> new IllegalInstructionNode(instruction, pcOffset, instret);
+            };
+            case Opcode.OpFp.FCVT_F_I -> switch (rs2) {
+                case Opcode.OpFpCvt.W ->
+                        new SetFloatRegisterNode(rd, width, new FloatFromIntNode(new IntTruncateNode(GetRegisterNode.create(rs1)), roundingMode, width));
+                case Opcode.OpFpCvt.WU ->
+                        new SetFloatRegisterNode(rd, width, new FloatFromUnsignedIntNode(new IntTruncateNode(GetRegisterNode.create(rs1)), roundingMode, width));
+                case Opcode.OpFpCvt.L ->
+                        new SetFloatRegisterNode(rd, width, new FloatFromLongNode(GetRegisterNode.create(rs1), roundingMode, width));
+                case Opcode.OpFpCvt.LU ->
+                        new SetFloatRegisterNode(rd, width, new FloatFromUnsignedLongNode(GetRegisterNode.create(rs1), roundingMode, width));
+                default -> new IllegalInstructionNode(instruction, pcOffset, instret);
+            };
             case Opcode.OpFp.FCLASS -> switch (rm) {
                 case Opcode.OpFpClass.MV_X_W -> {
                     if (rs2 != 0) {
@@ -1150,72 +1227,20 @@ public final class RivetParser {
                     }
                     yield SetRegisterNode.create(rd, op);
                 }
+                case Opcode.OpFpClass.CLASS -> {
+                    if (rs2 != 0) {
+                        yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                    }
+                    yield SetRegisterNode.create(rd, new FloatClassifyNode(new GetFloatRegisterNode(rs1, width), width));
+                }
                 default -> new IllegalInstructionNode(instruction, pcOffset, instret);
             };
-//            case Opcode.Op.INT -> {
-//                switch (funct3) {
-//                    case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new AddNode(
-//                            GetRegisterNode.create(rs1),
-//                            GetRegisterNode.create(rs2)
-//                    ));
-//                    case Opcode.OpInt.SLL -> op = new SignExtendIntNode(new ShiftLeftLogicalNode(
-//                            GetRegisterNode.create(rs1),
-//                            GetRegisterNode.create(rs2),
-//                            0b11_111
-//                    ));
-//                    case Opcode.OpInt.SR -> op = new SignExtendIntNode(new ShiftRightLogicalNode(
-//                            new IntTruncateNode(GetRegisterNode.create(rs1)),
-//                            GetRegisterNode.create(rs2),
-//                            0b11_111
-//                    ));
-//                    default -> {
-//                        return new IllegalInstructionNode(instruction, pcOffset, instret);
-//                    }
-//                }
-//            }
-//            case Opcode.Op.MUL_DIV -> {
-//                switch (funct3) {
-//                    case Opcode.OpMulDiv.MUL -> op = new SignExtendIntNode(new MultiplyNode(
-//                            GetRegisterNode.create(rs1),
-//                            GetRegisterNode.create(rs2)
-//                    ));
-//                    case Opcode.OpMulDiv.DIV -> op = new SignExtendIntNode(new DivideNode(
-//                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
-//                            new SignExtendIntNode(GetRegisterNode.create(rs2))
-//                    ));
-//                    case Opcode.OpMulDiv.DIVU -> op = new SignExtendIntNode(new DivideUnsignedNode(
-//                            new IntTruncateNode(GetRegisterNode.create(rs1)),
-//                            new IntTruncateNode(GetRegisterNode.create(rs2))
-//                    ));
-//                    case Opcode.OpMulDiv.REM -> op = new SignExtendIntNode(new RemainderNode(
-//                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
-//                            new SignExtendIntNode(GetRegisterNode.create(rs2))
-//                    ));
-//                    case Opcode.OpMulDiv.REMU -> op = new SignExtendIntNode(new RemainderUnsignedNode(
-//                            new IntTruncateNode(GetRegisterNode.create(rs1)),
-//                            new IntTruncateNode(GetRegisterNode.create(rs2))
-//                    ));
-//                    default -> {
-//                        return new IllegalInstructionNode(instruction, pcOffset, instret);
-//                    }
-//                }
-//            }
-//            case Opcode.Op.NEG -> {
-//                switch (funct3) {
-//                    case Opcode.OpInt.ADD -> op = new SignExtendIntNode(new SubNode(
-//                            GetRegisterNode.create(rs1),
-//                            GetRegisterNode.create(rs2)
-//                    ));
-//                    case Opcode.OpInt.SR -> op = new ShiftRightArithmeticNode(
-//                            new SignExtendIntNode(GetRegisterNode.create(rs1)),
-//                            GetRegisterNode.create(rs2),
-//                            0b11_111
-//                    );
-//                    default -> {
-//                        return new IllegalInstructionNode(instruction, pcOffset, instret);
-//                    }
-//                }
-//            }
+            case Opcode.OpFp.FMV_W_X -> {
+                if (rm != 0 || rs2 != 0) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                yield new SetFloatRegisterNode(rd, width, GetRegisterNode.create(rs1));
+            }
             default -> new IllegalInstructionNode(instruction, pcOffset, instret);
         };
     }
