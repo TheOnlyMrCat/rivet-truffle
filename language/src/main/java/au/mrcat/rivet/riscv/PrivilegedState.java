@@ -18,10 +18,15 @@ public final class PrivilegedState {
             0b00000000_00000000_00000100_00001010_00000000_00000000_00011000_10100000L;
     private static final long MENVCFG_WRITABLE_MASK =
             0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
-    private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
-    private static final long INTERRUPT_WRITABLE_MASK = 0b1000100010;
+    private static final long SENVCFG_WRITABLE_MASK =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L;
+//    private static final long EXCEPTION_MASK = 0b1101_1011_1011_1111_1111;
+    private static final long EXCEPTION_DELEG_MASK = 0b1100_1011_0011_1111_1111;
+    private static final long INTERRUPT_WRITABLE_MASK_M = 0b1000100010;
+    private static final long INTERRUPT_WRITABLE_MASK_S = 0b0000000010;
     private static final long INTERRUPT_VALID_MASK = 0b101010101010;
     private static final long COUNTER_MASK = 0b111;
+    private static final long COUNTER_INHIBITIBLE_MASK = 0b101;
 
     private final RivetContext ctx;
 
@@ -249,16 +254,20 @@ public final class PrivilegedState {
                 mstatus |= prevMstatus & ~(SSTATUS_VISIBLE_MASK & MSTATUS_WRITABLE_MASK);
             }
             case Csr.SIE -> mie = value & INTERRUPT_VALID_MASK & mideleg;
-            case Csr.STVEC -> stvec = value;
-            case Csr.SCOUNTEREN -> scounteren = value;
+            case Csr.STVEC -> {
+                if ((value & 0b11) < 2) {
+                    stvec = value;
+                }
+            }
+            case Csr.SCOUNTEREN -> scounteren = value & COUNTER_MASK;
 
             case Csr.SSCRATCH -> sscratch = value;
-            case Csr.SEPC -> sepc = value;
+            case Csr.SEPC -> sepc = value & ~0b1;
             case Csr.SCAUSE -> scause = value;
             case Csr.STVAL -> stval = value;
-            case Csr.SIP -> mip = value & mideleg;
+            case Csr.SIP -> mip = value & mideleg & INTERRUPT_WRITABLE_MASK_S;
 
-            case Csr.SENVCFG -> senvcfg = value;
+            case Csr.SENVCFG -> senvcfg = value & SENVCFG_WRITABLE_MASK;
             case Csr.SATP -> {
                 if (shouldTrapSatpAccess()) {
                     // TVM bit, for hypervisor emulation
@@ -301,24 +310,28 @@ public final class PrivilegedState {
                 }
             }
             case Csr.MISA -> { /* Do nothing */ }
-            case Csr.MEDELEG -> medeleg = value & EXCEPTION_MASK;
+            case Csr.MEDELEG -> medeleg = value & EXCEPTION_DELEG_MASK;
             case Csr.MIDELEG -> mideleg = value & INTERRUPT_VALID_MASK;
             case Csr.MIE -> mie = value & INTERRUPT_VALID_MASK;
-            case Csr.MTVEC -> mtvec = value;
+            case Csr.MTVEC -> {
+                if ((value & 0b11) < 2) {
+                    mtvec = value;
+                }
+            }
             case Csr.MCOUNTEREN -> mcounteren = value & COUNTER_MASK;
 
             case Csr.MSCRATCH -> mscratch = value;
             case Csr.MEPC -> mepc = value & ~0b1;
             case Csr.MCAUSE -> mcause = value;
             case Csr.MTVAL -> mtval = value;
-            case Csr.MIP -> mip = value & INTERRUPT_WRITABLE_MASK;
+            case Csr.MIP -> mip = value & INTERRUPT_WRITABLE_MASK_M;
 
             case Csr.MENVCFG -> menvcfg = value & MENVCFG_WRITABLE_MASK;
 
             case Csr.MCYCLE -> mcycle = value;
             case Csr.MINSTRET -> minstret = value;
 
-            case Csr.MCOUNTINHIBIT -> mcountinhibit = value & COUNTER_MASK;
+            case Csr.MCOUNTINHIBIT -> mcountinhibit = value & COUNTER_INHIBITIBLE_MASK;
 
             default -> {
                 if (Csr.MCYCLE + 3 <= csr && csr <= Csr.MCYCLE + 31 || Csr.MCOUNTINHIBIT + 3 <= csr && csr <= Csr.MCOUNTINHIBIT + 31) {

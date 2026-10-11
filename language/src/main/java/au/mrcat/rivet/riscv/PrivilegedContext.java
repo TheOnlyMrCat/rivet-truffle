@@ -22,10 +22,7 @@ public class PrivilegedContext {
     }
 
     public PrivilegeMode currentEffectiveMode() {
-        if (mode == PrivilegeMode.Machine && (mstatus & (1L << 17)) != 0) {
-            return PrivilegeMode.fromValue((int) ((mstatus >> 11) & 0b11));
-        }
-        return currentMode();
+        return effectiveMode;
     }
 
     public PrivilegeMode currentEffectiveModeFor(AccessType accessType) {
