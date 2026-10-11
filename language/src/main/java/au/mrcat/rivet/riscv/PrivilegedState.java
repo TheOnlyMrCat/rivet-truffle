@@ -6,6 +6,7 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.Semaphore;
 
 public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
@@ -58,6 +59,7 @@ public final class PrivilegedState {
     private long mtval;
     private boolean hardwareSeip;
     private long mip;
+    private final Semaphore interruptsSemaphore;
 
     private long menvcfg;
 
@@ -70,6 +72,7 @@ public final class PrivilegedState {
         this.ctx = ctx;
         cachedAddressSpaces = new HashMap<>();
         addressSpaceCallTargets = new HashMap<>();
+        interruptsSemaphore = new Semaphore(0);
     }
 
     public PrivilegedContext currentContext() {
@@ -114,6 +117,9 @@ public final class PrivilegedState {
 
     public void setMsip() {
         mip |= 0b1000;
+        if ((mie & 0b1000) != 0) {
+            interruptsSemaphore.release();
+        }
     }
 
     public void clearMsip() {
@@ -121,11 +127,14 @@ public final class PrivilegedState {
     }
 
     public void setSsip() {
-        mip |= 0b1000;
+        mip |= 0b10;
+        if ((mie & 0b10) != 0) {
+            interruptsSemaphore.release();
+        }
     }
 
     public void clearSsip() {
-        mip &= ~0b1000;
+        mip &= ~0b10;
     }
 
 
@@ -350,6 +359,9 @@ public final class PrivilegedState {
         } else {
             mip |= (1L << interrupt);
         }
+        if ((mie & (1L << interrupt)) != 0) {
+            interruptsSemaphore.release();
+        }
     }
 
     public void untrigger(int interrupt) {
@@ -357,6 +369,9 @@ public final class PrivilegedState {
             hardwareSeip = false;
         } else {
             mip &= ~(1L << interrupt);
+        }
+        if ((mie & (1L << interrupt)) != 0) {
+            interruptsSemaphore.release();
         }
     }
 
@@ -529,12 +544,22 @@ public final class PrivilegedState {
     public void checkForInterrupts(long pc) {
         long pending = currentPendingMachineInterrupts();
         if (pending != 0) {
+            interruptsSemaphore.drainPermits();
             throw new RiscvTrapException(ExceptionCause.fromInterruptIndex(Long.numberOfTrailingZeros(pending)), pc);
         }
         
         pending = currentPendingSupervisorInterrupts();
         if (pending != 0) {
+            interruptsSemaphore.drainPermits();
             throw new RiscvTrapException(ExceptionCause.fromInterruptIndex(Long.numberOfTrailingZeros(pending)), pc);
+        }
+    }
+
+    public void waitForInterrupts() {
+        try {
+            interruptsSemaphore.acquire();
+        } catch (InterruptedException e) {
+            // Let the guest code handle it
         }
     }
 

@@ -62,6 +62,10 @@ public class PrivilegedContext {
         return (menvcfg & (1L << 61)) == 0;
     }
 
+    public boolean shouldTrapWait() {
+        return mode == PrivilegeMode.User || (mstatus & (1L << 21)) != 0;
+    }
+
     public long translateReadAddress(long virtualAddress, RivetContext ctx) {
         return currentAddressSpace(readAccessType()).toPhysicalAddress(virtualAddress, readAccessType(), this);
     }
