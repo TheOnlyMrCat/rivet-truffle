@@ -58,6 +58,8 @@ public final class RivetParser {
         var frontier = new ArrayDeque<Long>();
         frontier.addLast(key.pc());
 
+        long justMarkedPage = 0;
+
         var callTargetContents = new CallTargetContents();
 
         while (!frontier.isEmpty()) {
@@ -84,7 +86,10 @@ public final class RivetParser {
                     try {
                         long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv());
                         lsh = Short.toUnsignedInt(context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE));
-                        context.physicalMemory.markInstructionPage(physicalAddress, key);
+                        if ((physicalAddress & ~0xfff) != justMarkedPage) {
+                            context.physicalMemory.markInstructionPage(physicalAddress, key);
+                            justMarkedPage = physicalAddress & ~0xfff;
+                        }
                     } catch (RiscvTrapException trap) {
                         // Convert this into an instruction-access fault. Only actually do so if this is the first
                         // instruction we're parsing in this block, otherwise treat it as a hole we have to jump back
@@ -105,7 +110,10 @@ public final class RivetParser {
                         try {
                             long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset + 2, AccessType.EXECUTE, key.priv());
                             int msh = context.physicalMemory.readShort(physicalAddress, AccessType.EXECUTE);
-                            context.physicalMemory.markInstructionPage(physicalAddress, key);
+                            if ((physicalAddress & ~0xfff) != justMarkedPage) {
+                                context.physicalMemory.markInstructionPage(physicalAddress, key);
+                                justMarkedPage = physicalAddress & ~0xfff;
+                            }
                             instruction = lsh | (msh << 16);
                         } catch (RiscvTrapException trap) {
                             // As above, but set the tval to the actual part of the access that faulted
@@ -123,7 +131,10 @@ public final class RivetParser {
                     try {
                         long physicalAddress = addressSpace.toPhysicalAddress(basePc + pcOffset, AccessType.EXECUTE, key.priv());
                         instruction = context.physicalMemory.readInt(physicalAddress, AccessType.EXECUTE);
-                        context.physicalMemory.markInstructionPage(physicalAddress, key);
+                        if ((physicalAddress & ~0xfff) != justMarkedPage) {
+                            context.physicalMemory.markInstructionPage(physicalAddress, key);
+                            justMarkedPage = physicalAddress & ~0xfff;
+                        }
                     } catch (RiscvTrapException trap) {
                         // As above
                         if (basicBlocks.isEmpty() && currentBlock.isEmpty()) {
