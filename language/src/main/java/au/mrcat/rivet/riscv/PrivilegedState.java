@@ -353,7 +353,7 @@ public final class PrivilegedState {
             case Csr.SIP -> mip = value & mideleg & INTERRUPT_WRITABLE_MASK_S;
 
             case Csr.STIMECMP -> {
-                if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) != 0) {
+                if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) == 0) {
                     throw new RiscvTrapException(ExceptionCause.IllegalInstruction);
                 }
                 ctx.ffi.rustSetStimecmp(value);
