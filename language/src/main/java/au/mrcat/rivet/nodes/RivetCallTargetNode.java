@@ -30,12 +30,15 @@ public class RivetCallTargetNode extends RootNode {
     private final long entryPc;
     private final int firstBlockIndex;
     private final PrivilegedContext priv;
+    private final boolean needsFpState;
 
-    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv) {
+    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv, boolean needsFpState) {
         var frameDescriptor = FrameDescriptor.newBuilder();
 //        frameDescriptor.useSlotKinds(false);
         frameDescriptor.addSlots(32, FrameSlotKind.Static);
-        frameDescriptor.addSlots(32, FrameSlotKind.Static);
+        if (needsFpState) {
+            frameDescriptor.addSlots(32, FrameSlotKind.Static);
+        }
         super(language, frameDescriptor.build());
 
         basicBlockNodes = basicBlocks.sequencedValues().toArray(new RivetBasicBlockNode[0]);
@@ -64,6 +67,7 @@ public class RivetCallTargetNode extends RootNode {
         }
 
         this.entryPc = entryPc;
+        this.needsFpState = needsFpState;
     }
 
     @ExplodeLoop
@@ -71,8 +75,10 @@ public class RivetCallTargetNode extends RootNode {
         for (int i = 0; i < 31; i++) {
             copyFromState[i].executeVoid(frame, state.getRegister(i + 1));
         }
-        for (int i = 0; i < 32; i++) {
-            frame.setLongStatic(32 + i, state.getFloat(i));
+        if (needsFpState) {
+            for (int i = 0; i < 32; i++) {
+                frame.setLongStatic(32 + i, state.getFloat(i));
+            }
         }
     }
 
@@ -81,8 +87,10 @@ public class RivetCallTargetNode extends RootNode {
         for (int i = 0; i < 31; i++) {
             state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
         }
-        for (int i = 0; i < 32; i++) {
-            state.setFloat(i, frame.getLongStatic(32 + i));
+        if (needsFpState) {
+            for (int i = 0; i < 32; i++) {
+                state.setFloat(i, frame.getLongStatic(32 + i));
+            }
         }
     }
 

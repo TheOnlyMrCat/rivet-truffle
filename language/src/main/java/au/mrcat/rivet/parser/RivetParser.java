@@ -18,6 +18,10 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public final class RivetParser {
+    private static class CallTargetContents {
+        boolean needsFpState = false;
+    }
+
     public static RivetStartupNode loadProgramHeader(ByteSequence elfFile) {
         byte[] elfBytes = elfFile.toByteArray();
         if (elfBytes[0] != 0x7f || elfBytes[1] != 'E' || elfBytes[2] != 'L' || elfBytes[3] != 'F') {
@@ -53,6 +57,8 @@ public final class RivetParser {
         var basicBlocks = new TreeMap<Long, RivetBasicBlockNode>();
         var frontier = new ArrayDeque<Long>();
         frontier.addLast(key.pc());
+
+        var callTargetContents = new CallTargetContents();
 
         while (!frontier.isEmpty()) {
             long basePc = frontier.removeFirst();
@@ -130,7 +136,7 @@ public final class RivetParser {
                         }
                     }
                 }
-                var node = Objects.requireNonNull(parseInstruction(instruction, pcOffset, instret, key.priv()));
+                var node = Objects.requireNonNull(parseInstruction(instruction, pcOffset, instret, key.priv(), callTargetContents));
 
                 if ((instruction & 0b11) != 0b11) {
                     pcOffset += 2;
@@ -172,32 +178,32 @@ public final class RivetParser {
             basicBlocks.put(basePc, new RivetBasicBlockNode(currentBlock.toArray(new RivetInstructionNode[0]), finalNode, instret));
         }
 
-        return new RivetCallTargetNode(language, key.pc(), basicBlocks, key.priv());
+        return new RivetCallTargetNode(language, key.pc(), basicBlocks, key.priv(), callTargetContents.needsFpState);
     }
 
-    public static RivetInstructionNode parseInstruction(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseInstruction(int instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int compressed_opcode = instruction & 0b11;
         return switch (compressed_opcode) {
-            case 0b00 -> parseC0((short) instruction, pcOffset, instret, priv);
+            case 0b00 -> parseC0((short) instruction, pcOffset, instret, priv, contents);
             case 0b01 -> parseC1((short) instruction, pcOffset, instret);
-            case 0b10 -> parseC2((short) instruction, pcOffset, instret, priv);
+            case 0b10 -> parseC2((short) instruction, pcOffset, instret, priv, contents);
             case 0b11 -> {
                 int opcode = instruction & 0x7f;
                 yield switch (opcode) {
                     case Opcode.LOAD -> parseLoad(instruction, pcOffset, instret);
-                    case Opcode.LOAD_FP -> parseLoadFp(instruction, pcOffset, instret, priv);
+                    case Opcode.LOAD_FP -> parseLoadFp(instruction, pcOffset, instret, priv, contents);
                     case Opcode.MISC_MEM -> parseMiscMem(instruction, pcOffset, instret);
                     case Opcode.OP_IMM -> parseOpImm(instruction, pcOffset, instret);
                     case Opcode.AUIPC -> parseAuipc(instruction, pcOffset);
                     case Opcode.OP_IMM_32 -> parseOpImm32(instruction, pcOffset, instret);
                     case Opcode.STORE -> parseStore(instruction, pcOffset, instret);
-                    case Opcode.STORE_FP -> parseStoreFp(instruction, pcOffset, instret, priv);
+                    case Opcode.STORE_FP -> parseStoreFp(instruction, pcOffset, instret, priv, contents);
                     case Opcode.AMO -> parseAmo(instruction, pcOffset, instret);
                     case Opcode.OP -> parseOp(instruction, pcOffset, instret);
                     case Opcode.LUI -> parseLui(instruction);
                     case Opcode.OP_32 -> parseOp32(instruction, pcOffset, instret);
-                    case Opcode.FMADD, Opcode.FMSUB, Opcode.FNMADD, Opcode.FNMSUB -> parseFma(instruction, pcOffset, instret, priv);
-                    case Opcode.OP_FP -> parseOpFp(instruction, pcOffset, instret, priv);
+                    case Opcode.FMADD, Opcode.FMSUB, Opcode.FNMADD, Opcode.FNMSUB -> parseFma(instruction, pcOffset, instret, priv, contents);
+                    case Opcode.OP_FP -> parseOpFp(instruction, pcOffset, instret, priv, contents);
                     case Opcode.BRANCH -> parseBranch(instruction, pcOffset, instret);
                     case Opcode.JAL -> parseJal(instruction, pcOffset);
                     case Opcode.JALR -> parseJalr(instruction, pcOffset, instret);
@@ -209,7 +215,7 @@ public final class RivetParser {
         };
     }
 
-    public static RivetInstructionNode parseC0(short instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseC0(short instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int funct3 = instruction >>> 13 & 0b111;
 
         return switch (funct3) {
@@ -228,6 +234,11 @@ public final class RivetParser {
                 yield new SetRegisterNode(rd, new AddNode(GetRegisterNode.create(2), new ConstantNode(imm)));
             }
             case Opcode.C0.FLD -> {
+                if (!priv.isFpuEnabled) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                contents.needsFpState = true;
+
                 int offset = ((instruction >> 10) & 0b111) << 3
                         | ((instruction >> 5) & 0b11) << 6;
 
@@ -256,6 +267,11 @@ public final class RivetParser {
                 yield new SetRegisterNode(rd, new LoadDoubleNode(GetRegisterNode.create(rs1), offset, pcOffset, instret));
             }
             case Opcode.C0.FSD -> {
+                if (!priv.isFpuEnabled) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                contents.needsFpState = true;
+
                 int offset = ((instruction >> 10) & 0b111) << 3
                         | ((instruction >> 5) & 0b11) << 6;
 
@@ -447,7 +463,7 @@ public final class RivetParser {
         };
     }
 
-    public static RivetInstructionNode parseC2(short instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseC2(short instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int funct3 = instruction >>> 13 & 0b111;
 
         return switch (funct3) {
@@ -461,6 +477,11 @@ public final class RivetParser {
                 yield new SetRegisterNode(rd, new ShiftLeftLogicalNode(GetRegisterNode.create(rd), new ConstantNode(shiftAmount)));
             }
             case Opcode.C2.FLDSP -> {
+                if (!priv.isFpuEnabled) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                contents.needsFpState = true;
+
                 int rd = (instruction >> 7) & 0b11111;
                 int offset = ((instruction >> 5) & 0b11) << 3
                         | ((instruction >> 12) & 0b1) << 5
@@ -531,6 +552,11 @@ public final class RivetParser {
                 }
             }
             case Opcode.C2.FSDSP -> {
+                if (!priv.isFpuEnabled) {
+                    yield new IllegalInstructionNode(instruction, pcOffset, instret);
+                }
+                contents.needsFpState = true;
+
                 int rs2 = (instruction >> 2) & 0b11111;
                 int offset = ((instruction >> 10) & 0b111) << 3
                         | ((instruction >> 7) & 0b111) << 6;
@@ -579,7 +605,7 @@ public final class RivetParser {
         }
     }
 
-    private static RivetInstructionNode parseLoadFp(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseLoadFp(int instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -588,6 +614,7 @@ public final class RivetParser {
         if (!priv.isFpuEnabled) {
             return new IllegalInstructionNode(instruction, pcOffset, instret);
         }
+        contents.needsFpState = true;
 
         RivetOpNode op;
         FloatWidth width;
@@ -743,7 +770,7 @@ public final class RivetParser {
         };
     }
 
-    private static RivetInstructionNode parseStoreFp(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseStoreFp(int instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
         int rs2 = (instruction >> 20) & 0b11111;
@@ -753,6 +780,7 @@ public final class RivetParser {
         if (!priv.isFpuEnabled) {
             return new IllegalInstructionNode(instruction, pcOffset, instret);
         }
+        contents.needsFpState = true;
 
         return switch (funct3) {
             case Opcode.MemWidth.WORD -> new StoreWordNode(GetRegisterNode.create(rs1), offset, new GetFloatRegisterNode(rs2, FloatWidth.RawSingle), pcOffset, instret);
@@ -1094,7 +1122,7 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-    private static RivetInstructionNode parseFma(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseFma(int instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int fma = (instruction >> 2) & 0b11;
         int rd = (instruction >> 7) & 0b11111;
         int rm = (instruction >> 12) & 0b111;
@@ -1106,6 +1134,7 @@ public final class RivetParser {
         if (!priv.isFpuEnabled) {
             return new IllegalInstructionNode(instruction, pcOffset, instret);
         }
+        contents.needsFpState = true;
 
         RoundingMode roundingMode = RoundingMode.fromEncoding(rm);
         FloatWidth width = FloatWidth.fromEncoding(fmt);
@@ -1122,7 +1151,7 @@ public final class RivetParser {
         return new SetFloatRegisterNode(rd, width, op);
     }
 
-    private static RivetInstructionNode parseOpFp(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
+    private static RivetInstructionNode parseOpFp(int instruction, long pcOffset, short instret, PrivilegedContext priv, CallTargetContents contents) {
         int rd = (instruction >> 7) & 0b11111;
         int rm = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -1133,6 +1162,7 @@ public final class RivetParser {
         if (!priv.isFpuEnabled) {
             return new IllegalInstructionNode(instruction, pcOffset, instret);
         }
+        contents.needsFpState = true;
 
         RoundingMode roundingMode = RoundingMode.fromEncoding(rm);
         FloatWidth width = FloatWidth.fromEncoding(fmt);
