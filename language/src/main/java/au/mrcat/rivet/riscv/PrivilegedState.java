@@ -161,7 +161,7 @@ public final class PrivilegedState {
     }
 
 
-    public long tryRead(int csr) {
+    public long tryRead(int csr) throws RiscvTrapException {
         // Do an initial rough check based on the privilege mode/CSR pair
         int minimumMode = (csr >> 8) & 0b11;
         if (mode.value < minimumMode) {
@@ -171,7 +171,7 @@ public final class PrivilegedState {
         return tryReadPrivileged(csr);
     }
 
-    public long tryReadWrite(int csr) {
+    public long tryReadWrite(int csr) throws RiscvTrapException {
         // Do an initial rough check based on the privilege mode/CSR pair
         boolean isReadOnly = ((csr >> 10) & 0b11) == 0b11;
         int minimumMode = (csr >> 8) & 0b11;
@@ -182,7 +182,7 @@ public final class PrivilegedState {
         return tryReadPrivileged(csr);
     }
 
-    private long tryReadPrivileged(int csr) {
+    private long tryReadPrivileged(int csr) throws RiscvTrapException {
         long counterenMask = (mode != PrivilegeMode.Machine ? mcounteren : Long.MAX_VALUE) & (mode == PrivilegeMode.User ? scounteren : Long.MAX_VALUE);
         switch (csr) {
             // User-level CSRs
@@ -294,7 +294,7 @@ public final class PrivilegedState {
         }
     }
 
-    public void tryWrite(int csr, long value) {
+    public void tryWrite(int csr, long value) throws RiscvTrapException {
         boolean isReadOnly = ((csr >> 10) & 0b11) == 0b11;
         int minimumMode = (csr >> 8) & 0b11;
         if (mode.value < minimumMode || isReadOnly) {
@@ -629,7 +629,7 @@ public final class PrivilegedState {
         return mip & mie & ~mideleg;
     }
 
-    public void checkForInterrupts(long pc) {
+    public void checkForInterrupts(long pc) throws RiscvTrapException {
         long pending = currentPendingMachineInterrupts();
         if (pending != 0) {
             interruptsSemaphore.drainPermits();

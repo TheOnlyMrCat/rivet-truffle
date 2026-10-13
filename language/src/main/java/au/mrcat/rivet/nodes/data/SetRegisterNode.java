@@ -2,8 +2,8 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
-import au.mrcat.rivet.nodes.arith.HintNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class SetRegisterNode extends RivetInstructionNode {
@@ -25,7 +25,7 @@ public class SetRegisterNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         frame.setLongStatic(register, op.executeLong(frame, basePc, priv));
     }
 

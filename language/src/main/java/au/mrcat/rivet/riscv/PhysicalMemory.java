@@ -21,8 +21,8 @@ public class PhysicalMemory {
     private static final long NO_RESERVATION = 1;
     private long reservedDoubleWord = NO_RESERVATION;
 
-    private boolean[] isInstructionPage;
-    private HashMap<Long, HashSet<InstructionParseRequest>> instructionPages;
+    @CompilerDirectives.CompilationFinal(dimensions = 0) private boolean[] isInstructionPage;
+    private final HashMap<Long, HashSet<InstructionParseRequest>> instructionPages;
 
     public PhysicalMemory(RivetContext context) {
         memory = new byte[1 * 1024 * 1024 * 1024 + 512 * 1024 * 1024];
@@ -37,14 +37,17 @@ public class PhysicalMemory {
         return 0x8000_0000L <= physicalAddress && physicalAddress - 0x8000_0000L + accessWidth <= memory.length;
     }
 
-    public byte readByte(long physicalAddress) {
+    public byte readByte(long physicalAddress) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 1)) {
             return (byte) readMmio(physicalAddress, MemoryWidth.Byte, AccessType.READ);
         }
+        return readPhysicalByte(physicalAddress);
+    }
+    public byte readPhysicalByte(long physicalAddress) {
         return byteArray.getByte(memory, physicalAddress - 0x8000_0000L);
     }
 
-    public short readShort(long physicalAddress, AccessType accessType) {
+    public short readShort(long physicalAddress, AccessType accessType) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 2)) {
             return (short) readMmio(physicalAddress, MemoryWidth.HalfWord, accessType);
         }
@@ -53,8 +56,11 @@ public class PhysicalMemory {
         }
         return byteArray.getShort(memory, physicalAddress - 0x8000_0000L);
     }
+    public short readPhysicalShort(long physicalAddress) {
+        return byteArray.getShort(memory, physicalAddress - 0x8000_0000L);
+    }
 
-    public int readInt(long physicalAddress, AccessType accessType) {
+    public int readInt(long physicalAddress, AccessType accessType) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 4)) {
             return (int) readMmio(physicalAddress, MemoryWidth.Word, accessType);
         }
@@ -63,7 +69,11 @@ public class PhysicalMemory {
         }
         return byteArray.getInt(memory, physicalAddress - 0x8000_0000L);
     }
-    public long readLong(long physicalAddress) {
+    public int readPhysicalInt(long physicalAddress) {
+        return byteArray.getInt(memory, physicalAddress - 0x8000_0000L);
+    }
+
+    public long readLong(long physicalAddress) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 8)) {
             return readMmio(physicalAddress, MemoryWidth.DoubleWord, AccessType.READ);
         }
@@ -72,8 +82,11 @@ public class PhysicalMemory {
         }
         return byteArray.getLong(memory, physicalAddress - 0x8000_0000L);
     }
+    public long readPhysicalLong(long physicalAddress) {
+        return byteArray.getLong(memory, physicalAddress - 0x8000_0000L);
+    }
 
-    public void reserveIntAddress(long physicalAddress) {
+    public void reserveIntAddress(long physicalAddress) throws RiscvTrapException {
         if ((physicalAddress & 0b11) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
@@ -83,7 +96,7 @@ public class PhysicalMemory {
         reservedDoubleWord = physicalAddress & ~0b111L;
     }
 
-    public void reserveLongAddress(long physicalAddress) {
+    public void reserveLongAddress(long physicalAddress) throws RiscvTrapException {
         if ((physicalAddress & 0b111) != 0) {
             throw new RiscvTrapException(ExceptionCause.LoadAccessFault);
         }
@@ -93,7 +106,7 @@ public class PhysicalMemory {
         reservedDoubleWord = physicalAddress & ~0b111L;
     }
 
-    public long readMmio(long physicalAddress, MemoryWidth width, AccessType accessType) {
+    public long readMmio(long physicalAddress, MemoryWidth width, AccessType accessType) throws RiscvTrapException {
         // Syscon
         if (0x10_0000L <= physicalAddress && physicalAddress + width.bytes < 0x10_1000) {
             if (!width.isNaturallyAligned(physicalAddress)) {
@@ -119,7 +132,7 @@ public class PhysicalMemory {
         return ctx.ffi.rustLoad(physicalAddress, (byte) (width.bytes * 8), accessType);
     }
 
-    public void writeByte(long physicalAddress, byte value) {
+    public void writeByte(long physicalAddress, byte value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 1)) {
             writeMmio(physicalAddress, Byte.toUnsignedLong(value), MemoryWidth.Byte);
             return;
@@ -127,8 +140,12 @@ public class PhysicalMemory {
         byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
         invalidateInstructionPage(physicalAddress);
     }
+    public void writePhysicalByte(long physicalAddress, byte value) {
+        byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
+    }
 
-    public void writeShort(long physicalAddress, short value) {
+    public void writeShort(long physicalAddress, short value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 2)) {
             writeMmio(physicalAddress, Short.toUnsignedLong(value), MemoryWidth.HalfWord);
             return;
@@ -136,8 +153,12 @@ public class PhysicalMemory {
         byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
         invalidateInstructionPage(physicalAddress);
     }
+    public void writePhysicalShort(long physicalAddress, short value) {
+        byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
+    }
 
-    public void writeInt(long physicalAddress, int value) {
+    public void writeInt(long physicalAddress, int value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 4)) {
             writeMmio(physicalAddress, Integer.toUnsignedLong(value), MemoryWidth.Word);
             return;
@@ -145,8 +166,12 @@ public class PhysicalMemory {
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
         invalidateInstructionPage(physicalAddress);
     }
+    public void writePhysicalInt(long physicalAddress, int value) {
+        byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
+    }
 
-    public void writeLong(long physicalAddress, long value) {
+    public void writeLong(long physicalAddress, long value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 8)) {
             writeMmio(physicalAddress, value, MemoryWidth.DoubleWord);
             return;
@@ -154,8 +179,12 @@ public class PhysicalMemory {
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
         invalidateInstructionPage(physicalAddress);
     }
+    public void writePhysicalLong(long physicalAddress, long value) {
+        byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
+        invalidateInstructionPage(physicalAddress);
+    }
 
-    public boolean writeIntConditional(long physicalAddress, int value) {
+    public boolean writeIntConditional(long physicalAddress, int value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 4)) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
@@ -172,7 +201,7 @@ public class PhysicalMemory {
         return true;
     }
 
-    public boolean writeLongConditional(long physicalAddress, long value) {
+    public boolean writeLongConditional(long physicalAddress, long value) throws RiscvTrapException {
         if (!isInPhysicalMemory(physicalAddress, 8)) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
@@ -189,7 +218,7 @@ public class PhysicalMemory {
         return true;
     }
 
-    private void writeMmio(long physicalAddress, long value, MemoryWidth width) {
+    private void writeMmio(long physicalAddress, long value, MemoryWidth width) throws RiscvTrapException {
         // Syscon
         if (0x10_0000L <= physicalAddress && physicalAddress + width.bytes < 0x10_1000) {
             if (physicalAddress != 0x10_0000L || width != MemoryWidth.Word) {
@@ -249,11 +278,13 @@ public class PhysicalMemory {
 
     public void invalidateInstructionPage(long physicalAddress) {
         var page = (physicalAddress - 0x8000_0000L) & ~0xfff;
-        if (!isInstructionPage[Math.toIntExact(page >> 12)]) {
-            return;
+        if (isInstructionPage[Math.toIntExact(page >> 12)]) {
+            markDirtyCallTargets(page);
         }
-        CompilerDirectives.transferToInterpreter();
+    }
 
+    @CompilerDirectives.TruffleBoundary
+    public void markDirtyCallTargets(long page) {
         isInstructionPage[Math.toIntExact(page >> 12)] = false;
         var callTargets = instructionPages.remove(page);
         for (var key : callTargets) {

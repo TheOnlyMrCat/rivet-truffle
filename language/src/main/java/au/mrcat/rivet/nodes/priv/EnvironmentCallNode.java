@@ -15,7 +15,7 @@ public class EnvironmentCallNode extends RivetTrapNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         throw new RiscvTrapException(switch (priv.currentMode()) {
             case User -> ExceptionCause.EnvironmentCallFromUMode;

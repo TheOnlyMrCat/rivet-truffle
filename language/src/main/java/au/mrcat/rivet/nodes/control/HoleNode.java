@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes.control;
 import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 /// Represents a "hole" in a call target: a region that has not / cannot be parsed yet.
@@ -15,7 +16,7 @@ public class HoleNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         throw new RiscvIndirectJumpException(basePc + pcOffset);
     }
 

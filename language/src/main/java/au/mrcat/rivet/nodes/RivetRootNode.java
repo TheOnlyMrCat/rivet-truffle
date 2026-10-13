@@ -94,7 +94,12 @@ public class RivetRootNode extends RootNode {
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
         while (true) {
-            RegisterState cpuState = startupNode.executeState(frame);
+            RegisterState cpuState = null;
+            try {
+                cpuState = startupNode.executeState(frame);
+            } catch (RiscvTrapException e) {
+                throw new RuntimeException(e);
+            }
             try {
                 while (true) {
                     var key = new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentContext());
@@ -125,10 +130,6 @@ public class RivetRootNode extends RootNode {
                         ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
                         cpuState.setPc(fence.getNextPc());
                         invalidateDirtyCallTargets();
-                    } catch (RiscvTrapException trap) {
-                        cpuState = trap.getState();
-                        ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
-                        cpuState.setPc(ctx.privilegedState.handleException(trap));
                     }
                 }
             } catch (RiscvExitException exit) {

@@ -85,7 +85,11 @@ public class RivetCallTargetNode extends RootNode {
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
         for (int i = 0; i < 31; i++) {
-            state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
+            try {
+                state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
+            } catch (RiscvTrapException e) {
+                throw new RuntimeException(e);
+            }
         }
         if (needsFpState) {
             for (int i = 0; i < 32; i++) {
@@ -137,20 +141,16 @@ public class RivetCallTargetNode extends RootNode {
                 }
             }
         } catch (RiscvInstructionFenceException fence) {
-            CompilerDirectives.transferToInterpreter();
             copyToRegisterState(frame, registers);
 
             // Root needs to special-case this and figure out which call targets to invalidate
             fence.setState(registers);
             throw fence;
         } catch (RiscvTrapException trap) {
-            CompilerDirectives.transferToInterpreter();
+            ctx.privilegedState.stepPerformanceCounters(trap.getInstret());
             copyToRegisterState(frame, registers);
-
-            // Root needs to special case this and trigger a trap. That logic could theoretically live here, but we
-            // assume a trap loop is an atypical situation we do not need to optimise for.
-            trap.setState(registers);
-            throw trap;
+            registers.setPc(ctx.privilegedState.handleException(trap));
+            return registers;
         }
     }
 

@@ -20,7 +20,7 @@ public class SupervisorReturn extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = RivetContext.get(this);
         if (priv.shouldTrapSret()) {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction, basePc + pcOffset, instruction, instret);

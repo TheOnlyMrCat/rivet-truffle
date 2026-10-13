@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -23,7 +24,7 @@ public class RivetBasicBlockNode extends RivetNode {
     }
 
     @ExplodeLoop
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         CompilerAsserts.partialEvaluationConstant(this);
         if (instructions != null) {
             for (RivetInstructionNode instruction : instructions) {

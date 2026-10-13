@@ -2,7 +2,6 @@ package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
-import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.FloatWidth;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
@@ -20,7 +19,7 @@ public class SetFloatRegisterNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         ctx.privilegedState.markFpuDirty();
         long value = op.executeLong(frame, basePc, priv);

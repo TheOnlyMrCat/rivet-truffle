@@ -4,6 +4,7 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.MemoryWidth;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -22,7 +23,8 @@ public class SifiveUart {
         this.context = context;
     }
 
-    public long readMmio(long reg, MemoryWidth width) {
+    @CompilerDirectives.TruffleBoundary
+    public long readMmio(long reg, MemoryWidth width) throws RiscvTrapException {
         if (width != MemoryWidth.Word) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }
@@ -51,7 +53,8 @@ public class SifiveUart {
         };
     }
 
-    public void writeMmio(long reg, long value, MemoryWidth width) {
+    @CompilerDirectives.TruffleBoundary
+    public void writeMmio(long reg, long value, MemoryWidth width) throws RiscvTrapException {
         if (width != MemoryWidth.Word) {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault);
         }

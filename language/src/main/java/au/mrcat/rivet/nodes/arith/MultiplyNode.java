@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class MultiplyNode extends RivetOpNode {
@@ -14,7 +15,7 @@ public class MultiplyNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         return multiplicand.executeLong(frame, basePc, priv) * multiplier.executeLong(frame, basePc, priv);
     }
 

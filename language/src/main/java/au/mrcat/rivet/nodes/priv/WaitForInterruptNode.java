@@ -18,7 +18,7 @@ public class WaitForInterruptNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
 
         ctx.privilegedState.checkForInterrupts(basePc + pcOffset);

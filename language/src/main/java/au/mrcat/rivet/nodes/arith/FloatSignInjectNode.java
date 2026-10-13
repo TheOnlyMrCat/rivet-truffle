@@ -3,7 +3,7 @@ package au.mrcat.rivet.nodes.arith;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.FloatWidth;
 import au.mrcat.rivet.riscv.PrivilegedContext;
-import au.mrcat.rivet.riscv.RoundingMode;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class FloatSignInjectNode extends RivetOpNode {
@@ -18,7 +18,7 @@ public class FloatSignInjectNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         long baseValue = base.executeLong(frame, basePc, priv);
         long signValue = sign.executeLong(frame, basePc, priv);
         return switch (width) {

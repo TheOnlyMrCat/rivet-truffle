@@ -466,7 +466,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    public long rustLoad(long addr, byte bits, AccessType accessType) {
+    public long rustLoad(long addr, byte bits, AccessType accessType) throws RiscvTrapException {
         try {
             if ((boolean) rust_load.invoke(devices, addr, load, bits)) {
                 return load.get(ValueLayout.JAVA_LONG, 0);
@@ -478,7 +478,7 @@ public final class RivetFfi {
     }
 
     @CompilerDirectives.TruffleBoundary(allowInlining = true)
-    public void rustStore(long addr, long value, byte bits) {
+    public void rustStore(long addr, long value, byte bits) throws RiscvTrapException {
         try {
             if ((boolean) rust_store.invoke(devices, addr, value, bits)) {
                 return;
@@ -531,7 +531,7 @@ public final class RivetFfi {
         }
         var byteBuffer = buffer.reinterpret(len).asByteBuffer();
         for (int i = 0; i < len; i++) {
-            byteBuffer.put(i, ctx.physicalMemory.readByte(addr + i));
+            byteBuffer.put(i, ctx.physicalMemory.readPhysicalByte(addr + i));
         }
         return true;
     }
@@ -542,7 +542,7 @@ public final class RivetFfi {
         }
         var byteBuffer = buffer.reinterpret(len).asByteBuffer();
         for (int i = 0; i < len; i++) {
-            ctx.physicalMemory.writeByte(addr + i, byteBuffer.get(i));;
+            ctx.physicalMemory.writePhysicalByte(addr + i, byteBuffer.get(i));;
         }
         return true;
     }

@@ -25,7 +25,7 @@ public class CsrRmwNode extends RivetCsrwNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         // CSR-write instructions reset the basic-block instruction counter, to allow them to read an accurate count.
         // We therefore need to step the counters here.

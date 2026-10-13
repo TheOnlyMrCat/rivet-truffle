@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class DivideUnsignedNode extends RivetOpNode {
@@ -14,7 +15,7 @@ public class DivideUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         long dividend = this.dividend.executeLong(frame, basePc, priv);
         long divisor = this.divisor.executeLong(frame, basePc, priv);
 

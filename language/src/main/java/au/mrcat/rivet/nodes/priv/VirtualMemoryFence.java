@@ -23,13 +23,17 @@ public class VirtualMemoryFence extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         if (priv.shouldTrapSatpAccess()) {
             throw new RiscvTrapException(ExceptionCause.IllegalInstruction, basePc + pcOffset, Integer.toUnsignedLong(instruction), instret);
         }
         if (asid instanceof GetRegisterNode) {
-            ctx.privilegedState.fenceVirtualMemory((short) asid.executeLong(frame, basePc, priv));
+            try {
+                ctx.privilegedState.fenceVirtualMemory((short) asid.executeLong(frame, basePc, priv));
+            } catch (RiscvTrapException e) {
+                throw new RuntimeException(e);
+            }
         } else {
             ctx.privilegedState.fenceVirtualMemory();
         }

@@ -49,7 +49,7 @@ public final class RivetParser {
     }
 
     @CompilerDirectives.TruffleBoundary
-    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, InstructionParseRequest key) {
+    public static RivetCallTargetNode extractCallTarget(RivetLanguage language, RivetContext context, InstructionParseRequest key) throws RiscvTrapException {
         if ((key.pc() & 0b1) != 0) {
             throw new IllegalArgumentException("Instruction virtual address not aligned to 16 bits: " + (key.pc()));
         }

@@ -2,9 +2,9 @@ package au.mrcat.rivet.runtime;
 
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.riscv.ExceptionCause;
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import com.oracle.truffle.api.nodes.SlowPathException;
 
-public class RiscvTrapException extends ControlFlowException {
+public class RiscvTrapException extends SlowPathException {
     private RegisterState state;
     public final ExceptionCause cause;
     private long pc;

@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes;
 
 import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.riscv.RegisterState;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -33,7 +34,7 @@ public class RivetStartupNode extends Node {
         provideNextPhaseInfo = true;
     }
 
-    public RegisterState executeState(VirtualFrame frame) {
+    public RegisterState executeState(VirtualFrame frame) throws RiscvTrapException {
         RivetContext ctx = RivetContext.get(this);
 
         // Reset the architectural state

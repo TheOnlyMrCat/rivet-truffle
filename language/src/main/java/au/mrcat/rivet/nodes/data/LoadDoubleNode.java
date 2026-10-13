@@ -21,7 +21,7 @@ public class LoadDoubleNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {

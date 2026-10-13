@@ -1,6 +1,7 @@
 package au.mrcat.rivet.riscv;
 
 import au.mrcat.rivet.RivetContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 
 public class PrivilegedContext {
     public final PrivilegeMode mode;
@@ -68,11 +69,11 @@ public class PrivilegedContext {
         return mode == PrivilegeMode.User || (mstatus & (1L << 21)) != 0;
     }
 
-    public long translateReadAddress(long virtualAddress, RivetContext ctx) {
+    public long translateReadAddress(long virtualAddress, RivetContext ctx) throws RiscvTrapException {
         return currentAddressSpace(readAccessType()).toPhysicalAddress(virtualAddress, readAccessType(), this);
     }
 
-    public long translateWriteAddress(long virtualAddress, RivetContext ctx) {
+    public long translateWriteAddress(long virtualAddress, RivetContext ctx) throws RiscvTrapException {
         return currentAddressSpace(AccessType.WRITE).toPhysicalAddress(virtualAddress, AccessType.WRITE, this);
     }
 

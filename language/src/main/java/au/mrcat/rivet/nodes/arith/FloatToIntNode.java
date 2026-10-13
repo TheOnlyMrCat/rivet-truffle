@@ -4,8 +4,8 @@ import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.FloatWidth;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.riscv.RoundingMode;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 
 public class FloatToIntNode extends RivetOpNode {
     @Child RivetOpNode operand;
@@ -19,7 +19,7 @@ public class FloatToIntNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         return switch (width) {
             case Single, RawSingle -> ctx.ffi.cvt_sf32_i32((int) operand.executeLong(frame, basePc, priv), roundingMode);

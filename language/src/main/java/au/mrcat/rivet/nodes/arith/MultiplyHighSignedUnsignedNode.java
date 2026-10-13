@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import java.math.BigInteger;
@@ -16,7 +17,7 @@ public class MultiplyHighSignedUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         // If there's a way to do this with multiplyHigh and unsignedMultiplyHigh I don't know it.
         // Signed multiplicand
         BigInteger multiplicand = BigInteger.valueOf(this.multiplicand.executeLong(frame, basePc, priv));

@@ -25,7 +25,7 @@ public class StoreDoubleNode extends RivetInstructionNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public void executeVoid(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {

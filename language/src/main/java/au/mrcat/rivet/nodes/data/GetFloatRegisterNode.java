@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes.data;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.FloatWidth;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class GetFloatRegisterNode extends RivetOpNode {
@@ -15,7 +16,7 @@ public class GetFloatRegisterNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         long value = frame.getLongStatic(32 + register);
         if (width == FloatWidth.Single && (value & 0xffff_ffff_0000_0000L) != 0xffff_ffff_0000_0000L) {
             return 0x7fc00000L;

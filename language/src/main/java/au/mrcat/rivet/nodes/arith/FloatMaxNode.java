@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes.arith;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.FloatWidth;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class FloatMaxNode extends RivetOpNode {
@@ -17,7 +18,7 @@ public class FloatMaxNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         var ctx = currentLanguageContext();
         return switch (width) {
             case Single, RawSingle -> ctx.ffi.max_sf32((int) operand1.executeLong(frame, basePc, priv), (int) operand2.executeLong(frame, basePc, priv));

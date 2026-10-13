@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class Sv39AddressSpace extends AddressSpace {
     @CompilerDirectives.CompilationFinal private long rootPageTableAddr;
-    @CompilerDirectives.CompilationFinal private final byte[] memory;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final byte[] memory;
     private final ByteArraySupport byteArray;
 
     public Sv39AddressSpace(long rootPageTablePpn, byte[] memory) {
@@ -18,7 +18,7 @@ public class Sv39AddressSpace extends AddressSpace {
 
     @Override
     @ExplodeLoop
-    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) {
+    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) throws RiscvTrapException {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
         if (vte < -(1 << 27) || vte > (1 << 26)) {
@@ -37,7 +37,7 @@ public class Sv39AddressSpace extends AddressSpace {
             pteAddr = currentAddr + ((vte & 0b111111111L << pageLevel * 9) >> pageLevel * 9) * Long.BYTES;
             try {
                 pte = byteArray.getLong(memory, pteAddr - 0x8000_0000L);
-            } catch (RiscvTrapException e) {
+            } catch (IndexOutOfBoundsException e) {
                 throw new RiscvTrapException(accessType.pageFaultCause);
             }
             if ((pte & 0b1) != 1 || (pte & 0b110) == 0b100 || ((pte >> 54) & 0b1_11_1111111) != 0) {

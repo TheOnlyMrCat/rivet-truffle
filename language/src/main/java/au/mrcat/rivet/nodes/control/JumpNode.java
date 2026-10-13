@@ -3,9 +3,9 @@ package au.mrcat.rivet.nodes.control;
 import au.mrcat.rivet.nodes.RivetDivergentNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.nodes.arith.PcOffsetNode;
-import au.mrcat.rivet.nodes.data.ConstantNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class JumpNode extends RivetDivergentNode {
@@ -16,11 +16,15 @@ public class JumpNode extends RivetDivergentNode {
     }
 
     @Override
-    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public int executeDivergent(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         if (targetPc instanceof PcOffsetNode) {
             return 0;
         }
-        throw new RiscvIndirectJumpException(targetPc.executeLong(frame, basePc, priv) & ~0b1);
+        try {
+            throw new RiscvIndirectJumpException(targetPc.executeLong(frame, basePc, priv) & ~0b1);
+        } catch (au.mrcat.rivet.runtime.RiscvTrapException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

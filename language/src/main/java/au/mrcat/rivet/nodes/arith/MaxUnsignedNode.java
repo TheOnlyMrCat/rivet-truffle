@@ -2,6 +2,7 @@ package au.mrcat.rivet.nodes.arith;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
+import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class MaxUnsignedNode extends RivetOpNode {
@@ -14,7 +15,7 @@ public class MaxUnsignedNode extends RivetOpNode {
     }
 
     @Override
-    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) {
+    public long executeLong(VirtualFrame frame, long basePc, PrivilegedContext priv) throws RiscvTrapException {
         long operand1 = this.operand1.executeLong(frame, basePc, priv);
         long operand2 = this.operand2.executeLong(frame, basePc, priv);
         if (Long.compareUnsigned(operand1, operand2) > 0) {
