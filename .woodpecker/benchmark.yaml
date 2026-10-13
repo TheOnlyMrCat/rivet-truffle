@@ -17,14 +17,26 @@ steps:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just build
 
-  - name: Benchmark coremark-nommu
+  - name: Benchmark coremark-nommu (50x12 seconds)
     image: bash
     commands:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full
 
-  - name: Benchmark coremark-mmu
+  - name: Benchmark coremark-nommu (10x60 seconds)
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full --runs=10 --target=60
+
+  - name: Benchmark coremark-mmu (50x12 seconds)
     image: bash
     commands:
       - . /etc/profile
       - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full --mmu=true
+
+  - name: Benchmark coremark-mmu (10x60 seconds)
+    image: bash
+    commands:
+      - . /etc/profile
+      - nix --extra-experimental-features nix-command --extra-experimental-features flakes develop --command just bench-full --mmu=true --runs=10 --target=60

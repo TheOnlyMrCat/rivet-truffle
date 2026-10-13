@@ -58,7 +58,9 @@ bench-temu:
 
 [script("python")]
 [arg("mmu", long="mmu")]
-bench-full mmu="false":
+[arg("target", long="target")]
+[arg("runs", long="runs")]
+bench-full mmu="false" target="12" runs="50":
     from math import log10, floor
     import os
     import shutil
@@ -69,19 +71,28 @@ bench-full mmu="false":
         print(f"\rCalibrating: [{i+1}/5] (iterations={iterations})", end="")
         subprocess.run(["just", "clean-coremark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["just", "build-coremark", "--iterations", str(iterations), "--mmu", "{{mmu}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         lines = result.stdout.split("\n")
-        time = int(lines[2][19:].strip())/1000000
-        ips = iterations/time
-        iterations = ips * 20
-        iterations = int(round(iterations, -int(floor(log10(iterations))) + 1))
+        try:
+            time = int(lines[2][19:].strip())/1000000
+            ips = iterations/time
+            iterations = ips * {{target}}
+            iterations = int(round(iterations, -int(floor(log10(iterations))) + 1))
+        except IndexError:
+            print("Failed to run rivet-truffle")
+            print("Stdout:")
+            print(result.stdout)
+            print()
+            print("Stderr:")
+            print(result.stderr)
+            exit(1)
 
 
     print()
     print(f"Iterations: {iterations}")
 
     os.makedirs("results", exist_ok=True)
-    for i in range(100):
+    for i in range({{runs}}):
         result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         lines = result.stdout.split("\n")
         time = int(lines[2][19:].strip())/1000000
