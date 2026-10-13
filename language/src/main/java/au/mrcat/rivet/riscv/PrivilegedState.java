@@ -62,8 +62,8 @@ public final class PrivilegedState {
     private long mepc;
     private long mcause;
     private long mtval;
-    private boolean hardwareSeip;
-    private long mip;
+    private volatile boolean hardwareSeip;
+    private volatile long mip;
     private final Semaphore interruptsSemaphore;
 
     private long menvcfg;
