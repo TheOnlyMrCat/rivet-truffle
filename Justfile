@@ -25,6 +25,9 @@ build-resources:
 build-devices:
     cd vendor/rivet && cargo build --release
 
+build-softfp:
+    make -C vendor/softfp
+
 clean-coremark port="rivet":
     make -C vendor/coremark clean PORT_DIR={{port}}
 
@@ -36,7 +39,7 @@ build-coremark port="rivet" iterations="0" mmu="false":
         ITERATIONS={{iterations}} \
         {{ if mmu == "true" { "XASFLAGS='-DMMU=1'" } else { "" } }}
 
-build: build-devices
+build: build-devices build-softfp
     mvn install
     mvn dependency:build-classpath -pl launcher -Dmdep.outputFile={{classpath_path}}
 
