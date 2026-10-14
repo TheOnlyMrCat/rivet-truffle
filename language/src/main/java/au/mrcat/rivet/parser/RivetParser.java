@@ -218,7 +218,7 @@ public final class RivetParser {
                     case Opcode.BRANCH -> parseBranch(instruction, pcOffset, instret);
                     case Opcode.JAL -> parseJal(instruction, pcOffset);
                     case Opcode.JALR -> parseJalr(instruction, pcOffset, instret);
-                    case Opcode.SYSTEM -> parseSystem(instruction, pcOffset, instret);
+                    case Opcode.SYSTEM -> parseSystem(instruction, pcOffset, instret, priv);
                     default -> new IllegalInstructionNode(instruction, pcOffset, instret);
                 };
             }
@@ -1361,7 +1361,7 @@ public final class RivetParser {
         return new JumpAndLinkNode(newPc, new SetRegisterNode(rd, new PcOffsetNode(pcOffset + 4)));
     }
 
-    private static RivetInstructionNode parseSystem(int instruction, long pcOffset, short instret) {
+    private static RivetInstructionNode parseSystem(int instruction, long pcOffset, short instret, PrivilegedContext priv) {
         int rd = (instruction >> 7) & 0b11111;
         int funct3 = (instruction >> 12) & 0b111;
         int rs1 = (instruction >> 15) & 0b11111;
@@ -1397,11 +1397,23 @@ public final class RivetParser {
                 if (rd == 0) {
                     return new SetCsrNode(GetRegisterNode.create(rs1), funct12, pcOffset, instruction, instret);
                 }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadXchgNode(GetRegisterNode.create(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadXchgNode(GetRegisterNode.create(rs1), rd, instret);
+                }
                 return new CsrRmwNode(GetRegisterNode.create(rs1), funct12, rd, pcOffset, instruction, instret);
             }
             case Opcode.System.CSRRS -> {
                 if (rs1 == 0) {
                     return new SetRegisterNode(rd, new GetCsrNode(funct12, pcOffset, instruction, instret));
+                }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadOrNode(GetRegisterNode.create(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadOrNode(GetRegisterNode.create(rs1), rd, instret);
                 }
                 return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pcOffset, instruction, instret);
             }
@@ -1409,11 +1421,23 @@ public final class RivetParser {
                 if (rs1 == 0) {
                     return new SetRegisterNode(rd, new GetCsrNode(funct12, pcOffset, instruction, instret));
                 }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadMaskNode(GetRegisterNode.create(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadMaskNode(GetRegisterNode.create(rs1), rd, instret);
+                }
                 return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, GetRegisterNode.create(rs1)), funct12, rd, pcOffset, instruction, instret);
             }
             case Opcode.System.CSRRWI -> {
                 if (rd == 0) {
                     return new SetCsrNode(new ConstantNode(rs1), funct12, pcOffset, instruction, instret);
+                }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadXchgNode(new ConstantNode(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadXchgNode(new ConstantNode(rs1), rd, instret);
                 }
                 return new CsrRmwNode(new ConstantNode(rs1), funct12, rd, pcOffset, instruction, instret);
             }
@@ -1421,11 +1445,23 @@ public final class RivetParser {
                 if (rs1 == 0) {
                     return new SetRegisterNode(rd, new GetCsrNode(funct12, pcOffset, instruction, instret));
                 }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadOrNode(new ConstantNode(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadOrNode(new ConstantNode(rs1), rd, instret);
+                }
                 return new CsrRmwNode(new OrNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pcOffset, instruction, instret);
             }
             case Opcode.System.CSRRCI -> {
                 if (rs1 == 0) {
                     return new SetRegisterNode(rd, new GetCsrNode(funct12, pcOffset, instruction, instret));
+                }
+                if (funct12 == Csr.MIP && priv.mode == PrivilegeMode.Machine) {
+                    return new MipReadMaskNode(new ConstantNode(rs1), rd, instret);
+                }
+                if (funct12 == Csr.SIP && priv.mode != PrivilegeMode.User) {
+                    return new SipReadMaskNode(new ConstantNode(rs1), rd, instret);
                 }
                 return new CsrRmwNode(new MaskNode(GetRegisterNode.TEMP_REGISTER, new ConstantNode(rs1)), funct12, rd, pcOffset, instruction, instret);
             }

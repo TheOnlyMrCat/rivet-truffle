@@ -7,6 +7,7 @@ import au.mrcat.rivet.runtime.RiscvTrapException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class PrivilegedState {
     private PrivilegeMode mode = PrivilegeMode.Machine;
@@ -63,7 +64,7 @@ public final class PrivilegedState {
     private long mcause;
     private long mtval;
     private volatile boolean hardwareSeip;
-    private volatile long mip;
+    private final AtomicLong mip = new AtomicLong(0);
     private final Semaphore interruptsSemaphore;
 
     private long menvcfg;
@@ -139,25 +140,25 @@ public final class PrivilegedState {
     }
 
     public void setMsip() {
-        mip |= 0b1000;
+        mip.getAndUpdate(ip -> ip | 0b1000);
         if ((mie & 0b1000) != 0) {
             interruptsSemaphore.release();
         }
     }
 
     public void clearMsip() {
-        mip &= ~0b1000;
+        mip.getAndUpdate(ip -> ip & ~0b1000);
     }
 
     public void setSsip() {
-        mip |= 0b10;
+        mip.getAndUpdate(ip -> ip | 0b10);
         if ((mie & 0b10) != 0) {
             interruptsSemaphore.release();
         }
     }
 
     public void clearSsip() {
-        mip &= ~0b10;
+        mip.getAndUpdate(ip -> ip & 0b10);
     }
 
 
@@ -234,7 +235,7 @@ public final class PrivilegedState {
             case Csr.SEPC -> { return sepc; }
             case Csr.SCAUSE -> { return scause; }
             case Csr.STVAL -> { return stval; }
-            case Csr.SIP -> { return mip & mideleg; }
+            case Csr.SIP -> { return mip.get() & mideleg; }
 
             case Csr.STIMECMP -> {
                 if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) != 0) {
@@ -269,7 +270,7 @@ public final class PrivilegedState {
             case Csr.MEPC -> { return mepc; }
             case Csr.MCAUSE -> { return mcause; }
             case Csr.MTVAL -> { return mtval; }
-            case Csr.MIP -> { return mip; }
+            case Csr.MIP -> { return mip.get(); }
 
             case Csr.MENVCFG -> { return menvcfg; }
 
@@ -350,7 +351,7 @@ public final class PrivilegedState {
             case Csr.SEPC -> sepc = value & ~0b1;
             case Csr.SCAUSE -> scause = value;
             case Csr.STVAL -> stval = value;
-            case Csr.SIP -> mip = value & mideleg & INTERRUPT_WRITABLE_MASK_S;
+            case Csr.SIP -> mip.set(value & mideleg & INTERRUPT_WRITABLE_MASK_S);
 
             case Csr.STIMECMP -> {
                 if (mode != PrivilegeMode.Machine && (menvcfg & (1L << 63)) == 0) {
@@ -421,7 +422,7 @@ public final class PrivilegedState {
             case Csr.MEPC -> mepc = value & ~0b1;
             case Csr.MCAUSE -> mcause = value;
             case Csr.MTVAL -> mtval = value;
-            case Csr.MIP -> mip = value & INTERRUPT_WRITABLE_MASK_M;
+            case Csr.MIP -> mip.set(value & INTERRUPT_WRITABLE_MASK_M);
 
             case Csr.MENVCFG -> menvcfg = value & MENVCFG_WRITABLE_MASK;
 
@@ -441,11 +442,41 @@ public final class PrivilegedState {
         }
     }
 
+    public long readXchgMip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_M;
+        return mip.getAndUpdate(ip -> (ip & ~INTERRUPT_WRITABLE_MASK_M) | writableValue);
+    }
+
+    public long readOrMip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_M;
+        return mip.getAndUpdate(ip -> ip | writableValue);
+    }
+
+    public long readMaskMip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_M;
+        return mip.getAndUpdate(ip -> ip & ~writableValue);
+    }
+
+    public long readXchgSip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_S;
+        return readXchgMip(writableValue & mideleg) & mideleg;
+    }
+
+    public long readOrSip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_S;
+        return readOrMip(writableValue & mideleg) & mideleg;
+    }
+
+    public long readMaskSip(long value) {
+        long writableValue = value & INTERRUPT_WRITABLE_MASK_S;
+        return readMaskMip(writableValue & mideleg) & mideleg;
+    }
+
     public void trigger(int interrupt) {
         if (interrupt == 9) {
             hardwareSeip = true;
         } else {
-            mip |= (1L << interrupt);
+            mip.getAndUpdate(ip -> ip | (1L << interrupt));
         }
         if ((mie & (1L << interrupt)) != 0) {
             interruptsSemaphore.release();
@@ -456,7 +487,7 @@ public final class PrivilegedState {
         if (interrupt == 9) {
             hardwareSeip = false;
         } else {
-            mip &= ~(1L << interrupt);
+            mip.getAndUpdate(ip -> ip & ~(1L << interrupt));
         }
         if ((mie & (1L << interrupt)) != 0) {
             interruptsSemaphore.release();
@@ -614,9 +645,9 @@ public final class PrivilegedState {
             return 0;
         }
         if (hardwareSeip) {
-            return (mip | (1 << 9)) & mie & mideleg;
+            return (mip.get() | (1 << 9)) & mie & mideleg;
         }
-        return mip & mie & mideleg;
+        return mip.get() & mie & mideleg;
     }
 
     private long currentPendingMachineInterrupts() {
@@ -624,9 +655,9 @@ public final class PrivilegedState {
             return 0;
         }
         if (hardwareSeip) {
-            return (mip | (1 << 9)) & mie & ~mideleg;
+            return (mip.get() | (1 << 9)) & mie & ~mideleg;
         }
-        return mip & mie & ~mideleg;
+        return mip.get() & mie & ~mideleg;
     }
 
     public void checkForInterrupts(long pc) throws RiscvTrapException {

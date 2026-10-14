@@ -36,7 +36,6 @@ public class CsrRmwNode extends RivetCsrwNode {
             // Use the temp (0) register as the operand
             frame.setLongStatic(0, previousValue);
             ctx.privilegedState.tryWrite(csr, op.executeLong(frame, basePc, priv));
-            previousValue = ctx.privilegedState.reconstituteHardwareSeip(csr, previousValue);
             frame.setLongStatic(rd, previousValue);
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
