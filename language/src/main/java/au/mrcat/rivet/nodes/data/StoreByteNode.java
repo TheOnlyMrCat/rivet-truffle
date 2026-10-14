@@ -4,6 +4,7 @@ import au.mrcat.rivet.nodes.RivetInstructionNode;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class StoreByteNode extends RivetInstructionNode {
@@ -12,6 +13,9 @@ public class StoreByteNode extends RivetInstructionNode {
     @Child RivetOpNode value;
     private final long pcOffset;
     private final short instret;
+
+    private enum SpecializationState { PHYSICAL, MMIO }
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
 
     public StoreByteNode(RivetOpNode address, long offset, RivetOpNode value, long pcOffset, short instret) {
         this.address = address;
@@ -27,7 +31,17 @@ public class StoreByteNode extends RivetInstructionNode {
         long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
             byte value1 = (byte) value.executeLong(frame, basePc, priv);
-            ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress, ctx), value1);
+            if (specializationState == SpecializationState.PHYSICAL) {
+                try {
+                    ctx.physicalMemory.writePhysicalByte(priv.translateWriteAddress(virtualAddress, ctx), value1);
+                } catch (IndexOutOfBoundsException ignored) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    specializationState = SpecializationState.MMIO;
+                    ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress, ctx), value1);
+                }
+            } else {
+                ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress, ctx), value1);
+            }
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

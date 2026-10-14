@@ -28,7 +28,7 @@ public class LoadWordReservedNode extends RivetOpNode {
             }
             long physicalAddress = priv.translateReadAddress(virtualAddress, ctx);
             ctx.physicalMemory.reserveIntAddress(physicalAddress);
-            return ctx.physicalMemory.readInt(physicalAddress, priv.readAccessType());
+            return ctx.physicalMemory.readPhysicalInt(physicalAddress);
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
             trap.setTval(virtualAddress);

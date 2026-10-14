@@ -4,6 +4,7 @@ import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.ExceptionCause;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class AmoWordNode extends RivetOpNode {
@@ -11,6 +12,9 @@ public class AmoWordNode extends RivetOpNode {
     @Child RivetOpNode op;
     private final long pcOffset;
     private final short instret;
+
+    private enum SpecializationState { PHYSICAL, MMIO }
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
 
     public AmoWordNode(RivetOpNode address, RivetOpNode op, long pcOffset, short instret) {
         this.address = address;
@@ -28,6 +32,21 @@ public class AmoWordNode extends RivetOpNode {
             throw new RiscvTrapException(ExceptionCause.StoreAmoAccessFault, basePc + pcOffset, address, instret);
         }
         try {
+            if (specializationState == SpecializationState.PHYSICAL) {
+                try {
+                    int originalValue = ctx.physicalMemory.readPhysicalInt(priv.translateReadAddress(address, ctx));
+
+                    // Use the zero register as a temporary
+                    frame.setLongStatic(0, originalValue);
+                    long opResult = op.executeLong(frame, basePc, priv);
+
+                    ctx.physicalMemory.writePhysicalInt(priv.translateWriteAddress(address, ctx), (int) opResult);
+                    return originalValue;
+                } catch (IndexOutOfBoundsException ignored) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    specializationState = SpecializationState.MMIO;
+                }
+            }
             int originalValue = ctx.physicalMemory.readInt(priv.translateReadAddress(address, ctx), priv.readAccessType());
 
             // Use the zero register as a temporary

@@ -13,6 +13,9 @@ public class LoadWordNode extends RivetOpNode {
     private final long pcOffset;
     private final short instret;
 
+    private enum SpecializationState { PHYSICAL, MMIO }
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
+
     public LoadWordNode(RivetOpNode address, int offset, long pcOffset, short instret) {
         this.address = address;
         this.offset = offset;
@@ -32,6 +35,14 @@ public class LoadWordNode extends RivetOpNode {
                 int sb2 = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress + 2, ctx)));
                 int msb = Byte.toUnsignedInt(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress + 3, ctx)));
                 return lsb | (sb1 << 8) | (sb2 << 16) | (msb << 24);
+            }
+            if (specializationState == SpecializationState.PHYSICAL) {
+                try {
+                    return ctx.physicalMemory.readPhysicalInt(priv.translateReadAddress(virtualAddress, ctx));
+                } catch (IndexOutOfBoundsException ignored) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    specializationState = SpecializationState.MMIO;
+                }
             }
             return ctx.physicalMemory.readInt(priv.translateReadAddress(virtualAddress, ctx), priv.readAccessType());
         } catch (RiscvTrapException trap) {

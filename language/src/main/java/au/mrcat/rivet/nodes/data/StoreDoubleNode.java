@@ -16,6 +16,9 @@ public class StoreDoubleNode extends RivetInstructionNode {
     private final long pcOffset;
     private final short instret;
 
+    private enum SpecializationState { PHYSICAL, MMIO }
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
+
     public StoreDoubleNode(RivetOpNode address, long offset, RivetOpNode value, long pcOffset, short instret) {
         this.address = address;
         this.offset = offset;
@@ -40,6 +43,14 @@ public class StoreDoubleNode extends RivetInstructionNode {
                 ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 5, ctx), (byte) (value1 >> 40));
                 ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 6, ctx), (byte) (value1 >> 48));
                 ctx.physicalMemory.writeByte(priv.translateWriteAddress(virtualAddress + 7, ctx), (byte) (value1 >> 56));
+            } else if (specializationState == SpecializationState.PHYSICAL) {
+                try {
+                    ctx.physicalMemory.writePhysicalLong(priv.translateWriteAddress(virtualAddress, ctx), value1);
+                } catch (IndexOutOfBoundsException ignored) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    specializationState = SpecializationState.MMIO;
+                    ctx.physicalMemory.writeLong(priv.translateWriteAddress(virtualAddress, ctx), value1);
+                }
             } else {
                 ctx.physicalMemory.writeLong(priv.translateWriteAddress(virtualAddress, ctx), value1);
             }

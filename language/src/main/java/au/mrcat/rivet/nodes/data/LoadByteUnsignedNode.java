@@ -3,6 +3,7 @@ package au.mrcat.rivet.nodes.data;
 import au.mrcat.rivet.nodes.RivetOpNode;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 public class LoadByteUnsignedNode extends RivetOpNode {
@@ -10,6 +11,9 @@ public class LoadByteUnsignedNode extends RivetOpNode {
     private final int offset;
     private final long pcOffset;
     private final short instret;
+
+    private enum SpecializationState { PHYSICAL, MMIO }
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
 
     public LoadByteUnsignedNode(RivetOpNode address, int offset, long pcOffset, short instret) {
         this.address = address;
@@ -23,6 +27,14 @@ public class LoadByteUnsignedNode extends RivetOpNode {
         var ctx = currentLanguageContext();
         long virtualAddress = address.executeLong(frame, basePc, priv) + offset;
         try {
+            if (specializationState == SpecializationState.PHYSICAL) {
+                try {
+                    return Byte.toUnsignedLong(ctx.physicalMemory.readPhysicalByte(priv.translateReadAddress(virtualAddress, ctx)));
+                } catch (IndexOutOfBoundsException ignored) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    specializationState = SpecializationState.MMIO;
+                }
+            }
             return Byte.toUnsignedLong(ctx.physicalMemory.readByte(priv.translateReadAddress(virtualAddress, ctx)));
         } catch (RiscvTrapException trap) {
             trap.setPc(basePc + pcOffset);
