@@ -30,7 +30,7 @@ public class Main {
             throw new RuntimeException(e);
         }
 
-        Context context = Context.newBuilder("rv64").in(System.in).build();
+        Context context = Context.newBuilder("rv64").in(System.in).allowExperimentalOptions(true).option("engine.Compilation", "false").build();
         Value result = context.eval(source);
         System.exit((int) result.asLong());
     }
