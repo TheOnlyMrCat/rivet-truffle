@@ -29,7 +29,7 @@ public class RivetCallTargetNode extends RootNode {
 
     private final long entryPc;
     private final int firstBlockIndex;
-    private final PrivilegedContext priv;
+    private PrivilegedContext priv;
 
     private final boolean needsFpState;
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final boolean[] xregReadMask;
