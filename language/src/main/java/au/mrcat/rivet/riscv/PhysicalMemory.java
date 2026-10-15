@@ -138,11 +138,9 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
     public void writePhysicalByte(long physicalAddress, byte value) {
         byteArray.putByte(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeShort(long physicalAddress, short value) throws RiscvTrapException {
@@ -151,11 +149,9 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
     public void writePhysicalShort(long physicalAddress, short value) {
         byteArray.putShort(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeInt(long physicalAddress, int value) throws RiscvTrapException {
@@ -164,11 +160,9 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
     public void writePhysicalInt(long physicalAddress, int value) {
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
 
     public void writeLong(long physicalAddress, long value) throws RiscvTrapException {
@@ -177,11 +171,9 @@ public class PhysicalMemory {
             return;
         }
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
     public void writePhysicalLong(long physicalAddress, long value) {
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
     }
 
     public boolean writeIntConditional(long physicalAddress, int value) throws RiscvTrapException {
@@ -197,7 +189,6 @@ public class PhysicalMemory {
             return false;
         }
         byteArray.putInt(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
         return true;
     }
 
@@ -214,7 +205,6 @@ public class PhysicalMemory {
             return false;
         }
         byteArray.putLong(memory, physicalAddress - 0x8000_0000L, value);
-        invalidateInstructionPage(physicalAddress);
         return true;
     }
 
@@ -268,28 +258,6 @@ public class PhysicalMemory {
         }
 
         ctx.ffi.rustStore(physicalAddress, value, (byte) (width.bytes * 8));
-    }
-
-    public void markInstructionPage(long physicalAddress, InstructionParseRequest key) {
-        var page = (physicalAddress - 0x8000_0000L) & ~0xfff;
-        isInstructionPage[Math.toIntExact(page >> 12)] = true;
-        instructionPages.computeIfAbsent(page, _ -> new HashSet<>()).add(key);
-    }
-
-    public void invalidateInstructionPage(long physicalAddress) {
-        var page = (physicalAddress - 0x8000_0000L) & ~0xfff;
-        if (isInstructionPage[Math.toIntExact(page >> 12)]) {
-            markDirtyCallTargets(page);
-        }
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    public void markDirtyCallTargets(long page) {
-        isInstructionPage[Math.toIntExact(page >> 12)] = false;
-        var callTargets = instructionPages.remove(page);
-        for (var key : callTargets) {
-            key.root().markDirtyCallTarget(key);
-        }
     }
 
     public byte[] getMemory() {
