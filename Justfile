@@ -66,18 +66,14 @@ bench-full mmu="false" target="12" runs="50":
     import shutil
     import subprocess
 
-    iterations = 10000
     for i in range(5):
-        print(f"\rCalibrating: [{i+1}/5] (iterations={iterations})", end="")
+        print("\rCalibrating: [{i+1}/5]", end="")
         subprocess.run(["just", "clean-coremark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["just", "build-coremark", "--iterations", str(iterations), "--mmu", "{{mmu}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["just", "build-coremark", "--mmu", "{{mmu}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         result = subprocess.run("LD_LIBRARY_PATH={{rlib_path}} java -p $(<launcher/target/cp.txt):launcher/target/classes -m au.mrcat.rivet.launcher/au.mrcat.rivet.launcher.Main vendor/coremark/coremark.elf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         lines = result.stdout.split("\n")
         try:
             time = int(lines[2][19:].strip())/1000000
-            ips = iterations/time
-            iterations = ips * {{target}}
-            iterations = int(round(iterations, -int(floor(log10(iterations))) + 1))
         except IndexError:
             print("Failed to run rivet-truffle")
             print("Stdout:")
@@ -87,9 +83,6 @@ bench-full mmu="false" target="12" runs="50":
             print(result.stderr)
             exit(1)
 
-
-    print()
-    print(f"Iterations: {iterations}")
 
     os.makedirs("results", exist_ok=True)
     for i in range({{runs}}):

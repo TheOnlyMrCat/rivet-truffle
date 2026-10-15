@@ -110,6 +110,7 @@ public class RivetRootNode extends RootNode {
                         cpuState.setPc(fence.getNextPc());
                         invalidateDirtyCallTargets();
                     }
+                    clearCallTargets();
                 }
             } catch (RiscvExitException exit) {
                 return exit.exitCode;
