@@ -66,7 +66,7 @@ bench-full mmu="false" target="12" runs="50":
     import shutil
     import subprocess
 
-    iterations = 10000
+    iterations = 200
     for i in range(5):
         print(f"\rCalibrating: [{i+1}/5] (iterations={iterations})", end="")
         subprocess.run(["just", "clean-coremark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -86,7 +86,6 @@ bench-full mmu="false" target="12" runs="50":
             print("Stderr:")
             print(result.stderr)
             exit(1)
-
 
     print()
     print(f"Iterations: {iterations}")
