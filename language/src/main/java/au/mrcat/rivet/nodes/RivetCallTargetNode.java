@@ -29,7 +29,7 @@ public class RivetCallTargetNode extends RootNode {
 
     private final long entryPc;
     private final int firstBlockIndex;
-    private final PrivilegedContext priv;
+    private PrivilegedContext priv;
     private final boolean needsFpState;
 
     public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv, boolean needsFpState) {

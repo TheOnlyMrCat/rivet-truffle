@@ -17,7 +17,6 @@ public class Sv39AddressSpace extends AddressSpace {
     }
 
     @Override
-    @ExplodeLoop
     public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) throws RiscvTrapException {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
