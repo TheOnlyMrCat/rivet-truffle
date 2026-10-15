@@ -70,19 +70,8 @@ public class RivetRootNode extends RootNode {
         }
     }
 
-    private void invalidateDirtyCallTargets() {
-        for (var invalidated : invalidatedCallTargets) {
-            invalidateCallTarget(invalidated);
-        }
-        invalidatedCallTargets.clear();
-    }
-
     public void invalidateCallTarget(InstructionParseRequest request) {
         invalidateCallTarget(new CallTargetKey(request));
-    }
-
-    public void markDirtyCallTarget(InstructionParseRequest request) {
-        invalidatedCallTargets.add(new CallTargetKey(request));
     }
 
     private void clearCallTargets() {
@@ -129,7 +118,7 @@ public class RivetRootNode extends RootNode {
                         cpuState = fence.getState();
                         ctx.privilegedState.stepPerformanceCounters(fence.getInstret());
                         cpuState.setPc(fence.getNextPc());
-                        invalidateDirtyCallTargets();
+                        clearCallTargets();
                     }
                 }
             } catch (RiscvExitException exit) {
