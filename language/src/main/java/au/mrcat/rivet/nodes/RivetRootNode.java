@@ -24,9 +24,8 @@ public class RivetRootNode extends RootNode {
     private final RivetLanguage language;
     @Child private RivetStartupNode startupNode;
 
-    @Children private DirectCallNode[] callTargets;
     private int callTargetsLength;
-    private final Map<CallTargetKey, Integer> callTargetPcs;
+    private final Map<CallTargetKey, DirectCallNode> callTargetPcs;
     private final Set<CallTargetKey> invalidatedCallTargets;
     private final ArrayList<Integer> freeCallTargets;
 
@@ -38,13 +37,12 @@ public class RivetRootNode extends RootNode {
 
         this.language = language;
         this.startupNode = startupNode;
-        this.callTargets = new DirectCallNode[16];
         this.callTargetsLength = 0;
         this.callTargetPcs = new LinkedHashMap<>(16, .75f, true) {
             private static final int MAX_CALL_TARGETS = 10000;
 
             @Override
-            protected boolean removeEldestEntry(Map.Entry<CallTargetKey, Integer> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<CallTargetKey, DirectCallNode> eldest) {
                 return size() > MAX_CALL_TARGETS;
             }
         };
@@ -52,29 +50,8 @@ public class RivetRootNode extends RootNode {
         freeCallTargets = new ArrayList<>();
     }
 
-    private int addCallTarget(CallTarget callTarget) {
-        int newIndex;
-        if (freeCallTargets.isEmpty()) {
-            if (callTargetsLength == callTargets.length) {
-                callTargets = Arrays.copyOf(callTargets, callTargets.length * 2);
-            }
-            newIndex = callTargetsLength++;
-        } else {
-            newIndex = freeCallTargets.removeLast();
-        }
-        if (callTargets[newIndex] != null) {
-            throw new IllegalStateException("Attempted to override existing call target");
-        }
-        callTargets[newIndex] = DirectCallNode.create(callTarget);
-        return newIndex;
-    }
-
     private void invalidateCallTarget(CallTargetKey key) {
-        var callTargetIdx = callTargetPcs.remove(key);
-        if (callTargetIdx != null) {
-            callTargets[callTargetIdx] = null;
-            freeCallTargets.add(callTargetIdx);
-        }
+        callTargetPcs.remove(key);
     }
 
     private void invalidateDirtyCallTargets() {
@@ -93,7 +70,6 @@ public class RivetRootNode extends RootNode {
     }
 
     private void clearCallTargets() {
-        callTargets = new DirectCallNode[callTargetsLength];
         callTargetPcs.clear();
     }
 
@@ -110,8 +86,8 @@ public class RivetRootNode extends RootNode {
             try {
                 while (true) {
                     var key = new CallTargetKey(cpuState.getPc(), ctx.privilegedState.currentContext());
-                    Integer callTargetIndex = callTargetPcs.get(key);
-                    if (callTargetIndex == null) {
+                    var callTarget = callTargetPcs.get(key);
+                    if (callTarget == null) {
                         CompilerDirectives.transferToInterpreter();
                         RivetCallTargetNode root;
                         try {
@@ -122,14 +98,10 @@ public class RivetRootNode extends RootNode {
                             cpuState.setPc(ctx.privilegedState.handleException(trap));
                             continue;
                         }
-                        callTargetIndex = addCallTarget(root.getCallTarget());
-                        callTargetPcs.put(key, callTargetIndex);
-//                        for (long entryPc : root.getPcOffsets()) {
-//                            callTargetPcs.put(entryPc, callTargetIndex);
-//                        }
+                        callTarget = DirectCallNode.create(root.getCallTarget());
+                        callTargetPcs.put(key, callTarget);
                     }
 
-                    var callTarget = callTargets[callTargetIndex];
                     try {
                         cpuState = (RegisterState) callTarget.call(cpuState);
                     } catch (RiscvInstructionFenceException fence) {
