@@ -113,7 +113,7 @@ impl PlicCore {
 
     pub fn complete(&mut self, source: usize) {
         self.sources[source].claimed = false;
-        // FIXME: Refresh interrupts?
+        self.refresh_interrupts();
     }
 }
 
@@ -122,7 +122,7 @@ pub struct Plic {
 }
 
 impl Plic {
-    const INTERRUPT_MASK: u32 = 0b1110;
+    const INTERRUPT_MASK: u32 = 0b11111110;
 
     pub fn new(m_external: Interrupt, s_external: Interrupt) -> Self {
         Self {
@@ -133,7 +133,7 @@ impl Plic {
                         triggered: false,
                         claimed: false
                     };
-                    4
+                    8
                 ],
                 contexts: vec![
                     Context {
