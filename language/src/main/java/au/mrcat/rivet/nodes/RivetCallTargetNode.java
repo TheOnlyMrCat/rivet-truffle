@@ -121,7 +121,6 @@ public class RivetCallTargetNode extends RootNode {
                     // IndirectJumpExceptions should only be thrown in divergent nodes at the end of basic blocks, and only when
                     // they retire normally, so the block's instret counter is correct.
                     ctx.privilegedState.stepPerformanceCounters(basicBlockNodes[block].instructionsRetired);
-                    ctx.privilegedState.checkForInterrupts(jump.getTargetPc());
                     copyToRegisterState(frame, registers);
 
                     // Handling an indirect jump is the root's "normal" case, so return normally here instead of rethrowing.
