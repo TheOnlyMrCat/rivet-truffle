@@ -198,9 +198,7 @@ public class RivetCallTargetNode extends RootNode {
             int block = firstBlockIndex;
             while (true) {
                 CompilerAsserts.partialEvaluationConstant(basePcs[block]);
-                if (blockHasInterruptCheck[block]) {
-                    ctx.privilegedState.checkForInterrupts(basePcs[block]);
-                }
+                ctx.privilegedState.checkForInterrupts(basePcs[block]);
 
                 int successorIndex;
                 try {
