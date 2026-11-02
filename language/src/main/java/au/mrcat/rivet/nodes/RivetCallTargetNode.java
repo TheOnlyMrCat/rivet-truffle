@@ -24,7 +24,7 @@ import java.util.Stack;
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] basePcs;
-    private final boolean[] blockHasInterruptCheck;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final boolean[] blockHasInterruptCheck;
 
     @Children BareSetRegisterNode[] copyFromState = new BareSetRegisterNode[31];
     @Children GetRegisterNode[] copyToState = new GetRegisterNode[31];
