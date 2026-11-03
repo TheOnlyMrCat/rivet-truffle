@@ -1,6 +1,7 @@
 package au.mrcat.rivet.nodes.data;
 
 import au.mrcat.rivet.nodes.RivetOpNode;
+import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.runtime.RiscvTrapException;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -14,10 +15,11 @@ public class GetRegisterNode extends RivetOpNode {
         this.register = register;
     }
 
-    public static RivetOpNode create(int register) {
+    public static RivetOpNode create(int register, RivetParser.CallTargetContents contents) {
         if (register == 0) {
             return new ConstantNode(0);
         } else {
+            contents.markReadXreg(register);
             return new GetRegisterNode(register);
         }
     }

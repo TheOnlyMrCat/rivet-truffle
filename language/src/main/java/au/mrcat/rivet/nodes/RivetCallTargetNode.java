@@ -4,6 +4,7 @@ import au.mrcat.rivet.RivetContext;
 import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.nodes.data.BareSetRegisterNode;
 import au.mrcat.rivet.nodes.data.GetRegisterNode;
+import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.riscv.PrivilegedContext;
 import au.mrcat.rivet.riscv.RegisterState;
 import au.mrcat.rivet.runtime.RiscvIndirectJumpException;
@@ -24,19 +25,19 @@ public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] basePcs;
 
-    @Children BareSetRegisterNode[] copyFromState = new BareSetRegisterNode[31];
-    @Children GetRegisterNode[] copyToState = new GetRegisterNode[31];
-
     private final long entryPc;
     private final int firstBlockIndex;
     private final PrivilegedContext priv;
-    private final boolean needsFpState;
 
-    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv, boolean needsFpState) {
+    private final boolean needsFpState;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final boolean[] xregReadMask;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final boolean[] xregWriteMask;
+
+    public RivetCallTargetNode(RivetLanguage language, long entryPc, SortedMap<Long, RivetBasicBlockNode> basicBlocks, PrivilegedContext priv, RivetParser.CallTargetContents contents) {
         var frameDescriptor = FrameDescriptor.newBuilder();
 //        frameDescriptor.useSlotKinds(false);
         frameDescriptor.addSlots(32, FrameSlotKind.Static);
-        if (needsFpState) {
+        if (contents.needsFpState()) {
             frameDescriptor.addSlots(32, FrameSlotKind.Static);
         }
         super(language, frameDescriptor.build());
@@ -61,19 +62,18 @@ public class RivetCallTargetNode extends RootNode {
             }
         }
 
-        for (int i = 0; i < 31; i++) {
-            copyFromState[i] = new BareSetRegisterNode(i + 1);
-            copyToState[i] = (GetRegisterNode) GetRegisterNode.create(i + 1);
-        }
-
         this.entryPc = entryPc;
-        this.needsFpState = needsFpState;
+        this.needsFpState = contents.needsFpState();
+        xregReadMask = contents.getXregReadMask();
+        xregWriteMask = contents.getXregWriteMask();
     }
 
     @ExplodeLoop
     private void copyFromRegisterState(VirtualFrame frame, RegisterState state) {
-        for (int i = 0; i < 31; i++) {
-            copyFromState[i].executeVoid(frame, state.getRegister(i + 1));
+        for (int i = 1; i < 32; i++) {
+            if (xregReadMask[i]) {
+                frame.setLongStatic(i, state.getRegister(i));
+            }
         }
         if (needsFpState) {
             for (int i = 0; i < 32; i++) {
@@ -84,11 +84,9 @@ public class RivetCallTargetNode extends RootNode {
 
     @ExplodeLoop
     private void copyToRegisterState(VirtualFrame frame, RegisterState state) {
-        for (int i = 0; i < 31; i++) {
-            try {
-                state.setRegister(i+1, copyToState[i].executeLong(frame, 0, priv));
-            } catch (RiscvTrapException e) {
-                throw new RuntimeException(e);
+        for (int i = 1; i < 32; i++) {
+            if (xregWriteMask[i]) {
+                state.setRegister(i, frame.getLongStatic(i));
             }
         }
         if (needsFpState) {
