@@ -20,10 +20,12 @@ import com.oracle.truffle.api.nodes.RootNode;
 
 import java.util.Arrays;
 import java.util.SortedMap;
+import java.util.Stack;
 
 public class RivetCallTargetNode extends RootNode {
     @Children RivetBasicBlockNode[] basicBlockNodes;
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final long[] basePcs;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final boolean[] blockHasInterruptCheck;
 
     private final long entryPc;
     private final int firstBlockIndex;
@@ -66,6 +68,91 @@ public class RivetCallTargetNode extends RootNode {
         this.needsFpState = contents.needsFpState();
         xregReadMask = contents.getXregReadMask();
         xregWriteMask = contents.getXregWriteMask();
+
+        this.blockHasInterruptCheck = applyInterruptChecks(basicBlockNodes);
+    }
+
+    // Interrupt-check algorithm from T. Spink, et al.'s paper, Efficient Asynchronous Interrupt
+    // Handling in a Full-System Instruction Set Simulator (https://dl.acm.org/doi/10.1145/2907950.2907953)
+    private static class InterruptCheckBookkeeping {
+        int nextIndex;
+        int rmCount;
+        final int[] blockIndexes;
+        final int[] blockLowLinks;
+        final boolean[] blocksSeen;
+        final boolean[] blockHasInterruptCheck;
+        final boolean[] blockOnStack;
+        final Stack<Integer> blockStack;
+
+        InterruptCheckBookkeeping(int blockCount) {
+            nextIndex = 0;
+            rmCount = 0;
+            blockIndexes = new int[blockCount];
+            blockLowLinks = new int[blockCount];
+            blocksSeen = new boolean[blockCount];
+            blockHasInterruptCheck = new boolean[blockCount];
+            blockOnStack = new boolean[blockCount];
+            blockStack = new Stack<>();
+        }
+    }
+
+    private static boolean[] applyInterruptChecks(RivetBasicBlockNode[] basicBlockNodes) {
+        InterruptCheckBookkeeping bk = new InterruptCheckBookkeeping(basicBlockNodes.length);
+        do {
+            bk.rmCount = 0;
+            for (int block = 0; block < basicBlockNodes.length; block++) {
+                for (int successor : basicBlockNodes[block].successorIndices) {
+                    if (successor == block) {
+                        // Self-loop
+                        bk.blockHasInterruptCheck[block] = true;
+                        break;
+                    }
+                }
+                if (!bk.blockHasInterruptCheck[block]) {
+                    strongConnect(basicBlockNodes, block, bk);
+                }
+            }
+        } while (bk.rmCount != 0);
+        
+        return bk.blockHasInterruptCheck;
+    }
+
+    private static void strongConnect(RivetBasicBlockNode[] workUnit, int startBlock, InterruptCheckBookkeeping bk) {
+        bk.blockIndexes[startBlock] = bk.nextIndex;
+        bk.blockLowLinks[startBlock] = bk.nextIndex;
+        bk.blocksSeen[startBlock] = true;
+        bk.nextIndex++;
+
+        bk.blockStack.push(startBlock);
+        bk.blockOnStack[startBlock] = true;
+
+        for (int successor : workUnit[startBlock].successorIndices) {
+            if (bk.blockHasInterruptCheck[successor]) {
+                continue;
+            }
+
+            if (!bk.blocksSeen[successor]) {
+                strongConnect(workUnit, successor, bk);
+                bk.blockLowLinks[startBlock] = Integer.min(bk.blockLowLinks[startBlock], bk.blockLowLinks[successor]);
+            } else if (bk.blockOnStack[successor]) {
+                bk.blockLowLinks[startBlock] = Integer.min(bk.blockLowLinks[startBlock], bk.blockIndexes[successor]);
+            }
+        }
+
+        if (bk.blockLowLinks[startBlock] == bk.blockIndexes[startBlock]) {
+            int count = 0;
+            int stackedBlock;
+            do {
+                stackedBlock = bk.blockStack.pop();
+                bk.blockOnStack[stackedBlock] = false;
+                count++;
+            } while (stackedBlock != startBlock);
+
+            if (count > 1) {
+                bk.blockHasInterruptCheck[startBlock] = true;
+                bk.rmCount++;
+            }
+        }
     }
 
     @ExplodeLoop
@@ -111,6 +198,9 @@ public class RivetCallTargetNode extends RootNode {
             int block = firstBlockIndex;
             while (true) {
                 CompilerAsserts.partialEvaluationConstant(basePcs[block]);
+                if (blockHasInterruptCheck[block]) {
+                    ctx.privilegedState.checkForInterrupts(basePcs[block]);
+                }
 
                 int successorIndex;
                 try {
@@ -130,11 +220,7 @@ public class RivetCallTargetNode extends RootNode {
                 // but introduces branching points for Truffle to unroll different paths through the loop.
                 for (int i = 0; i < basicBlockNodes[block].successorIndices.length; i++) {
                     if (successorIndex == i) {
-                        int nextBlock = basicBlockNodes[block].successorIndices[i];
-                        if (nextBlock <= block) {
-                            ctx.privilegedState.checkForInterrupts(basePcs[nextBlock]);
-                        }
-                        block = nextBlock;
+                        block = basicBlockNodes[block].successorIndices[i];
                     }
                 }
             }
