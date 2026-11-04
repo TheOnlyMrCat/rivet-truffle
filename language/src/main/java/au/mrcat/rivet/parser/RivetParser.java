@@ -228,7 +228,7 @@ public final class RivetParser {
                     case Opcode.LOAD_FP -> parseLoadFp(instruction, pcOffset, instret, priv, contents);
                     case Opcode.MISC_MEM -> parseMiscMem(instruction, pcOffset, instret);
                     case Opcode.OP_IMM -> parseOpImm(instruction, pcOffset, instret, contents);
-                    case Opcode.AUIPC -> parseAuipc(instruction, pcOffset);
+                    case Opcode.AUIPC -> parseAuipc(instruction, pcOffset, contents);
                     case Opcode.OP_IMM_32 -> parseOpImm32(instruction, pcOffset, instret, contents);
                     case Opcode.STORE -> parseStore(instruction, pcOffset, instret, contents);
                     case Opcode.STORE_FP -> parseStoreFp(instruction, pcOffset, instret, priv, contents);
@@ -745,13 +745,14 @@ public final class RivetParser {
         return new SetRegisterNode(rd, op);
     }
 
-    private static RivetInstructionNode parseAuipc(int instruction, long pcOffset) {
+    private static RivetInstructionNode parseAuipc(int instruction, long pcOffset, CallTargetContents contents) {
         int rd = (instruction >> 7) & 0b11111;
         long immSigned = (instruction >> 12) << 12;
 
         if (rd == 0) {
             return new HintNode(instruction);
         }
+        contents.markWriteXreg(rd);
         return new SetRegisterNode(rd, new PcOffsetNode(pcOffset + immSigned));
     }
 

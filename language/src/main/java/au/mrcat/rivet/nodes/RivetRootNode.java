@@ -5,7 +5,6 @@ import au.mrcat.rivet.RivetLanguage;
 import au.mrcat.rivet.parser.RivetParser;
 import au.mrcat.rivet.riscv.*;
 import au.mrcat.rivet.runtime.*;
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -24,10 +23,8 @@ public class RivetRootNode extends RootNode {
     private final RivetLanguage language;
     @Child private RivetStartupNode startupNode;
 
-    private int callTargetsLength;
     private final Map<CallTargetKey, DirectCallNode> callTargetPcs;
     private final Set<CallTargetKey> invalidatedCallTargets;
-    private final ArrayList<Integer> freeCallTargets;
 
     public RivetRootNode(RivetLanguage language, RivetStartupNode startupNode) {
         var frameDescriptor = FrameDescriptor.newBuilder();
@@ -37,9 +34,8 @@ public class RivetRootNode extends RootNode {
 
         this.language = language;
         this.startupNode = startupNode;
-        this.callTargetsLength = 0;
-        this.callTargetPcs = new LinkedHashMap<>(16, .75f, false) {
-            private static final int MAX_CALL_TARGETS = 10000;
+        this.callTargetPcs = new LinkedHashMap<>(16, .75f, true) {
+            private static final int MAX_CALL_TARGETS = 1000000;
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<CallTargetKey, DirectCallNode> eldest) {
@@ -47,7 +43,6 @@ public class RivetRootNode extends RootNode {
             }
         };
         this.invalidatedCallTargets = new HashSet<>();
-        freeCallTargets = new ArrayList<>();
     }
 
     private void invalidateCallTarget(CallTargetKey key) {
@@ -77,7 +72,7 @@ public class RivetRootNode extends RootNode {
     public Object execute(VirtualFrame frame) {
         var ctx = RivetContext.get(this);
         while (true) {
-            RegisterState cpuState = null;
+            RegisterState cpuState;
             try {
                 cpuState = startupNode.executeState(frame);
             } catch (RiscvTrapException e) {
