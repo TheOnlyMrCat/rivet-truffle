@@ -17,7 +17,7 @@ public class StoreDoubleNode extends RivetInstructionNode {
     private final short instret;
 
     private enum SpecializationState { PHYSICAL, MMIO }
-    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.MMIO;
 
     public StoreDoubleNode(RivetOpNode address, long offset, RivetOpNode value, long pcOffset, short instret) {
         this.address = address;

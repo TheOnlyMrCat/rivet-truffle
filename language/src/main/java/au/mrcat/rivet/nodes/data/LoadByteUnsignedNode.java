@@ -13,7 +13,7 @@ public class LoadByteUnsignedNode extends RivetOpNode {
     private final short instret;
 
     private enum SpecializationState { PHYSICAL, MMIO }
-    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.MMIO;
 
     public LoadByteUnsignedNode(RivetOpNode address, int offset, long pcOffset, short instret) {
         this.address = address;

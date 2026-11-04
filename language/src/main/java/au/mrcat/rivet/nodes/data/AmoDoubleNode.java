@@ -14,7 +14,7 @@ public class AmoDoubleNode extends RivetOpNode {
     private final short instret;
 
     private enum SpecializationState { PHYSICAL, MMIO }
-    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.PHYSICAL;
+    @CompilerDirectives.CompilationFinal private SpecializationState specializationState = SpecializationState.MMIO;
 
     public AmoDoubleNode(RivetOpNode address, RivetOpNode op, long pcOffset, short instret) {
         this.address = address;
