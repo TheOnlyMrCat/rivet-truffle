@@ -10,6 +10,27 @@ public class Sv39AddressSpace extends AddressSpace {
     @CompilerDirectives.CompilationFinal(dimensions = 1) private final byte[] memory;
     private final ByteArraySupport byteArray;
 
+    public static class TranslationDetails {
+        private boolean isUserPage;
+        private boolean isGlobal;
+
+        public boolean isUserPage() {
+            return isUserPage;
+        }
+
+        private void setUserPage(boolean userPage) {
+            isUserPage = userPage;
+        }
+
+        public boolean isGlobal() {
+            return isGlobal;
+        }
+
+        private void setGlobal(boolean global) {
+            isGlobal = global;
+        }
+    }
+
     public Sv39AddressSpace(long rootPageTablePpn, byte[] memory) {
         this.rootPageTableAddr = rootPageTablePpn << 12;
         this.memory = memory;
@@ -19,6 +40,10 @@ public class Sv39AddressSpace extends AddressSpace {
     @Override
     @ExplodeLoop
     public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) throws RiscvTrapException {
+        return toPhysicalAddress(virtualAddress, accessType, privilegedState, null);
+    }
+
+    public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState, TranslationDetails details) throws RiscvTrapException {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
         if (vte < -(1 << 27) || vte > (1 << 26)) {
@@ -89,6 +114,10 @@ public class Sv39AddressSpace extends AddressSpace {
 
         currentAddr |= (vte & superpageMask) << 12;
         currentAddr |= virtualAddress & (1 << 12) - 1;
+        if (details != null) {
+            details.setUserPage((pte & (1 << 4)) != 0);
+            details.setGlobal((pte & (1 << 5)) != 0);
+        }
         return currentAddr;
     }
 

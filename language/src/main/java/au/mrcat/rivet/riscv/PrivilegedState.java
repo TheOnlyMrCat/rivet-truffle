@@ -49,7 +49,7 @@ public final class PrivilegedState {
     private long satp;
     private AddressSpace addressSpace;
     private short currentAsid;
-    private final HashMap<Short, Sv39AddressSpace> cachedAddressSpaces;
+    private final HashMap<Short, TranslationLookasideBuffer> cachedAddressSpaces;
     private final HashMap<Short, HashSet<InstructionParseRequest>> addressSpaceCallTargets;
 
     private long mstatus = MSTATUS_RESET_VALUE;
@@ -375,9 +375,16 @@ public final class PrivilegedState {
                 } else if (mode == 8) {
                     satp = value;
                     currentAsid = (short) (satp >> 44L);
-                    var sv39Space =  cachedAddressSpaces.computeIfAbsent(currentAsid, _ -> new Sv39AddressSpace(satp & 0xfffffffffffL, ctx.physicalMemory.getMemory()));
-                    sv39Space.setRootPageTableAddr(satp & 0xfffffffffffL);
-                    addressSpace = sv39Space;
+                    var tlb = cachedAddressSpaces.computeIfAbsent(currentAsid, _ ->
+                            new TranslationLookasideBuffer(
+                                    new Sv39AddressSpace(
+                                            satp & 0xfffffffffffL,
+                                            ctx.physicalMemory.getMemory()
+                                    )
+                            )
+                    );
+                    tlb.getBaseAddressSpace().setRootPageTableAddr(satp & 0xfffffffffffL);
+                    addressSpace = tlb;
                 }
             }
 
@@ -620,8 +627,15 @@ public final class PrivilegedState {
     }
 
     public void fenceVirtualMemory(short asid) {
-        // Force a re-parse of those call targets. The address space object can stay the same; it will use updated
-        // values from physical memory if/when it is compiled again.
+        // Clear the TLB associated with this asid
+        var tlb = cachedAddressSpaces.get(asid);
+        if (tlb != null) {
+            tlb.clear();
+        }
+
+        // Force a re-parse of those call targets associated with this address space. The address
+        // space object can stay the same; it will use updated values from physical memory if/when
+        // it is compiled again.
         var callTargets = addressSpaceCallTargets.remove(asid);
         if (callTargets == null) {
             return;
