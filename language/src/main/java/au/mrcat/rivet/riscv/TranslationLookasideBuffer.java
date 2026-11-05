@@ -10,9 +10,9 @@ public class TranslationLookasideBuffer extends AddressSpace {
 
     private final Sv39AddressSpace baseAddressSpace;
 
-    private Entry[] read = new Entry[TLB_SIZE];
-    private Entry[] write = new Entry[TLB_SIZE];
-    private Entry[] exec = new Entry[TLB_SIZE];
+    private final Entry[] read = new Entry[TLB_SIZE];
+    private final Entry[] write = new Entry[TLB_SIZE];
+    private final Entry[] exec = new Entry[TLB_SIZE];
 
     public TranslationLookasideBuffer(Sv39AddressSpace baseAddressSpace) {
         this.baseAddressSpace = baseAddressSpace;
@@ -56,9 +56,11 @@ public class TranslationLookasideBuffer extends AddressSpace {
     }
 
     public void clear() {
-        read = new Entry[TLB_SIZE];
-        write = new Entry[TLB_SIZE];
-        exec = new Entry[TLB_SIZE];
+        for (int i = 0; i < TLB_SIZE; i++) {
+            read[i] = null;
+            write[i] = null;
+            exec[i] = null;
+        }
     }
 
     public Sv39AddressSpace getBaseAddressSpace() {
