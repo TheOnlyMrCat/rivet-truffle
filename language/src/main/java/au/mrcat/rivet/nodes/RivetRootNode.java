@@ -34,14 +34,7 @@ public class RivetRootNode extends RootNode {
 
         this.language = language;
         this.startupNode = startupNode;
-        this.callTargetPcs = new LinkedHashMap<>(16, .75f, false) {
-            private static final int MAX_CALL_TARGETS = 1000000;
-
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<CallTargetKey, DirectCallNode> eldest) {
-                return size() > MAX_CALL_TARGETS;
-            }
-        };
+        this.callTargetPcs = new HashMap<>();
         this.invalidatedCallTargets = new HashSet<>();
     }
 
