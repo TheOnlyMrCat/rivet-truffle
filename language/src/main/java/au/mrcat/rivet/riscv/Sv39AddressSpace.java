@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class Sv39AddressSpace extends AddressSpace {
     @CompilerDirectives.CompilationFinal private long rootPageTableAddr;
-    private final byte[] memory;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final byte[] memory;
     private final ByteArraySupport byteArray;
 
     public Sv39AddressSpace(long rootPageTablePpn, byte[] memory) {
