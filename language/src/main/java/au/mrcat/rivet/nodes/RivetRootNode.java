@@ -100,6 +100,12 @@ public class RivetRootNode extends RootNode {
                     } catch (RiscvTrapException trap) {
                         cpuState.setPc(ctx.privilegedState.handleException(trap));
                     }
+
+                    try {
+                        ctx.privilegedState.checkForInterrupts(cpuState.getPc());
+                    } catch (RiscvTrapException trap) {
+                        cpuState.setPc(ctx.privilegedState.handleException(trap));
+                    }
                 }
             } catch (RiscvExitException exit) {
                 return exit.exitCode;
