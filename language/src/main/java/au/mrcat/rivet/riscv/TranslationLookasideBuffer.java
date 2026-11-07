@@ -20,6 +20,7 @@ public class TranslationLookasideBuffer extends AddressSpace {
     }
 
     @Override
+    @CompilerDirectives.TruffleBoundary
     public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState) throws RiscvTrapException {
         int tlb_key = (int) ((virtualAddress >> 12) & TLB_SIZE - 1);
         Entry[] buffer = switch (accessType) {
