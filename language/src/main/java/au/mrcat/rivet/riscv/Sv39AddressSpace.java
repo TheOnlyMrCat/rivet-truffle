@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class Sv39AddressSpace extends AddressSpace {
     @CompilerDirectives.CompilationFinal private long rootPageTableAddr;
-    private final byte[] memory;
+    @CompilerDirectives.CompilationFinal(dimensions = 1) private final byte[] memory;
     private final ByteArraySupport byteArray;
 
     public static class TranslationDetails {
@@ -42,7 +42,7 @@ public class Sv39AddressSpace extends AddressSpace {
         return toPhysicalAddress(virtualAddress, accessType, privilegedState, null);
     }
 
-    @CompilerDirectives.TruffleBoundary
+    @ExplodeLoop
     public long toPhysicalAddress(long virtualAddress, AccessType accessType, PrivilegedContext privilegedState, TranslationDetails details) throws RiscvTrapException {
         // Decode and check the virtual address
         long vte = virtualAddress >> 12;
